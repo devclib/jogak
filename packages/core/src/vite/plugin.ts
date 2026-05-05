@@ -12,14 +12,23 @@ export function jogak(options: JogakPluginOptions = {}): Plugin {
     patterns = ['src/**/*.jogak.ts', 'src/**/*.jogak.tsx'],
     codeTheme = 'vsDark',
   } = options
+  const optionCwd = options.cwd
+  const optionTsConfigFilePath = options.tsConfigFilePath
+
   let devServer: ViteDevServer | undefined
   let extractor: PropsExtractor | undefined
+  let resolvedCwd: string | undefined
 
   return {
     name: 'vite-plugin-jogak',
 
     configResolved(config) {
-      const tsConfigCandidate = resolve(config.root, 'tsconfig.json')
+      // glob의 cwd: 옵션 우선, 미지정 시 Vite config.root (기존 동작 유지).
+      resolvedCwd = optionCwd ?? config.root
+
+      // ts-morph tsconfig: 옵션 우선, 미지정 시 resolvedCwd/tsconfig.json 자동 감지.
+      const tsConfigCandidate =
+        optionTsConfigFilePath ?? resolve(resolvedCwd, 'tsconfig.json')
       extractor = existsSync(tsConfigCandidate)
         ? createPropsExtractor({ tsConfigFilePath: tsConfigCandidate })
         : createPropsExtractor()
@@ -40,7 +49,9 @@ export function jogak(options: JogakPluginOptions = {}): Plugin {
       if (id !== RESOLVED_VIRTUAL_MODULE_ID) return undefined
 
       const { glob } = await import('glob')
-      const files = await glob(patterns as string[], { absolute: true })
+      // resolvedCwd는 configResolved에서 항상 설정되지만 방어적으로 fallback.
+      const cwd = resolvedCwd ?? process.cwd()
+      const files = await glob(patterns as string[], { cwd, absolute: true })
 
       const autoArgTypesByFile: Record<string, Record<string, ArgType>> = {}
       if (extractor !== undefined) {

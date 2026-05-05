@@ -86,4 +86,18 @@ export interface JogakPluginOptions {
    * ultramin | vsDark (기본값) | vsLight
    */
   readonly codeTheme?: string
+  /**
+   * glob의 cwd. 미지정 시 Vite `config.root`를 사용한다.
+   *
+   * `runHost` 같은 외부 호스트가 Vite root를 다른 패키지 디렉토리로 잡고
+   * 사용자 프로젝트의 jogak 파일을 가상 모듈로 주입하고 싶을 때 사용.
+   * 미지정 시 기존 동작과 동일하다 (back-compat).
+   */
+  readonly cwd?: string
+  /**
+   * ts-morph용 tsconfig 절대 경로.
+   * 미지정 시 `<resolvedCwd>/tsconfig.json`을 자동 감지하며,
+   * 파일이 없으면 tsconfig 없이 PropsExtractor를 생성한다.
+   */
+  readonly tsConfigFilePath?: string
 }

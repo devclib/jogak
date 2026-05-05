@@ -12,7 +12,10 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@jogak/core": "workspace:*"
+    "@jogak/core": "workspace:*",
+    "@jogak/ui": "workspace:*",
+    "vite": "^6.0.0",
+    "@vitejs/plugin-react": "^4.3.0"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",
