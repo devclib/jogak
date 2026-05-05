@@ -22,9 +22,22 @@ next-env.d.ts
 
 # bench results (매 실행마다 변경)
 benchmarks/last-run.md
+benchmarks/last-run-scale.md
+benchmarks/last-run-scale.json
+benchmarks/baselines/jogak/jogak-static/
+benchmarks/baselines/storybook/storybook-static/
+
+# scale benchmark fixture (generator가 매 측정마다 재생성)
+benchmarks/baselines/shared/components/generated/
+benchmarks/baselines/jogak/src/generated/
+benchmarks/baselines/storybook/src/generated/
 
 # Claude Code local settings (개인 권한 허용 목록 — 공유하지 않음)
 .claude/settings.local.json
+
+# 하네스 작업 공간 (architect/test-qa 산출물 — 작업용)
+_workspace/
+_workspace_*/
 
 # misc
 .DS_Store

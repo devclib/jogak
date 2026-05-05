@@ -1,0 +1,19 @@
+{
+  "name": "@baseline/shared",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./components/index.ts",
+  "exports": {
+    "./*": "./*"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5.5.0"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  }
+}

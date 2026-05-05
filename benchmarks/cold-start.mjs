@@ -10,9 +10,10 @@ const ROOT = resolve(__dirname, '..')
 
 const CLEAN = process.env.JOGAK_BENCH_CLEAN === '1'
 const RUNS = Number(process.env.JOGAK_BENCH_RUNS ?? '3')
-const TIMEOUT_MS = 90_000
+const TIMEOUT_MS = 120_000
+const ONLY_BASELINE = process.env.JOGAK_BENCH_ONLY_BASELINE === '1'
 
-const TARGETS = [
+const INTERNAL_TARGETS = [
   {
     name: 'ui (Vite SPA)',
     command: 'pnpm',
@@ -35,6 +36,42 @@ const TARGETS = [
     caches: ['apps/next-demo/.next'],
   },
 ]
+
+const BASELINE_TARGETS = [
+  {
+    name: 'baseline-jogak (jogak dev)',
+    command: 'pnpm',
+    args: [
+      '--filter',
+      'baseline-jogak',
+      'exec',
+      'jogak',
+      'dev',
+      '--port',
+      '5182',
+      '--patterns',
+      'src/**/*.jogak.tsx',
+    ],
+    url: 'http://localhost:5182/',
+    caches: ['benchmarks/baselines/jogak/node_modules/.vite'],
+    group: 'baseline',
+  },
+  {
+    name: 'baseline-storybook (sb dev)',
+    command: 'pnpm',
+    args: ['--filter', 'baseline-storybook', 'exec', 'storybook', 'dev', '-p', '6006', '--no-open', '--quiet'],
+    url: 'http://localhost:6006/',
+    caches: [
+      'benchmarks/baselines/storybook/node_modules/.cache/storybook',
+      'benchmarks/baselines/storybook/node_modules/.vite-storybook',
+    ],
+    group: 'baseline',
+  },
+]
+
+const TARGETS = ONLY_BASELINE
+  ? BASELINE_TARGETS
+  : [...INTERNAL_TARGETS, ...BASELINE_TARGETS]
 
 async function fetchOnce(url) {
   try {
@@ -109,18 +146,26 @@ export async function runColdStartBench() {
     const median = valid.length > 0 ? valid[Math.floor(valid.length / 2)] : NaN
     const min = valid[0] ?? NaN
     const max = valid[valid.length - 1] ?? NaN
-    results.push({ name: target.name, median, min, max, runs: times.length, ok: valid.length })
+    results.push({
+      name: target.name,
+      median,
+      min,
+      max,
+      runs: times.length,
+      ok: valid.length,
+      group: target.group ?? 'internal',
+    })
   }
   return results
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  process.stdout.write(`runs=${RUNS.toString()}  clean=${CLEAN.toString()}\n\n`)
+  process.stdout.write(`runs=${RUNS.toString()}  clean=${CLEAN.toString()}  only-baseline=${ONLY_BASELINE.toString()}\n\n`)
   const r = await runColdStartBench()
-  process.stdout.write('target                       median_ms   min_ms   max_ms   ok\n')
+  process.stdout.write('target                              median_ms   min_ms   max_ms   ok\n')
   for (const x of r) {
     process.stdout.write(
-      `${x.name.padEnd(28)} ${x.median.toFixed(0).padStart(8)}   ${x.min.toFixed(0).padStart(6)}   ${x.max.toFixed(0).padStart(6)}   ${x.ok.toString()}/${x.runs.toString()}\n`,
+      `${x.name.padEnd(34)} ${x.median.toFixed(0).padStart(9)}   ${x.min.toFixed(0).padStart(6)}   ${x.max.toFixed(0).padStart(6)}   ${x.ok.toString()}/${x.runs.toString()}\n`,
     )
   }
 }

@@ -1,4 +1,4 @@
-import { stat, readdir } from 'node:fs/promises'
+import { stat, readdir, rm } from 'node:fs/promises'
 import { join, resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFile } from 'node:child_process'
@@ -44,6 +44,41 @@ const TARGETS = [
   { name: '@jogak/cli', cmd: ['pnpm', '--filter', '@jogak/cli', 'build'], dist: 'packages/cli/dist' },
 ]
 
+const BASELINE_TARGETS = [
+  {
+    name: 'baseline-jogak',
+    cmd: [
+      'pnpm',
+      '--filter',
+      'baseline-jogak',
+      'exec',
+      'jogak',
+      'build',
+      '--patterns',
+      'src/**/*.jogak.tsx',
+      '--out-dir',
+      'jogak-static',
+    ],
+    dist: 'benchmarks/baselines/jogak/jogak-static',
+    cleanBefore: ['benchmarks/baselines/jogak/jogak-static'],
+  },
+  {
+    name: 'baseline-storybook',
+    cmd: [
+      'pnpm',
+      '--filter',
+      'baseline-storybook',
+      'exec',
+      'storybook',
+      'build',
+      '-o',
+      'storybook-static',
+    ],
+    dist: 'benchmarks/baselines/storybook/storybook-static',
+    cleanBefore: ['benchmarks/baselines/storybook/storybook-static'],
+  },
+]
+
 export async function runBundleBench() {
   const results = []
   for (const t of TARGETS) {
@@ -57,12 +92,38 @@ export async function runBundleBench() {
   return results
 }
 
+export async function runBaselineBundleBench() {
+  const results = []
+  for (const t of BASELINE_TARGETS) {
+    if (t.cleanBefore !== undefined) {
+      for (const c of t.cleanBefore) {
+        await rm(resolve(ROOT, c), { recursive: true, force: true })
+      }
+    }
+    const t0 = performance.now()
+    const [bin, ...args] = t.cmd
+    try {
+      await execAsync(bin, args, { cwd: ROOT, maxBuffer: 64 * 1024 * 1024 })
+    } catch (err) {
+      const stderr = err && typeof err === 'object' && 'stderr' in err ? String(err.stderr).slice(-300) : ''
+      process.stderr.write(`[bundle] ${t.name} build 실패\n${stderr}\n`)
+      results.push({ name: t.name, buildMs: NaN, total: 0, totalGzip: 0, files: 0, group: 'baseline', error: true })
+      continue
+    }
+    const buildMs = performance.now() - t0
+    const sz = await dirSize(resolve(ROOT, t.dist))
+    results.push({ name: t.name, buildMs, ...sz, group: 'baseline' })
+  }
+  return results
+}
+
 if (import.meta.url === `file://${process.argv[1]}`) {
-  const r = await runBundleBench()
-  process.stdout.write('package                  build_ms   dist_kb   js_gzip_kb   files\n')
+  const onlyBaseline = process.env.JOGAK_BENCH_ONLY_BASELINE === '1'
+  const r = onlyBaseline ? await runBaselineBundleBench() : await runBundleBench()
+  process.stdout.write('target                       build_ms   dist_kb   js_gzip_kb   files\n')
   for (const x of r) {
     process.stdout.write(
-      `${x.name.padEnd(24)} ${x.buildMs.toFixed(0).padStart(7)}   ${(x.total / 1024).toFixed(1).padStart(7)}   ${(x.totalGzip / 1024).toFixed(2).padStart(10)}   ${x.files.toString().padStart(5)}\n`,
+      `${x.name.padEnd(28)} ${(Number.isFinite(x.buildMs) ? x.buildMs.toFixed(0) : 'n/a').padStart(8)}   ${(x.total / 1024).toFixed(1).padStart(7)}   ${(x.totalGzip / 1024).toFixed(2).padStart(10)}   ${x.files.toString().padStart(5)}\n`,
     )
   }
 }

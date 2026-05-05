@@ -17,7 +17,10 @@
     "prebench:extract": "pnpm --filter @jogak/core build",
     "bench:extract": "node benchmarks/extract-props.mjs",
     "bench:bundle": "node benchmarks/bundle-size.mjs",
-    "bench:cold-start": "node benchmarks/cold-start.mjs"
+    "bench:cold-start": "node benchmarks/cold-start.mjs",
+    "bench:baseline": "JOGAK_BENCH_ONLY_BASELINE=1 JOGAK_BENCH_RUNS=1 node benchmarks/run.mjs",
+    "bench:scale": "node benchmarks/run-scale.mjs",
+    "bench:scale:full": "JOGAK_BENCH_SIZES=5,50,100,500 JOGAK_BENCH_INCLUDE_500=1 node benchmarks/run-scale.mjs"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
