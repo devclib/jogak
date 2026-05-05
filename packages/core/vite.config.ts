@@ -12,6 +12,10 @@ export default defineConfig({
         index: resolve(__dirname, 'src/index.ts'),
         'vite/index': resolve(__dirname, 'src/vite/plugin.ts'),
         'build/index': resolve(__dirname, 'src/build/index.ts'),
+        // Props extractor child process entry — child_process.fork 대상.
+        // 부모 프로세스(plugin/build)에 ts-morph가 같은 V8 isolate에 로드되지 않게
+        // 별도 entry로 emit → dist/meta/extractor-child.mjs.
+        'meta/extractor-child': resolve(__dirname, 'src/meta/extractor-child.ts'),
       },
       formats: ['es', 'cjs'],
       fileName: (format, entryName) =>

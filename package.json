@@ -20,7 +20,9 @@
     "bench:cold-start": "node benchmarks/cold-start.mjs",
     "bench:baseline": "JOGAK_BENCH_ONLY_BASELINE=1 JOGAK_BENCH_RUNS=1 node benchmarks/run.mjs",
     "bench:scale": "node benchmarks/run-scale.mjs",
-    "bench:scale:full": "JOGAK_BENCH_SIZES=5,50,100,500 JOGAK_BENCH_INCLUDE_500=1 node benchmarks/run-scale.mjs"
+    "bench:scale:full": "JOGAK_BENCH_SIZES=5,50,100,500 JOGAK_BENCH_INCLUDE_500=1 node benchmarks/run-scale.mjs",
+    "bench:hmr": "node benchmarks/hmr-latency.mjs",
+    "bench:rss": "node benchmarks/rss-idle.mjs"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

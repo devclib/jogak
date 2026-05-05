@@ -50,6 +50,36 @@ export interface RegistryEntry {
 }
 
 /**
+ * 인덱스 가상모듈에 들어가는 "껍데기" 메타.
+ *
+ * - user 컴포넌트(`meta.component`)와 jogak 객체(`render`/`args`/...)를 포함하지 않는다.
+ * - 사이드바 렌더링·검색·트리 구성에 필요한 최소 정보만 담는다.
+ * - hydrate 시점에 이 meta로부터 완전한 RegistryEntry를 합성한다.
+ */
+export interface RegistryEntryMeta {
+  readonly id: string
+  readonly title: string
+  /** 이 entry의 jogak 객체 이름 목록 — 사이드바에서 sub-item 표시용. */
+  readonly jogakNames: readonly string[]
+  /** ts-morph로 추출한 자동 argTypes (소스 변경 없으면 정적). */
+  readonly autoArgTypes: Readonly<Record<string, ArgType>>
+  /** *.jogak 파일에서 사용자가 직접 작성한 argTypes (meta.argTypes). */
+  readonly userArgTypes: Readonly<Record<string, ArgType>>
+  /** *.jogak 파일의 원본 텍스트 — Source 패널이 즉시 표시 가능해야 하므로 인덱스에 포함. */
+  readonly source: string
+  /** 절대경로 — HMR/디버깅용. */
+  readonly filePath: string
+  /**
+   * 사용자 meta의 직렬화 가능한 잔여 필드만 보관 (tags, parameters).
+   * `component`는 함수라 직렬화 불가 → 제외. `argTypes`는 위에서 분리.
+   */
+  readonly metaExtras: {
+    readonly tags?: readonly string[]
+    readonly parameters?: Readonly<Record<string, unknown>>
+  }
+}
+
+/**
  * 사이드바 렌더링용 카테고리 트리.
  * title의 '/' 구분자로 계층 구성 (예: "Form/Button" → { Form: { Button: RegistryEntry } })
  *
@@ -57,6 +87,14 @@ export interface RegistryEntry {
  */
 export interface CategoryTree {
   [key: string]: RegistryEntry | CategoryTree
+}
+
+/**
+ * Sidebar용 메타 트리 — `RegistryEntry` 자리에 `RegistryEntryMeta`.
+ * lazy 모드에서 hydrate 전에도 사이드바를 그릴 수 있도록 별도 트리 구조.
+ */
+export interface CategoryMetaTree {
+  [key: string]: RegistryEntryMeta | CategoryMetaTree
 }
 
 /**

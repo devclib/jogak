@@ -22,6 +22,10 @@
       "import": "./dist/build/index.mjs"
     }
   },
+  "files": [
+    "dist",
+    "src"
+  ],
   "scripts": {
     "build": "vite build",
     "dev": "vite build --watch",

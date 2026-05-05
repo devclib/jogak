@@ -19,10 +19,14 @@ export default defineConfig({
   },
   plugins: [
     react(),
-    dts({ include: ['src/**/*.ts', 'src/**/*.tsx'], entryRoot: 'src' }),
+    dts({
+      include: ['src/**/*.ts', 'src/**/*.tsx'],
+      exclude: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
+      entryRoot: 'src',
+    }),
   ],
   test: {
-    environment: 'jsdom',
+    environment: 'happy-dom',
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json'],

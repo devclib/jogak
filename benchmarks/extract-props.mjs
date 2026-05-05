@@ -24,12 +24,15 @@ export async function runExtractBench() {
   const perFile = []
   for (const file of files) {
     const t1 = performance.now()
-    const result = extractor.extract(file)
+    // extract는 child_process로 격리되어 비동기다.
+    const result = await extractor.extract(file)
     perFile.push({ file: file.replace(`${ROOT}/`, ''), ms: performance.now() - t1 })
     totalProps += Object.keys(result).length
   }
 
   const runMs = perFile.reduce((sum, x) => sum + x.ms, 0)
+  // 자식 프로세스 즉시 정리 — bench가 매달리지 않게.
+  extractor.releaseCache()
   return {
     initMs,
     fileCount: files.length,

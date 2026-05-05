@@ -24,6 +24,10 @@ next-env.d.ts
 benchmarks/last-run.md
 benchmarks/last-run-scale.md
 benchmarks/last-run-scale.json
+benchmarks/last-run-rss.json
+benchmarks/last-run-hmr.json
+benchmarks/last-run-mem-*.json
+benchmarks/*.heapsnapshot
 benchmarks/baselines/jogak/jogak-static/
 benchmarks/baselines/storybook/storybook-static/
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import type { ReactElement } from 'react'
-import type { CategoryTree, RegistryEntry } from '@jogak/core'
-import { useRegistry } from '../../hooks/useRegistry.js'
+import type { CategoryMetaTree, RegistryEntryMeta } from '@jogak/core'
+import { useRegistryMeta } from '@jogak/react'
 
 export interface SidebarProps {
   readonly selectedEntryId: string | null
@@ -9,15 +9,19 @@ export interface SidebarProps {
   readonly onSelect: (entryId: string, jogakName: string) => void
 }
 
+/**
+ * Sidebar — `useRegistryMeta`로 전환되어 lazy 모드에서도 모든 entry의 메타가 즉시 보인다.
+ * 계약 §10: hydrated 여부를 표시하지 않는다 — 사용자에겐 모든 entry가 동일하게 보임.
+ */
 export function Sidebar({
   selectedEntryId,
   selectedJogakName,
   onSelect,
 }: SidebarProps): ReactElement {
   const [query, setQuery] = useState('')
-  const { tree, search } = useRegistry()
+  const { metaTree, searchMeta } = useRegistryMeta()
 
-  const filtered = query.trim().length > 0 ? search(query) : null
+  const filtered = query.trim().length > 0 ? searchMeta(query) : null
 
   return (
     <aside
@@ -50,14 +54,14 @@ export function Sidebar({
       <nav style={{ flex: 1, overflow: 'auto', padding: '8px 0' }}>
         {filtered !== null ? (
           <FlatList
-            entries={filtered}
+            metas={filtered}
             selectedEntryId={selectedEntryId}
             selectedJogakName={selectedJogakName}
             onSelect={onSelect}
           />
         ) : (
           <TreeView
-            node={tree}
+            node={metaTree}
             selectedEntryId={selectedEntryId}
             selectedJogakName={selectedJogakName}
             onSelect={onSelect}
@@ -69,19 +73,19 @@ export function Sidebar({
 }
 
 interface FlatListProps {
-  readonly entries: readonly RegistryEntry[]
+  readonly metas: readonly RegistryEntryMeta[]
   readonly selectedEntryId: string | null
   readonly selectedJogakName: string | null
   readonly onSelect: (entryId: string, jogakName: string) => void
 }
 
 function FlatList({
-  entries,
+  metas,
   selectedEntryId,
   selectedJogakName,
   onSelect,
 }: FlatListProps): ReactElement {
-  if (entries.length === 0) {
+  if (metas.length === 0) {
     return (
       <p style={{ padding: '0 12px', color: '#9ca3af', fontSize: 13 }}>
         No results
@@ -90,10 +94,10 @@ function FlatList({
   }
   return (
     <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-      {entries.map((entry) => (
-        <li key={entry.id}>
+      {metas.map((meta) => (
+        <li key={meta.id}>
           <EntryGroup
-            entry={entry}
+            meta={meta}
             selectedEntryId={selectedEntryId}
             selectedJogakName={selectedJogakName}
             onSelect={onSelect}
@@ -106,7 +110,7 @@ function FlatList({
 }
 
 interface TreeViewProps {
-  readonly node: CategoryTree
+  readonly node: CategoryMetaTree
   readonly selectedEntryId: string | null
   readonly selectedJogakName: string | null
   readonly onSelect: (entryId: string, jogakName: string) => void
@@ -132,7 +136,7 @@ function TreeView({
         <li key={key}>
           {'id' in child ? (
             <EntryGroup
-              entry={child as RegistryEntry}
+              meta={child as RegistryEntryMeta}
               selectedEntryId={selectedEntryId}
               selectedJogakName={selectedJogakName}
               onSelect={onSelect}
@@ -141,7 +145,7 @@ function TreeView({
           ) : (
             <CategoryGroup
               label={key}
-              node={child as CategoryTree}
+              node={child as CategoryMetaTree}
               selectedEntryId={selectedEntryId}
               selectedJogakName={selectedJogakName}
               onSelect={onSelect}
@@ -156,7 +160,7 @@ function TreeView({
 
 interface CategoryGroupProps {
   readonly label: string
-  readonly node: CategoryTree
+  readonly node: CategoryMetaTree
   readonly selectedEntryId: string | null
   readonly selectedJogakName: string | null
   readonly onSelect: (entryId: string, jogakName: string) => void
@@ -213,7 +217,7 @@ function CategoryGroup({
 }
 
 interface EntryGroupProps {
-  readonly entry: RegistryEntry
+  readonly meta: RegistryEntryMeta
   readonly selectedEntryId: string | null
   readonly selectedJogakName: string | null
   readonly onSelect: (entryId: string, jogakName: string) => void
@@ -221,20 +225,20 @@ interface EntryGroupProps {
 }
 
 function EntryGroup({
-  entry,
+  meta,
   selectedEntryId,
   selectedJogakName,
   onSelect,
   indent,
 }: EntryGroupProps): ReactElement {
-  const isCurrentEntry = entry.id === selectedEntryId
+  const isCurrentEntry = meta.id === selectedEntryId
   const [open, setOpen] = useState(isCurrentEntry)
 
   useEffect(() => {
     if (isCurrentEntry) setOpen(true)
   }, [isCurrentEntry])
 
-  const label = entry.title.split('/').pop() ?? entry.title
+  const label = meta.title.split('/').pop() ?? meta.title
   const paddingLeft = 16 + indent * 12
 
   return (
@@ -244,8 +248,8 @@ function EntryGroup({
         onClick={() => {
           if (!isCurrentEntry) {
             setOpen(true)
-            const first = entry.jogaks[0]
-            if (first !== undefined) onSelect(entry.id, first.name)
+            const first = meta.jogakNames[0]
+            if (first !== undefined) onSelect(meta.id, first)
           } else {
             setOpen((v) => !v)
           }
@@ -273,14 +277,14 @@ function EntryGroup({
       </button>
       {open && (
         <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-          {entry.jogaks.map((jogak) => {
-            const isSelected = isCurrentEntry && jogak.name === selectedJogakName
+          {meta.jogakNames.map((jogakName) => {
+            const isSelected = isCurrentEntry && jogakName === selectedJogakName
             return (
-              <li key={jogak.name}>
+              <li key={jogakName}>
                 <button
                   type="button"
                   onClick={() => {
-                    onSelect(entry.id, jogak.name)
+                    onSelect(meta.id, jogakName)
                   }}
                   style={{
                     display: 'block',
@@ -296,7 +300,7 @@ function EntryGroup({
                   }}
                   aria-current={isSelected ? 'true' : undefined}
                 >
-                  {jogak.name}
+                  {jogakName}
                 </button>
               </li>
             )

@@ -1,144 +1,54 @@
-import { Node, Project, type SourceFile, type Symbol as MorphSymbol, type Type } from 'ts-morph'
+/**
+ * Public PropsExtractor 인터페이스 + factory.
+ *
+ * 실제 ts-morph 추출 로직은 자식 프로세스 entry(`extractor-child.ts`)에 격리되며,
+ * 부모는 `extractor-client.ts`의 IPC 클라이언트만 사용한다. 이 모듈은
+ * ts-morph를 import하지 않는다 — 그래야 vite plugin / build / index 진입점이
+ * ts-morph를 부모 V8 isolate에 로드하지 않는다.
+ */
 import type { ArgType } from '../types.js'
 
 export interface PropsExtractorOptions {
   readonly tsConfigFilePath?: string
 }
 
+/**
+ * 자식 프로세스 RPC가 돌려보내는 메타 페이로드 — 직렬화 가능한 부분만.
+ * `RegistryEntryMeta`의 일부와 1:1 (id/source/filePath/autoArgTypes는 부모가 채운다).
+ */
+export interface ExtractedMetaPayload {
+  readonly title: string
+  readonly jogakNames: readonly string[]
+  readonly userArgTypes: Readonly<Record<string, ArgType>>
+  readonly metaExtras: {
+    readonly tags?: readonly string[]
+    readonly parameters?: Readonly<Record<string, unknown>>
+  }
+}
+
 export interface PropsExtractor {
-  extract(jogakFilePath: string): Record<string, ArgType>
+  /**
+   * 단일 jogak 파일을 받아 props 메타데이터를 추출한다.
+   *
+   * 반환 타입이 Promise인 이유: 추출은 별도 child_process에서 IPC로 수행된다.
+   * V8 GC가 ts-morph가 만든 대형 페이지를 OS에 반환하지 않는 문제를
+   * "프로세스 자체를 kill"로 해결하기 위해서.
+   */
+  extract(jogakFilePath: string): Promise<Record<string, ArgType>>
+  /**
+   * 사용자 jogak 파일의 default-export 메타(`title`, `argTypes`, `tags`, `parameters`)와
+   * named-export 중 jogak 객체들의 `name` 목록을 추출한다.
+   * 추출 불가능(ts-morph가 default export object literal을 못 찾음)하면 `null`.
+   *
+   * **부모 프로세스에는 ts-morph가 절대 로드되지 않는다.**
+   * 모든 ts-morph 작업은 자식 프로세스에서 수행된다.
+   */
+  extractMeta(jogakFilePath: string): Promise<ExtractedMetaPayload | null>
+  /**
+   * 자식 프로세스를 즉시 종료하고 모든 메모리를 OS에 반환한다.
+   * 다음 extract 호출 시 자식이 다시 spawn된다 (~수백ms warmup).
+   */
+  releaseCache(): void
 }
 
-export function createPropsExtractor(options: PropsExtractorOptions = {}): PropsExtractor {
-  const project =
-    options.tsConfigFilePath !== undefined
-      ? new Project({ tsConfigFilePath: options.tsConfigFilePath })
-      : new Project({ skipAddingFilesFromTsConfig: true })
-
-  function loadOrRefresh(filePath: string): SourceFile | undefined {
-    let sourceFile = project.getSourceFile(filePath)
-    if (sourceFile === undefined) {
-      sourceFile = project.addSourceFileAtPathIfExists(filePath)
-    } else {
-      sourceFile.refreshFromFileSystemSync()
-    }
-    return sourceFile
-  }
-
-  return {
-    extract(jogakFilePath) {
-      const sourceFile = loadOrRefresh(jogakFilePath)
-      if (sourceFile === undefined) return {}
-
-      const defaultExportSymbol = sourceFile.getDefaultExportSymbol()
-      if (defaultExportSymbol === undefined) return {}
-
-      const aliased = defaultExportSymbol.getAliasedSymbol() ?? defaultExportSymbol
-      const declaration = aliased.getDeclarations()[0] ?? defaultExportSymbol.getDeclarations()[0]
-      if (declaration === undefined) return {}
-
-      const metaType = aliased.getTypeAtLocation(declaration)
-      const componentSymbol = metaType.getProperty('component')
-      if (componentSymbol === undefined) return {}
-
-      const componentType = componentSymbol.getTypeAtLocation(declaration)
-      const propsType = resolvePropsType(componentType, declaration)
-      if (propsType === undefined) return {}
-
-      const result: Record<string, ArgType> = {}
-      for (const propSymbol of propsType.getProperties()) {
-        const propName = propSymbol.getName()
-        const propType = propSymbol.getTypeAtLocation(declaration)
-        const mapped = mapType(propType)
-        if (mapped === null) continue
-
-        const required = !isOptionalSymbol(propSymbol)
-        const argType: ArgType = {
-          type: mapped.type,
-          required,
-          ...(mapped.control !== undefined ? { control: mapped.control } : {}),
-          ...(mapped.options !== undefined ? { options: mapped.options } : {}),
-          ...(mapped.action === true ? { action: true } : {}),
-        }
-        result[propName] = argType
-      }
-      return result
-    },
-  }
-}
-
-function resolvePropsType(componentType: Type, location: Node): Type | undefined {
-  const callSignatures = componentType.getCallSignatures()
-  const firstSignature = callSignatures[0]
-  if (firstSignature === undefined) return undefined
-  const params = firstSignature.getParameters()
-  const firstParam = params[0]
-  if (firstParam === undefined) return undefined
-  const valueDecl = firstParam.getValueDeclaration() ?? location
-  return firstParam.getTypeAtLocation(valueDecl)
-}
-
-function isOptionalSymbol(symbol: MorphSymbol): boolean {
-  for (const decl of symbol.getDeclarations()) {
-    if (
-      Node.isPropertySignature(decl) ||
-      Node.isPropertyDeclaration(decl) ||
-      Node.isParameterDeclaration(decl)
-    ) {
-      if (decl.hasQuestionToken()) return true
-    }
-  }
-  return false
-}
-
-interface MappedType {
-  readonly type: string
-  readonly control?: NonNullable<ArgType['control']>
-  readonly options?: readonly unknown[]
-  readonly action?: boolean
-}
-
-function mapType(type: Type): MappedType | null {
-  if (type.isUnion()) {
-    const parts = type.getUnionTypes().filter((t) => !t.isUndefined() && !t.isNull())
-    if (parts.length === 0) return null
-    if (parts.length === 1) {
-      const only = parts[0]
-      return only !== undefined ? mapType(only) : null
-    }
-
-    if (parts.every((t) => t.isStringLiteral())) {
-      return {
-        type: 'enum',
-        control: 'select',
-        options: parts.map((t) => readLiteralValue(t)),
-      }
-    }
-
-    if (parts.length === 2 && parts.every((t) => t.isBooleanLiteral())) {
-      return { type: 'boolean', control: 'boolean' }
-    }
-
-    return null
-  }
-
-  if (type.isString() || type.isStringLiteral()) {
-    return { type: 'string', control: 'text' }
-  }
-  if (type.isNumber() || type.isNumberLiteral()) {
-    return { type: 'number', control: 'number' }
-  }
-  if (type.isBoolean()) {
-    return { type: 'boolean', control: 'boolean' }
-  }
-  if (type.getCallSignatures().length > 0) {
-    return { type: 'function', action: true }
-  }
-  return null
-}
-
-function readLiteralValue(type: Type): string {
-  const value = type.getLiteralValue()
-  if (typeof value === 'string') return value
-  return type.getText().replace(/^["']|["']$/g, '')
-}
+export { createPropsExtractor } from './extractor-client.js'

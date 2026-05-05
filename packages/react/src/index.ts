@@ -1,3 +1,7 @@
 export { reactAdapter } from './adapter.js'
 export { JogakProvider, useRegistry } from './JogakProvider.js'
 export type { JogakProviderProps } from './JogakProvider.js'
+export { useEntry } from './useEntry.js'
+export type { UseEntryState } from './useEntry.js'
+export { useRegistryMeta } from './useRegistryMeta.js'
+export type { UseRegistryMetaReturn } from './useRegistryMeta.js'

@@ -3,12 +3,14 @@ export type {
   JogakMeta,
   Jogak,
   RegistryEntry,
+  RegistryEntryMeta,
   CategoryTree,
+  CategoryMetaTree,
   JogakAdapter,
   JogakPluginOptions,
 } from './types.js'
 
-export { ComponentRegistry, defaultRegistry } from './registry.js'
+export { ComponentRegistry, defaultRegistry, UnknownEntryError } from './registry.js'
 export {
   ActionChannel,
   defaultActionChannel,
