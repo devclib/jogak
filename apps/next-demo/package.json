@@ -1,0 +1,30 @@
+{
+  "name": "next-demo",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "jogak:gen": "jogak generate --patterns 'src/**/*.jogak.tsx'",
+    "predev": "pnpm jogak:gen",
+    "prebuild": "pnpm jogak:gen",
+    "dev": "next dev -p 3001",
+    "build": "next build",
+    "start": "next start -p 3001",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@jogak/core": "workspace:*",
+    "@jogak/react": "workspace:*",
+    "@jogak/ui": "workspace:*",
+    "next": "^15.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@jogak/cli": "workspace:*",
+    "@types/node": "^20.14.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5.5.0"
+  }
+}

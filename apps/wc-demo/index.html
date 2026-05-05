@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Jogak — Web Components Demo</title>
+    <style>
+      body { font-family: system-ui, -apple-system, sans-serif; padding: 32px; max-width: 720px; margin: 0 auto; }
+      h1 { margin-top: 0; }
+      section { margin-top: 24px; padding: 16px; border: 1px solid #e5e7eb; border-radius: 8px; }
+      h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; color: #6b7280; margin: 0 0 12px; }
+      .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    </style>
+  </head>
+  <body>
+    <h1>Jogak × Web Components</h1>
+    <p style="color:#4b5563">
+      <code>defineJogakElement</code>로 등록된 Custom Element는 호스트 페이지에서 일반 HTML
+      태그처럼 사용할 수 있습니다. 스타일은 Shadow DOM으로 격리되며 Preact 런타임만
+      포함됩니다 (~3KB).
+    </p>
+
+    <section>
+      <h2>Info</h2>
+      <div class="row">
+        <jogak-pill label="New" tone="info"></jogak-pill>
+        <jogak-pill label="Default rounded" tone="info"></jogak-pill>
+      </div>
+    </section>
+
+    <section>
+      <h2>Success</h2>
+      <div class="row">
+        <jogak-pill label="OK" tone="success"></jogak-pill>
+        <jogak-pill label="Done" tone="success" rounded="false"></jogak-pill>
+      </div>
+    </section>
+
+    <section>
+      <h2>Danger (rounded=false)</h2>
+      <div class="row">
+        <jogak-pill label="Error" tone="danger" rounded="false"></jogak-pill>
+        <jogak-pill label="Critical" tone="danger" rounded="false"></jogak-pill>
+      </div>
+    </section>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

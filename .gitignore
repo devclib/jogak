@@ -1,0 +1,28 @@
+node_modules/
+dist/
+.cache/
+coverage/
+playwright-report/
+test-results/
+*.local
+.env
+.env.*
+!.env.example
+
+# build artifacts
+*.tsbuildinfo
+
+# next
+.next/
+.turbo/
+next-env.d.ts
+
+# jogak codegen output
+.jogak/
+
+# Claude Code local settings (개인 권한 허용 목록 — 공유하지 않음)
+.claude/settings.local.json
+
+# misc
+.DS_Store
+*.log

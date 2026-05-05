@@ -1,0 +1,45 @@
+{
+  "name": "@jogak/core",
+  "version": "0.1.0-alpha.0",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    },
+    "./vite": {
+      "types": "./dist/vite/index.d.ts",
+      "import": "./dist/vite/index.mjs"
+    },
+    "./build": {
+      "types": "./dist/build/index.d.ts",
+      "import": "./dist/build/index.mjs"
+    }
+  },
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite build --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "glob": "^11.0.0",
+    "ts-morph": "^23.0.0"
+  },
+  "devDependencies": {
+    "vite": "^6.0.0",
+    "vite-plugin-dts": "^4.0.0",
+    "typescript": "^5.5.0",
+    "@types/node": "^20.14.0"
+  },
+  "peerDependencies": {
+    "vite": ">=5.0.0"
+  },
+  "peerDependenciesMeta": {
+    "vite": { "optional": true }
+  }
+}

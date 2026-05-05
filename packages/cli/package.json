@@ -1,0 +1,20 @@
+{
+  "name": "@jogak/cli",
+  "version": "0.1.0-alpha.0",
+  "type": "module",
+  "bin": {
+    "jogak": "./dist/cli.js"
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@jogak/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "typescript": "^5.5.0"
+  }
+}
