@@ -20,6 +20,9 @@ next-env.d.ts
 # jogak codegen output
 .jogak/
 
+# bench results (매 실행마다 변경)
+benchmarks/last-run.md
+
 # Claude Code local settings (개인 권한 허용 목록 — 공유하지 않음)
 .claude/settings.local.json
 
