@@ -187,4 +187,4 @@ pnpm --filter next-demo build         # Next 데모 production 빌드
 
 ## 라이선스
 
-추후 결정.
+[MIT](./LICENSE)
