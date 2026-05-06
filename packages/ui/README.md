@@ -1,8 +1,60 @@
 # @jogak/ui
 
-Showcase viewer UI for Jogak — Sidebar / Preview / Controls / Actions and the JogakApp shell.
+Showcase viewer UI for [Jogak](https://github.com/devclib/jogak) — `Sidebar` / `Preview` / `Controls` / `Actions` and the `JogakApp` shell.
 
-See the [main Jogak README](https://github.com/devclib/jogak#readme) for installation, usage, and architecture.
+## Install
+
+```bash
+pnpm add @jogak/ui @jogak/core @jogak/react react react-dom
+```
+
+`react` / `react-dom` are peer dependencies (>=18). `vite` and `@vitejs/plugin-react` are optional peers (only when using the Vite plugin).
+
+## Usage
+
+### Embed into a Vite SPA
+
+```ts
+// vite.config.ts
+import { jogak } from '@jogak/core/vite'
+
+export default defineConfig({
+  plugins: [react(), jogak({ codeTheme: 'vsDark' })],
+})
+```
+
+```tsx
+// main.tsx
+import 'virtual:jogak'
+import { _jogakCodeTheme } from 'virtual:jogak'
+import { JogakApp } from '@jogak/ui'
+import { createRoot } from 'react-dom/client'
+
+createRoot(document.getElementById('root')!).render(
+  <JogakApp codeTheme={_jogakCodeTheme} />,
+)
+```
+
+### Static catalog (Next.js / any host bundler)
+
+```tsx
+import { JogakApp } from '@jogak/ui'
+import { entries } from '../.jogak/registry'
+
+export default function Page() {
+  return <JogakApp entries={entries} codeTheme="vsDark" />
+}
+```
+
+`@jogak/ui` ships pre-built ESM/CJS — no `transpilePackages` required for Next.js.
+
+### Sub-paths
+
+```ts
+import { runHost } from '@jogak/ui/host' // Node-only, used by @jogak/cli
+```
+
+See the [main README](https://github.com/devclib/jogak#readme) for the full host embedding guide.
 
 - Repository: https://github.com/devclib/jogak
 - Issues: https://github.com/devclib/jogak/issues
