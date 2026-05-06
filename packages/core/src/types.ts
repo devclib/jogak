@@ -138,4 +138,17 @@ export interface JogakPluginOptions {
    * 파일이 없으면 tsconfig 없이 PropsExtractor를 생성한다.
    */
   readonly tsConfigFilePath?: string
+  /**
+   * F1: dev 부팅 시 jogak 의존 패키지(`@jogak/core`, `@jogak/react`, ...)의
+   * dist 변경을 감지해 Vite optimizeDeps cache(`node_modules/.vite/deps`)를
+   * 자동 삭제한다. 기본값 false (검증 활성화).
+   *
+   * workspace로 링크된 어댑터를 자주 빌드하는 환경에서는 그대로 두면
+   * `SyntaxError: ... does not provide an export named ...` 류의
+   * stale prebundle 에러를 자동으로 회피한다.
+   *
+   * true로 설정하면 검증을 끈다 — 사용자가 직접 `rm -rf node_modules/.vite/deps`
+   * 또는 `--force`를 관리해야 한다.
+   */
+  readonly disableCacheValidation?: boolean
 }

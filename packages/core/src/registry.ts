@@ -48,6 +48,15 @@ export class ComponentRegistry {
   readonly #states = new Map<string, EntryState>()
   #loader?: (id: string) => Promise<unknown>
 
+  // ── F2: subscribe + 내부 캐시 ────────────────────────────────────────
+  readonly #listeners = new Set<() => void>()
+  #cachedMetas: readonly RegistryEntryMeta[] | undefined = undefined
+  #cachedMetaTree: CategoryMetaTree | undefined = undefined
+  /** register()가 registerMeta + hydrateEntry를 합쳐 호출할 때 중간 notify를 억제한다. */
+  #batching = false
+  /** batch 도중에 mutation이 한 번이라도 일어났는지 — false면 batch 종료 시 notify 안 한다. */
+  #batchDirty = false
+
   // ── 기존 외부 API: 시그니처 변경 없음. 시맨틱은 hydrated만 표면. ───────────
 
   /**
@@ -55,20 +64,25 @@ export class ComponentRegistry {
    * 정적 빌드(`generateRegistryFile` 결과) / 테스트 / 기존 호출자 호환 경로.
    *
    * 내부 구현은 `registerMeta` + `hydrateEntry`의 compatibility shim.
+   * 두 mutation은 batch로 묶여 단일 notify만 발생한다.
    */
   register(entry: RegistryEntry): void {
     const meta = synthMetaFromEntry(entry)
-    this.registerMeta(meta)
-    this.hydrateEntry(entry.id, entry.jogaks, entry.meta.component)
+    this.#withBatch(() => {
+      this.registerMeta(meta)
+      this.hydrateEntry(entry.id, entry.jogaks, entry.meta.component)
+    })
   }
 
   unregister(id: string): void {
     const state = this.#states.get(id)
-    if (state?.kind === 'pending') {
+    if (state === undefined) return
+    if (state.kind === 'pending') {
       // pending Promise를 leak시키지 않기 위해 reject.
       state.reject(new UnknownEntryError(id))
     }
     this.#states.delete(id)
+    this.#invalidateAndNotify()
   }
 
   /** hydrated일 때만 RegistryEntry를 반환한다. meta-only/pending이면 undefined. */
@@ -117,6 +131,7 @@ export class ComponentRegistry {
   }
 
   clear(): void {
+    if (this.#states.size === 0) return
     // pending Promise는 reject 후 정리.
     for (const state of this.#states.values()) {
       if (state.kind === 'pending') {
@@ -124,6 +139,7 @@ export class ComponentRegistry {
       }
     }
     this.#states.clear()
+    this.#invalidateAndNotify()
   }
 
   /** hydrated 개수. */
@@ -145,10 +161,12 @@ export class ComponentRegistry {
     const existing = this.#states.get(meta.id)
     if (existing === undefined) {
       this.#states.set(meta.id, { kind: 'meta', meta })
+      this.#invalidateAndNotify()
       return
     }
     if (existing.kind === 'meta') {
       this.#states.set(meta.id, { kind: 'meta', meta })
+      this.#invalidateAndNotify()
       return
     }
     if (existing.kind === 'pending') {
@@ -159,6 +177,7 @@ export class ComponentRegistry {
         resolve: existing.resolve,
         reject: existing.reject,
       })
+      this.#invalidateAndNotify()
       return
     }
     // hydrated → meta만 갱신, entry/jogaks/component는 보존.
@@ -170,6 +189,7 @@ export class ComponentRegistry {
       meta: synthJogakMeta(meta, existing.entry.meta.component),
     }
     this.#states.set(meta.id, { kind: 'hydrated', meta, entry: merged })
+    this.#invalidateAndNotify()
   }
 
   /**
@@ -211,10 +231,12 @@ export class ComponentRegistry {
     if (existing?.kind === 'pending') {
       // 먼저 상태를 hydrated로 옮긴 뒤 resolve — resolve 안에서 다시 requestEntry가 호출돼도 즉시 hydrated를 본다.
       this.#states.set(id, { kind: 'hydrated', meta, entry })
+      this.#invalidateAndNotify()
       existing.resolve(entry)
       return
     }
     this.#states.set(id, { kind: 'hydrated', meta, entry })
+    this.#invalidateAndNotify()
   }
 
   /**
@@ -286,17 +308,29 @@ export class ComponentRegistry {
     return promise
   }
 
-  /** 사이드바 메타 전용 — meta-only / pending / hydrated 모두 포함. */
+  /**
+   * 사이드바 메타 전용 — meta-only / pending / hydrated 모두 포함.
+   *
+   * F2: 내부 캐시. mutation 시점에 invalidate되며 재계산 전까지 동일 reference를 반환한다.
+   * useSyncExternalStore의 referential identity 요구를 만족시키기 위함.
+   */
   getAllMeta(): readonly RegistryEntryMeta[] {
+    if (this.#cachedMetas !== undefined) return this.#cachedMetas
     const result: RegistryEntryMeta[] = []
     for (const state of this.#states.values()) {
       result.push(state.meta)
     }
-    return result
+    const frozen = result as readonly RegistryEntryMeta[]
+    this.#cachedMetas = frozen
+    return frozen
   }
 
-  /** 사이드바 트리 전용 — 모든 상태의 meta를 트리화. */
+  /**
+   * 사이드바 트리 전용 — 모든 상태의 meta를 트리화.
+   * F2: getAllMeta와 동일한 캐시 정책.
+   */
   getMetaTree(): CategoryMetaTree {
+    if (this.#cachedMetaTree !== undefined) return this.#cachedMetaTree
     const tree: CategoryMetaTree = {}
     for (const state of this.#states.values()) {
       const meta = state.meta
@@ -316,6 +350,7 @@ export class ComponentRegistry {
         node[leaf] = meta
       }
     }
+    this.#cachedMetaTree = tree
     return tree
   }
 
@@ -332,6 +367,75 @@ export class ComponentRegistry {
    */
   setEntryLoader(loader: (id: string) => Promise<unknown>): void {
     this.#loader = loader
+  }
+
+  // ── F2: subscribe API ────────────────────────────────────────────────
+
+  /**
+   * 등록/해제/메타 갱신/hydrate/clear 시 호출되는 listener를 등록한다.
+   *
+   * - listener는 무인자, 동기 호출. 어떤 변화가 있었는지는 listener가
+   *   `getAllMeta()`/`getMetaTree()`로 직접 확인.
+   * - mutation 도중 listener에서 `subscribe`/`unsubscribe`를 호출하는 재진입은
+   *   안전 (내부적으로 listener Set을 한 번 복사한 뒤 순회).
+   * - listener 예외는 catch + console.error 후 계속 (다른 listener 보장).
+   * - 반환값은 unsubscribe 함수 (멱등 — 두 번 호출해도 안전).
+   */
+  subscribe(listener: () => void): () => void {
+    this.#listeners.add(listener)
+    let active = true
+    return () => {
+      if (!active) return
+      active = false
+      this.#listeners.delete(listener)
+    }
+  }
+
+  // ── 내부 헬퍼 ─────────────────────────────────────────────────────────
+
+  /**
+   * 캐시 invalidate + listener 통지를 단일 헬퍼로.
+   * batch 모드에서는 dirty 플래그만 켜고 실제 통지는 batch 종료 시점에 한다.
+   */
+  #invalidateAndNotify(): void {
+    this.#cachedMetas = undefined
+    this.#cachedMetaTree = undefined
+    if (this.#batching) {
+      this.#batchDirty = true
+      return
+    }
+    // 재진입 안전: snapshot 후 호출.
+    const snapshot = Array.from(this.#listeners)
+    for (const l of snapshot) {
+      try {
+        l()
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.error('[jogak] subscribe listener threw:', e)
+      }
+    }
+  }
+
+  /**
+   * register() 처럼 여러 mutation을 묶어 단일 notify로 처리.
+   * 내부 전용 — public API 아님.
+   */
+  #withBatch(fn: () => void): void {
+    if (this.#batching) {
+      fn()
+      return
+    }
+    this.#batching = true
+    this.#batchDirty = false
+    try {
+      fn()
+    } finally {
+      this.#batching = false
+      if (this.#batchDirty) {
+        this.#batchDirty = false
+        this.#invalidateAndNotify()
+      }
+    }
   }
 }
 

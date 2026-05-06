@@ -228,6 +228,77 @@ describe('useRegistryMeta', () => {
     expect(last?.count).toBe(3)
     expect(last?.searchHits).toBe(2)
   })
+
+  test('mount 후 registerMeta → 자동 re-render + 새 meta 반영 (subscribe 경로)', async () => {
+    const registry = new ComponentRegistry()
+    registry.registerMeta(makeMeta({ id: 'Form/Button', title: 'Form/Button' }))
+
+    const snaps: Array<{ count: number; searchHits: number }> = []
+    const result = await mount(
+      <JogakProvider registry={registry}>
+        <MetaProbe query="form" onSnapshot={(s) => snaps.push(s)} />
+      </JogakProvider>,
+    )
+    cleanups.push(result.unmount)
+
+    // mount 직후 1건.
+    expect(snaps[snaps.length - 1]?.count).toBe(1)
+    expect(snaps[snaps.length - 1]?.searchHits).toBe(1)
+
+    // mount 후 추가 등록 — useSyncExternalStore가 subscribe로 이를 반영해야 한다.
+    await act(async () => {
+      registry.registerMeta(makeMeta({ id: 'Form/Input', title: 'Form/Input' }))
+    })
+
+    expect(snaps[snaps.length - 1]?.count).toBe(2)
+    expect(snaps[snaps.length - 1]?.searchHits).toBe(2)
+
+    // 검색 미스 케이스도 검증.
+    await act(async () => {
+      registry.registerMeta(makeMeta({ id: 'Layout/Card', title: 'Layout/Card' }))
+    })
+
+    expect(snaps[snaps.length - 1]?.count).toBe(3)
+    expect(snaps[snaps.length - 1]?.searchHits).toBe(2) // form만 매치
+  })
+
+  test('mutation 없으면 추가 re-render 0 (referential identity)', async () => {
+    const registry = new ComponentRegistry()
+    registry.registerMeta(makeMeta({ id: 'Form/Button', title: 'Form/Button' }))
+
+    let renderCount = 0
+    function Counter() {
+      const { metas } = useRegistryMeta()
+      renderCount += 1
+      return <span data-count={metas.length} />
+    }
+
+    const result = await mount(
+      <JogakProvider registry={registry}>
+        <Counter />
+      </JogakProvider>,
+    )
+    cleanups.push(result.unmount)
+
+    const initial = renderCount
+    expect(initial).toBeGreaterThan(0)
+
+    // 100ms 동안 mutation 없이 대기 — 무한 re-render 방지 회귀 테스트.
+    // (registry 캐시 + closure cache로 동일 reference가 보장되어야 한다.)
+    await new Promise((res) => setTimeout(res, 100))
+
+    expect(renderCount).toBe(initial)
+
+    // mutation 1회 → 정확히 1회 추가 re-render.
+    await act(async () => {
+      registry.registerMeta(makeMeta({ id: 'Form/Input', title: 'Form/Input' }))
+    })
+
+    // act 외부 effect까지 동기화되도록 microtask 비우기.
+    await new Promise((res) => setTimeout(res, 0))
+
+    expect(renderCount).toBeGreaterThan(initial)
+  })
 })
 
 // 'reactAdapter' 등 기존 export 시그니처 유지 보호용 임포트 — 빌드/타입 정합성 확인.

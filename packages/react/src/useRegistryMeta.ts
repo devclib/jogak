@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useMemo, useSyncExternalStore } from 'react'
 import type {
   CategoryMetaTree,
   ComponentRegistry,
@@ -10,7 +10,7 @@ import { useRegistry } from './JogakProvider.js'
  * `useRegistryMeta` 반환 타입.
  * `useRegistry`가 hydrated entry만 반영하는 것과 달리, 본 훅은 meta-only / pending 항목까지 포함.
  *
- *  - `metas`     : `registry.getAllMeta()` 결과를 캐시한 readonly 배열
+ *  - `metas`     : `registry.getAllMeta()` 결과 — registry 내부 캐시로 referential identity 보장
  *  - `metaTree`  : `registry.getMetaTree()` 결과 — 사이드바 트리 구성용
  *  - `searchMeta`: title 부분 일치(대소문자 무시) — Phase 1은 단순 string 매칭
  */
@@ -25,33 +25,65 @@ interface Snapshot {
   readonly metaTree: CategoryMetaTree
 }
 
-function takeSnapshot(registry: ComponentRegistry): Snapshot {
-  return {
-    metas: registry.getAllMeta(),
-    metaTree: registry.getMetaTree(),
+/**
+ * registry → subscribe 어댑터.
+ * `useSyncExternalStore`의 subscribe 계약: listener를 등록하고 unsubscribe 함수 반환.
+ * registry.subscribe는 멱등 unsubscribe를 보장한다.
+ */
+function makeSubscribe(registry: ComponentRegistry) {
+  return (onChange: () => void): (() => void) => registry.subscribe(onChange)
+}
+
+/**
+ * registry → getSnapshot 어댑터.
+ *
+ * `useSyncExternalStore`는 `getSnapshot`이 동일 입력에 동일 reference를 반환할 것을 요구한다.
+ * registry는 `getAllMeta()`/`getMetaTree()` 결과를 내부 캐시하므로(F2),
+ * mutation 사이에는 같은 reference가 돌아온다.
+ *
+ * 두 결과를 묶은 Snapshot 객체도 같은 reference여야 하므로 마지막 (metas, metaTree) 쌍을
+ * closure에 캐시하고, 둘 다 동일 reference면 이전 Snapshot을 그대로 반환한다.
+ *
+ * 본 클로저는 hook 인스턴스/registry 조합당 1회 생성된다 → useMemo로 안정화.
+ */
+function makeGetSnapshot(registry: ComponentRegistry): () => Snapshot {
+  let lastMetas: readonly RegistryEntryMeta[] | null = null
+  let lastTree: CategoryMetaTree | null = null
+  let lastSnapshot: Snapshot | null = null
+  return () => {
+    const metas = registry.getAllMeta()
+    const tree = registry.getMetaTree()
+    if (lastSnapshot !== null && metas === lastMetas && tree === lastTree) {
+      return lastSnapshot
+    }
+    lastMetas = metas
+    lastTree = tree
+    lastSnapshot = { metas, metaTree: tree }
+    return lastSnapshot
   }
 }
 
 /**
- * 사이드바/검색용 메타 훅 (Phase 1).
+ * 사이드바/검색용 메타 훅.
  *
- * 현재 `ComponentRegistry`는 명시적인 subscribe API를 노출하지 않으므로:
- *  - mount 시점 + registry 인스턴스 변경 시 snapshot 을 한 번 캡처한다.
- *  - lazy hydration 으로 meta 가 추가/갱신되는 경로(`registerMeta`)는 인덱스 가상모듈 평가 시
- *    어댑터 mount 보다 먼저 끝나는 시나리오를 가정한다 — index 모듈을 entry point에서 side-effect로
- *    import 한 뒤 root 가 mount 되는 표준 패턴.
- *  - HMR 등으로 metas 가 사후 변경되는 경우는 ui 측에서 full-reload 정책으로 흡수 (계약 §6).
+ * `useSyncExternalStore` 기반으로 registry 변경(`register`/`unregister`/`registerMeta`/
+ * `hydrateEntry`/`clear`)에 자동 반응한다. registry 내부 snapshot 캐시(F2)와
+ * 외부 closure cache(makeGetSnapshot)의 이중 안전망으로 referential identity를 보장하여
+ * 무한 re-render를 방지한다.
  *
- * registry 가 향후 `subscribe(listener)` 를 추가하면 본 훅을 `useSyncExternalStore` 로 마이그레이션
- * (외부 시그니처 동일, 내부 갱신 정밀도 향상). 그 때까지 useState + useEffect 로 일관성 유지.
+ * SSR: `getServerSnapshot`은 `getSnapshot`과 동일 함수. `defaultRegistry`는 module singleton이라
+ * 서버/클라이언트 동일 객체를 반환하며, registry가 비어있다면 빈 배열을 반환 후 클라이언트에서
+ * subscribe 통지로 자연 보정된다(`useSyncExternalStore`가 hydration 직후 client snapshot으로 전환).
  */
 export function useRegistryMeta(): UseRegistryMetaReturn {
   const registry = useRegistry()
-  const [snapshot, setSnapshot] = useState<Snapshot>(() => takeSnapshot(registry))
 
-  useEffect(() => {
-    setSnapshot(takeSnapshot(registry))
-  }, [registry])
+  // registry 인스턴스가 바뀌면 새 subscribe/getSnapshot 클로저가 필요.
+  // useMemo로 안정화 — 동일 registry에서는 같은 함수 reference 유지 → useSyncExternalStore가 재구독하지 않음.
+  const subscribe = useMemo(() => makeSubscribe(registry), [registry])
+  const getSnapshot = useMemo(() => makeGetSnapshot(registry), [registry])
+
+  const snapshot = useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
 
   const searchMeta = useCallback(
     (query: string): readonly RegistryEntryMeta[] => {

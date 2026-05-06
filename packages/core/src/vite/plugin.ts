@@ -12,6 +12,7 @@ import {
   type ExtractedMetaPayload,
   type PropsExtractor,
 } from '../meta/extract-props.js'
+import { validateAndPurgeViteCache } from './cache-validate.js'
 import {
   RESOLVED_VIRTUAL_ENTRY_PREFIX,
   RESOLVED_VIRTUAL_INDEX_ID,
@@ -27,6 +28,32 @@ interface FileEntry {
   readonly meta: RegistryEntryMeta
 }
 
+/**
+ * F4: 직전 추출 시그니처 — 파일 변경 시 meta-only vs 구조변경 분기 판단용.
+ */
+interface MetaSig {
+  readonly title: string
+  readonly jogakNamesKey: string
+}
+
+function sigOf(meta: {
+  readonly title: string
+  readonly jogakNames: readonly string[]
+}): MetaSig {
+  return {
+    title: meta.title,
+    jogakNamesKey: [...meta.jogakNames].sort().join('|'),
+  }
+}
+
+function sigEq(a: MetaSig | undefined, b: MetaSig): boolean {
+  return (
+    a !== undefined &&
+    a.title === b.title &&
+    a.jogakNamesKey === b.jogakNamesKey
+  )
+}
+
 export function jogak(options: JogakPluginOptions = {}): Plugin {
   const {
     patterns = ['src/**/*.jogak.ts', 'src/**/*.jogak.tsx'],
@@ -34,6 +61,7 @@ export function jogak(options: JogakPluginOptions = {}): Plugin {
   } = options
   const optionCwd = options.cwd
   const optionTsConfigFilePath = options.tsConfigFilePath
+  const disableCacheValidation = options.disableCacheValidation === true
 
   let devServer: ViteDevServer | undefined
   let extractor: PropsExtractor | undefined
@@ -43,11 +71,14 @@ export function jogak(options: JogakPluginOptions = {}): Plugin {
   const idToFile = new Map<string, string>()
   const fileToId = new Map<string, string>()
 
+  // F4: filePath → 직전 추출 시그니처. handleHotUpdate에서 비교.
+  const lastSig = new Map<string, MetaSig>()
+
   /**
    * glob → 각 파일의 source/autoArgTypes/meta 추출 → RegistryEntryMeta[] 합성.
    *
    * 호출자: 인덱스 load (정상 경로), entry load (deep-link fallback).
-   * 부수 효과: idToFile / fileToId 갱신.
+   * 부수 효과: idToFile / fileToId / lastSig 갱신.
    */
   async function collectMetas(): Promise<readonly FileEntry[]> {
     const { glob } = await import('glob')
@@ -101,6 +132,8 @@ export function jogak(options: JogakPluginOptions = {}): Plugin {
         filePath: file,
         metaExtras: metaPayload.metaExtras,
       }
+      // F4: lastSig 채움 (HMR 시 비교 기준)
+      lastSig.set(file, sigOf(meta))
       result.push({ id, filePath: file, meta })
     }
     return result
@@ -109,9 +142,22 @@ export function jogak(options: JogakPluginOptions = {}): Plugin {
   return {
     name: 'vite-plugin-jogak',
 
-    configResolved(config) {
+    async configResolved(config) {
       // glob의 cwd: 옵션 우선, 미지정 시 Vite config.root (기존 동작 유지).
       resolvedCwd = optionCwd ?? config.root
+
+      // F1: dev 모드에서만 jogak 의존 패키지 cache 검증.
+      // build / ssr build 시에는 deps cache가 부팅 경로에 끼지 않으므로 skip.
+      // 옵션으로 비활성화 가능.
+      if (config.command === 'serve' && !disableCacheValidation) {
+        await validateAndPurgeViteCache({
+          root: config.root,
+          logger: {
+            info: (m) => config.logger.info(m),
+            warn: (m) => config.logger.warn(m),
+          },
+        })
+      }
 
       // ts-morph tsconfig: 옵션 우선, 미지정 시 resolvedCwd/tsconfig.json 자동 감지.
       const tsConfigCandidate =
@@ -211,7 +257,7 @@ export {}
       return undefined
     },
 
-    handleHotUpdate({ file }) {
+    async handleHotUpdate({ file }) {
       const isJogakFile = /\.jogak\.(tsx?|jsx?)$/.test(file)
       const isComponentFile = /\.(tsx?|jsx?)$/.test(file) && !isJogakFile
 
@@ -219,34 +265,96 @@ export {}
 
       if (devServer === undefined) return
 
-      if (isJogakFile) {
-        // 인덱스 모듈 invalidate (source / autoArgTypes / meta 갱신 필요)
-        const indexMod = devServer.moduleGraph.getModuleById(RESOLVED_VIRTUAL_INDEX_ID)
-        if (indexMod !== undefined) {
-          devServer.moduleGraph.invalidateModule(indexMod)
-        }
+      // 컴포넌트 파일: React Fast Refresh 경로 그대로.
+      if (!isJogakFile) return
 
-        // 해당 entry 가상모듈 invalidate.
-        const entryId = fileToId.get(file)
-        if (entryId !== undefined) {
-          const entryModId =
-            RESOLVED_VIRTUAL_ENTRY_PREFIX + idToSlug(entryId)
-          const entryMod = devServer.moduleGraph.getModuleById(entryModId)
-          if (entryMod !== undefined) {
-            devServer.moduleGraph.invalidateModule(entryMod)
-          }
-        }
+      // ── jogak 파일 ────────────────────────────────────────────
+      // 인덱스 모듈은 어떤 경로든 항상 invalidate (source / autoArgTypes / meta 갱신 필요)
+      const indexMod = devServer.moduleGraph.getModuleById(
+        RESOLVED_VIRTUAL_INDEX_ID,
+      )
+      if (indexMod !== undefined) {
+        devServer.moduleGraph.invalidateModule(indexMod)
+      }
 
-        // Phase 1 보수적 동작: jogak 파일 변경 시 full-reload.
-        // hydrated entry의 정확한 hot-swap은 Phase 2.
+      const entryId = fileToId.get(file)
+      const entryModId =
+        entryId !== undefined
+          ? RESOLVED_VIRTUAL_ENTRY_PREFIX + idToSlug(entryId)
+          : undefined
+      const entryMod =
+        entryModId !== undefined
+          ? devServer.moduleGraph.getModuleById(entryModId)
+          : undefined
+      if (entryMod !== undefined) {
+        devServer.moduleGraph.invalidateModule(entryMod)
+      }
+
+      // F4: 새 메타 추출 → 시그니처 비교
+      let newMeta: ExtractedMetaPayload | null = null
+      let newAutoArgTypes: Record<string, ArgType> = {}
+      let newSource = ''
+      if (extractor !== undefined) {
+        try {
+          newMeta = await extractor.extractMeta(file)
+        } catch {
+          newMeta = null
+        }
+        try {
+          newAutoArgTypes = await extractor.extract(file)
+        } catch {
+          newAutoArgTypes = {}
+        }
+        try {
+          newSource = await readFile(file, 'utf8')
+        } catch {
+          newSource = ''
+        }
+      }
+
+      if (newMeta === null) {
+        // extractor 없음 / 추출 실패 → 안전 fallback (full-reload).
+        // lastSig는 갱신하지 않음 (다음 정상 추출에서 재설정).
         devServer.ws.send({ type: 'full-reload' })
         return
       }
 
-      // 일반 컴포넌트 파일: React Fast Refresh 경로 그대로.
-      // 인덱스/entry 가상모듈은 source 텍스트만 영향받는데, jogak 파일이 아니면 메타가
-      // 변하지 않으므로 invalidate 불필요.
-      return
+      const newSig = sigOf(newMeta)
+      const oldSig = lastSig.get(file)
+      const isMetaOnly = sigEq(oldSig, newSig)
+      lastSig.set(file, newSig)
+
+      if (!isMetaOnly || entryId === undefined) {
+        // 구조변경 또는 entry 매핑 없음 (첫 변경 등) → full-reload.
+        devServer.ws.send({ type: 'full-reload' })
+        return
+      }
+
+      // ── meta-only 경로 ────────────────────────────────────────
+      // 새 RegistryEntryMeta 합성 후 클라이언트에 push.
+      // entry id는 title 동일이 보장되므로 metaPayload.title을 그대로 써도 되지만,
+      // fileToId 매핑을 신뢰원으로 사용한다.
+      const newRegMeta: RegistryEntryMeta = {
+        id: entryId,
+        title: newMeta.title,
+        jogakNames: newMeta.jogakNames,
+        autoArgTypes: newAutoArgTypes,
+        userArgTypes: newMeta.userArgTypes,
+        source: newSource,
+        filePath: file,
+        metaExtras: newMeta.metaExtras,
+      }
+
+      devServer.ws.send({
+        type: 'custom',
+        event: 'jogak:meta-update',
+        data: { id: entryId, meta: newRegMeta },
+      })
+
+      // 인덱스 + entry 모듈 모두 invalidate된 상태 — Vite가 다음 fetch 시 재평가.
+      // full-reload는 보내지 않음 (사이드바는 custom event로 즉시 reflow).
+      // 빈 배열을 반환해 Vite가 module graph를 자연 propagate 하도록 한다.
+      return []
     },
   }
 }
