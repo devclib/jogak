@@ -10,19 +10,30 @@
 
 | 지표 | size 100 | size 500 | 비고 |
 |---|---|---|---|
-| dev cold start | **1.7s** vs 3.3s (**2.0×**) | **2.9s** vs 3.6s (1.3×) | "HTTP 200 응답"까지 |
-| build time | **2.0s** vs 2.9s (1.4×) | **4.1s** vs 7.6s (**1.8×**) | 카탈로그 클수록 격차 ↑ |
+| dev cold start | **1.7 s** vs 3.3 s (**2.0×**) | **2.9 s** vs 3.6 s (1.3×) | "HTTP 200 응답"까지 |
+| build time | **2.0 s** vs 2.9 s (1.4×) | **4.1 s** vs 7.6 s (**1.8×**) | 카탈로그 클수록 격차 ↑ |
 | bundle (gzip) | **108 KB** vs 716 KB (**6.6×**) | **156 KB** vs 1.09 MB (**7.0×**) | manager 번들 없음 |
-| dist 합계 | **340 KB** vs 3 MB (**8.9×**) | - | 정적 호스팅 전송량 |
+| dist 합계 | **340 KB** vs 3 MB (**8.9×**) | **— vs —** | 정적 호스팅 전송량 |
+| **idle RSS** (dev) | **321 MB** vs 403 MB (1.3×) | **345 MB** vs 489 MB (**1.4×**) | dev tree RSS median |
+| **HMR** (warm median) | **153 ms** | **199 ms** | args 수정 → DOM, < 200 ms |
 
-재현: `pnpm bench:scale:full`. 측정 코드: `benchmarks/run-scale.mjs`. 보고서: `_workspace/03_test-report/step-d-scale.md`.
+재현: `pnpm bench:scale:full` · `pnpm bench:rss` · `pnpm bench:hmr`. 측정 코드는 `benchmarks/`.
 
 ## 왜 가벼운가
 
 - **단일 Vite 인스턴스** — Storybook의 manager UI(별도 React 앱) + preview iframe + addon 로더가 없다.
-- **빌드 타임 props 추출** — `react-docgen` 런타임 분석이 아니라 ts-morph로 **빌드 시점**에 한 번 추출하고 끝.
-- **virtual module 기반 HMR** — `*.jogak.tsx` 변경 시 가상 모듈만 무효화. 컴포넌트 자체는 React Fast Refresh.
+- **Lazy 가상모듈** — 인덱스 모듈은 모든 entry의 메타만, 각 entry의 컴포넌트는 사용자가 클릭한 시점에 dynamic import. dev 첫 페이지 로드 시 module graph에 user 모듈 0개 → idle RSS가 카탈로그 크기에 거의 비례하지 않음.
+- **child_process 격리된 ts-morph** — props 추출은 별도 자식 프로세스에서. idle 5초 후 SIGTERM되어 OS가 메모리를 즉시 회수.
+- **In-place HMR** — `*.jogak.tsx` 변경 시 인덱스 메타는 ws custom event로 즉시 patch, args/component 변경은 entry 가상모듈의 self-accept로 자동 재 hydrate. full-reload 회피.
+- **빌드 타임 props 추출** — `react-docgen` 런타임 분석 없이 ts-morph로 빌드 시점 1회 추출.
 - **의존성 최소** — `vite` + `@vitejs/plugin-react` + `react`. addon 시스템 없음.
+
+## 필수 조건
+
+- **Node** 20.10+ (또는 22+, 24+) — `--experimental-strip-types`/`fetch`/`AbortSignal.timeout` 사용
+- **React** 19.x — peer dependency
+- **Vite** 6.x — peer dependency (호스트 임베드 시)
+- **TypeScript** 5.5+ — props 자동 추출이 작동하려면 `tsconfig.json` 필요 (없으면 추출 skip, 수동 `meta.argTypes`로 fallback)
 
 ## 빠른 시작
 
@@ -64,6 +75,27 @@ export const Disabled: Jogak = {
 
 `Button` props 타입에서 `variant: 'primary' | 'secondary'`, `disabled?: boolean`, `onClick?: (e) => void`가 자동 추출돼 select/checkbox/Action 컨트롤이 자동 생성된다.
 
+### tsconfig
+
+`@jogak/cli`가 `<cwd>/tsconfig.json`을 자동 감지한다. 다른 위치를 쓰려면:
+
+```bash
+npx jogak dev --ts-config ./tsconfig.app.json
+```
+
+`tsconfig`가 없으면 props 자동 추출은 skip되고, 사용자가 직접 `meta.argTypes`로 컨트롤을 정의할 수 있다.
+
+```tsx
+const meta = {
+  title: 'Components/Button',
+  component: Button,
+  argTypes: {
+    variant: { control: 'select', options: ['primary', 'secondary'] },
+    onClick: { action: true },
+  },
+} satisfies JogakMeta
+```
+
 ## CLI
 
 ```
@@ -73,12 +105,16 @@ jogak dev [options]
   --host <string>               'true'/'false'/host string
   --open [path]                 시작 시 브라우저 오픈
   --no-generate                 .jogak/registry.ts 안전망 생성 끄기
+  --ts-config <path>            tsconfig 경로 (기본: <cwd>/tsconfig.json)
+  --cwd <path>                  사용자 프로젝트 루트 (기본: process.cwd())
+  --code-theme <name>           prism 테마 (기본: vsDark)
 
 jogak build [options]
   --out-dir <path>              기본 'jogak-static'
   --base <string>               public path. 기본 './' (어디든 작동)
   --minify <boolean|esbuild|terser>  기본 'esbuild'
   --sourcemap                   기본 false
+  --emit-registry               build 도중 .jogak/registry.ts도 생성
 
 jogak generate [options]        # 호스트 번들러 임베드용 codegen
   --out <path>                  기본 '.jogak/registry.ts'
@@ -92,6 +128,7 @@ jogak generate [options]        # 호스트 번들러 임베드용 codegen
 - **URL 딥링크** — `?entry=...&jogak=...` 으로 공유 가능
 - **소스 코드 뷰어** — prism-react-renderer 기반 (테마 옵션)
 - **Viewport / 배경 토글** — Mobile / Tablet / Desktop · White / Dark / Transparent
+- **In-place HMR** — args 수정 시 entry 자동 재 hydrate, 사이드바 메타는 ws patch로 즉시 reflow
 
 ## 호스트 임베드 (선택)
 
@@ -112,12 +149,23 @@ export default defineConfig({
 // main.tsx
 import 'virtual:jogak'
 import { _jogakCodeTheme } from 'virtual:jogak'
-import { defaultRegistry } from '@jogak/core'
 import { JogakApp } from '@jogak/ui'
 
-createRoot(rootEl).render(
-  <JogakApp entries={defaultRegistry.getAll()} codeTheme={_jogakCodeTheme} />,
-)
+createRoot(rootEl).render(<JogakApp codeTheme={_jogakCodeTheme} />)
+```
+
+`virtual:jogak` 인덱스 모듈이 평가되며 `defaultRegistry`에 메타가 자동 등록된다. `<JogakApp>`은 인자 없이 호출하면 `defaultRegistry`를 그대로 사용 — 정적 빌드 시점에 카탈로그가 결정된 entries를 직접 넘기려면 `<JogakApp entries={...} />` 형태도 지원.
+
+### Vite plugin 옵션
+
+```ts
+jogak({
+  patterns: ['src/**/*.jogak.tsx'],   // 기본: src/**/*.jogak.{ts,tsx}
+  codeTheme: 'vsDark',                // prism 테마
+  cwd: __dirname,                     // glob의 기준. 기본은 vite config.root
+  tsConfigFilePath: './tsconfig.json',// 기본: <cwd>/tsconfig.json 자동 감지
+  disableCacheValidation: false,      // dev 부팅 시 stale @jogak/* 캐시 자동 purge (기본 활성)
+})
 ```
 
 ### Next.js App Router에 임베드
@@ -174,6 +222,24 @@ for (const entry of entries) {
 
 Shadow DOM으로 스타일 격리, Preact 런타임만 포함돼 ~3 KB.
 
+## 트러블슈팅
+
+### 라이브러리 업데이트 후 "does not provide an export named X" 에러
+
+`@jogak/core` / `@jogak/react`가 갱신될 때 Vite의 `node_modules/.vite/deps` pre-bundle cache가 stale일 수 있다. plugin이 dev 부팅 시 자동 감지해 cache를 purge하지만, 만약 갱신이 작동하지 않으면 직접:
+
+```bash
+rm -rf node_modules/.vite
+```
+
+### custom registry에서 HMR이 동작하지 않음
+
+`<JogakProvider registry={customRegistry}>`로 별도 인스턴스를 주입하면 HMR `jogak:meta-update` 이벤트는 `defaultRegistry`만 갱신한다(plugin이 어떤 registry를 쓰는지 모름). custom registry 사용 시 jogak 파일 변경은 `--no-generate`가 아닌 한 full-reload로 동작.
+
+### 부팅 직후 RSS spike
+
+dev 첫 5초 동안 esbuild prebundle + ts-morph 자식 spawn으로 RSS가 일시적으로 700 MB+에 달할 수 있다. 5초 내 안정화되며 idle 시점엔 lazy 가상모듈 효과로 다시 떨어짐. 메모리가 매우 제한된 환경(<1 GB)에선 부팅 첫 부분이 위험할 수 있음.
+
 ## 패키지
 
 ```
@@ -210,6 +276,8 @@ pnpm bench                            # 자체 측정 (bundle / extract / cold-s
 pnpm bench:baseline                   # Jogak vs Storybook (size 5)
 pnpm bench:scale                      # size 5/50/100
 pnpm bench:scale:full                 # size 5/50/100/500
+pnpm bench:rss                        # idle RSS (jogak vs storybook)
+pnpm bench:hmr                        # HMR latency (size 50, 10 runs)
 ```
 
 ## 기술 스택
