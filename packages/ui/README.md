@@ -1,0 +1,9 @@
+# @jogak/ui
+
+Showcase viewer UI for Jogak — Sidebar / Preview / Controls / Actions and the JogakApp shell.
+
+See the [main Jogak README](https://github.com/devclib/jogak#readme) for installation, usage, and architecture.
+
+- Repository: https://github.com/devclib/jogak
+- Issues: https://github.com/devclib/jogak/issues
+- License: [MIT](./LICENSE)

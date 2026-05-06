@@ -1,10 +1,29 @@
 {
   "name": "@jogak/next",
   "version": "0.1.0-alpha.0",
-  "type": "module",
+  "description": "Next.js App Router embedding shell for Jogak.",
+  "keywords": [
+    "jogak",
+    "storybook",
+    "storybook-alternative",
+    "showcase",
+    "nextjs",
+    "next-app-router",
+    "design-system"
+  ],
+  "author": "devclib",
   "license": "MIT",
+  "homepage": "https://github.com/devclib/jogak#readme",
+  "bugs": "https://github.com/devclib/jogak/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/devclib/jogak.git",
+    "directory": "packages/next"
+  },
+  "type": "module",
   "sideEffects": false,
   "main": "./dist/index.js",
+  "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
@@ -20,10 +39,19 @@
       "import": "./dist/client/Preview.js"
     }
   },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=22.10"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "tsc -p tsconfig.json --watch",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "tsc -p tsconfig.json"
   },
   "dependencies": {
     "@jogak/core": "workspace:*"

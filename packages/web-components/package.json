@@ -1,8 +1,27 @@
 {
   "name": "@jogak/web-components",
   "version": "0.1.0-alpha.0",
-  "type": "module",
+  "description": "Web Components adapter for Jogak — Preact runtime + Shadow DOM custom elements.",
+  "keywords": [
+    "jogak",
+    "storybook",
+    "storybook-alternative",
+    "showcase",
+    "web-components",
+    "custom-elements",
+    "shadow-dom",
+    "preact"
+  ],
+  "author": "devclib",
   "license": "MIT",
+  "homepage": "https://github.com/devclib/jogak#readme",
+  "bugs": "https://github.com/devclib/jogak/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/devclib/jogak.git",
+    "directory": "packages/web-components"
+  },
+  "type": "module",
   "sideEffects": [
     "dist/iife.js"
   ],
@@ -16,10 +35,19 @@
       "require": "./dist/index.js"
     }
   },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=22.10"
+  },
   "scripts": {
     "build": "vite build",
     "dev": "vite build --watch",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "vite build"
   },
   "dependencies": {
     "@jogak/core": "workspace:*",

@@ -1,15 +1,41 @@
 {
   "name": "@jogak/cli",
   "version": "0.1.0-alpha.0",
-  "type": "module",
+  "description": "jogak dev / build / generate — CLI for the Jogak component showcase.",
+  "keywords": [
+    "jogak",
+    "storybook",
+    "storybook-alternative",
+    "showcase",
+    "cli",
+    "design-system",
+    "component-library"
+  ],
+  "author": "devclib",
   "license": "MIT",
+  "homepage": "https://github.com/devclib/jogak#readme",
+  "bugs": "https://github.com/devclib/jogak/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/devclib/jogak.git",
+    "directory": "packages/cli"
+  },
+  "type": "module",
   "bin": {
     "jogak": "./dist/cli.js"
   },
-  "files": ["dist"],
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=22.10"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "tsc -p tsconfig.json"
   },
   "dependencies": {
     "@jogak/core": "workspace:*",
