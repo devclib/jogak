@@ -240,6 +240,18 @@ export class ComponentRegistry {
   }
 
   /**
+   * 어댑터가 호출. hydrated였던 entry를 meta 상태로 되돌린다.
+   * HMR meta-update 이벤트에서 args/component 변경을 강제 re-hydrate 시키기 위함.
+   * unknown / meta / pending 상태에는 영향 없음.
+   */
+  invalidateEntry(id: string): void {
+    const state = this.#states.get(id)
+    if (state === undefined || state.kind !== 'hydrated') return
+    this.#states.set(id, { kind: 'meta', meta: state.meta })
+    this.#invalidateAndNotify()
+  }
+
+  /**
    * UI/어댑터가 호출. entry id로 완전한 RegistryEntry를 비동기 획득.
    *
    *  - hydrated → 즉시 resolve된 Promise

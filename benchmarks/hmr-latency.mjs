@@ -153,11 +153,13 @@ function generateFixture(count) {
  */
 async function patchFirstArg(filePath, firstKey, newValue) {
   const src = await readFile(filePath, 'utf8')
-  // 안전 정규식: firstKey: '...' (single-line string), 첫 매칭만
-  const re = new RegExp(`(\\b${firstKey}:\\s*')([^']*)(')`)
+  // args block 안에서만 매칭. 이전 정규식은 fixture의 meta.title을 잡아
+  // jogak 메타 시그니처를 변경시켰고, F4의 meta-only 분기가 아닌 full-reload
+  // 분기를 측정해 왔다. `args: { ... <firstKey>: '...'` 형태로 한정.
+  const re = new RegExp(`(args:\\s*\\{[^}]*?\\b${firstKey}:\\s*')([^']*)(')`)
   const next = src.replace(re, `$1${newValue}$3`)
   if (next === src) {
-    throw new Error(`patch 실패: ${filePath} 에서 ${firstKey}: '...' 패턴을 못 찾음`)
+    throw new Error(`patch 실패: ${filePath} 에서 args { ... ${firstKey}: '...' } 패턴을 못 찾음`)
   }
   await writeFile(filePath, next, 'utf8')
 }

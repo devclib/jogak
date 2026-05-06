@@ -72,14 +72,17 @@ function findMeta(
  * Lazy entry hydration 훅 (Phase 1 — 명시적 status 분기, Suspense 미사용).
  *
  * 동작:
- *  1. 마운트 시점에 `getEntryState(id)`로 초기 상태 결정.
- *  2. 상태가 `loading`이면 effect에서 `requestEntry(id)` 호출 — 멱등이므로 이미 pending이면 동일 Promise.
- *  3. resolve → `ready` / reject → `error`.
- *  4. id 변경 시 effect 재실행. cleanup의 `cancelled` 플래그로 stale Promise 무시.
- *  5. registry instance 변경에도 재실행 (테스트에서 custom registry 주입 시).
+ *  1. 마운트 시점에 `getEntryState(id)`로 초기 상태 결정 (useState lazy init).
+ *  2. effect에서 `registry.subscribe`로 mutation을 감시 — registerMeta /
+ *     hydrateEntry / invalidateEntry 등 모든 변경에 자동 재산출.
+ *  3. recompute 결과가 `loading`이고 직전 상태가 `loading`이 아니었으면
+ *     `requestEntry(id)`를 트리거. 결과 entry는 hydrate가 notify를 통해
+ *     자동 반영하므로 then 안에서 setState 불필요(에러만 처리).
+ *  4. id 변경 시 effect 재실행, cleanup의 `cancelled` 플래그로 stale 차단.
  *
- * @param id `RegistryEntry.id` (사용자 title 그대로)
- * @returns Suspense 없이 분기 가능한 `UseEntryState` discriminated union
+ * F4 통합: HMR 'jogak:meta-update' 이벤트가 invalidateEntry → requestEntry
+ * 흐름을 트리거하면 hydrated 상태였던 entry가 새 args/component로 다시
+ * hydrate되어 화면에 in-place 반영된다 (full-reload 회피).
  */
 export function useEntry(id: string): UseEntryState {
   const registry = useRegistry()
@@ -89,32 +92,34 @@ export function useEntry(id: string): UseEntryState {
 
   useEffect(() => {
     let cancelled = false
+    let lastStatus: UseEntryState['status'] | null = null
 
-    // id/registry가 바뀌었을 수 있으므로 항상 현재 값으로 재산출.
-    const initial = deriveState(registry, id)
-    setState(initial)
-
-    if (initial.status !== 'loading') {
-      // unknown / ready / error 는 추가 액션 불필요.
-      return () => {
-        cancelled = true
+    const recompute = (): void => {
+      if (cancelled) return
+      const next = deriveState(registry, id)
+      setState(next)
+      if (next.status === 'loading' && lastStatus !== 'loading') {
+        // requestEntry 호출 전에 lastStatus를 미리 갱신 — requestEntry가 동기적으로
+        // pending state로 옮긴 후 notify를 발사할 때 같은 effect의 listener가 다시
+        // 호출되어 무한 호출되는 것을 방지(멱등이긴 하지만 명시 가드).
+        lastStatus = 'loading'
+        registry.requestEntry(id).catch((error: unknown) => {
+          if (cancelled) return
+          const reason =
+            error instanceof Error ? error : new Error(String(error))
+          setState({ status: 'error', error: reason })
+        })
+      } else {
+        lastStatus = next.status
       }
     }
 
-    registry.requestEntry(id).then(
-      (entry) => {
-        if (cancelled) return
-        setState({ status: 'ready', entry })
-      },
-      (error: unknown) => {
-        if (cancelled) return
-        const reason = error instanceof Error ? error : new Error(String(error))
-        setState({ status: 'error', error: reason })
-      },
-    )
+    recompute()
+    const unsubscribe = registry.subscribe(recompute)
 
     return () => {
       cancelled = true
+      unsubscribe()
     }
   }, [registry, id])
 

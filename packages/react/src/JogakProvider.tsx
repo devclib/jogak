@@ -51,6 +51,14 @@ interface MetaUpdatePayload {
 if (typeof import.meta !== 'undefined' && (import.meta as ImportMeta & { hot?: ViteHotContext }).hot) {
   const hot = (import.meta as ImportMeta & { hot: ViteHotContext }).hot
   hot.on<MetaUpdatePayload>('jogak:meta-update', (data) => {
+    // 1) 메타 갱신 — Sidebar(useRegistryMeta) 자동 reflow.
     defaultRegistry.registerMeta(data.meta)
+    // 2) 이미 hydrated였던 entry는 args/component가 변경됐을 수 있으므로 invalidate.
+    //    실제로는 plugin이 entry 모듈을 affected로 반환하므로 self-accept 경로로
+    //    자동 재 hydrate된다. 본 invalidate는 안전망 (자동 경로가 깨져도
+    //    useEntry가 subscribe로 'loading' 전이를 감지 → requestEntry 트리거).
+    if (defaultRegistry.getEntryState(data.id) === 'hydrated') {
+      defaultRegistry.invalidateEntry(data.id)
+    }
   })
 }

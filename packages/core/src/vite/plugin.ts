@@ -239,6 +239,10 @@ export const _jogakMetas = _metas
           return `// [jogak] unknown entry id: ${JSON.stringify(entryId)}\nexport {}\n`
         }
 
+        // self-accept: 이 entry 모듈 또는 의존(user .jogak.tsx) 변경 시 Vite가
+        // 본 모듈을 자동 re-fetch + 재평가 → hydrateEntry 다시 호출 → registry
+        // notify로 useEntry가 in-place 갱신. 만일 이게 없으면 ESM dynamic import
+        // 캐시 때문에 같은 specifier가 invalidate되어도 새 평가가 일어나지 않는다.
         return `import * as _user from ${JSON.stringify(filePath)}
 import { defaultRegistry } from '@jogak/core'
 
@@ -250,6 +254,10 @@ const _jogaks = Object.values(_named).filter(
 )
 defaultRegistry.hydrateEntry(${JSON.stringify(entryId)}, _jogaks, _meta?.component)
 
+if (import.meta.hot) {
+  import.meta.hot.accept()
+}
+
 export {}
 `
       }
@@ -257,7 +265,7 @@ export {}
       return undefined
     },
 
-    async handleHotUpdate({ file }) {
+    async handleHotUpdate({ file, modules }) {
       const isJogakFile = /\.jogak\.(tsx?|jsx?)$/.test(file)
       const isComponentFile = /\.(tsx?|jsx?)$/.test(file) && !isJogakFile
 
@@ -359,8 +367,16 @@ export {}
         data: { id: entryId, meta: newRegMeta },
       })
 
-      // 빈 배열을 반환해 Vite가 module graph를 자연 propagate 하도록 한다.
-      return []
+      // entry 모듈 + 변경된 user 모듈(ctx.modules)을 함께 affected로 반환.
+      // entry는 self-accept(import.meta.hot.accept())이므로 boundary,
+      // user 모듈 변경은 entry까지 propagate되어 entry가 자동 재평가됨.
+      // 재평가 시 user 모듈이 새로 fetch되어 새 args/component가 hydrateEntry로
+      // 들어가고 registry notify로 useEntry가 in-place 갱신된다.
+      const affected = [...modules]
+      if (entryMod !== undefined && !affected.includes(entryMod)) {
+        affected.push(entryMod)
+      }
+      return affected
     },
   }
 }
