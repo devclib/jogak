@@ -269,14 +269,14 @@ export {}
       if (!isJogakFile) return
 
       // ── jogak 파일 ────────────────────────────────────────────
-      // 인덱스 모듈은 어떤 경로든 항상 invalidate (source / autoArgTypes / meta 갱신 필요)
+      // 모듈 핸들 조회만 — invalidate는 분기 결정 후. (이전 동작은 무조건
+      // 인덱스/entry 둘 다 invalidate했는데, meta-only 경로에서도 인덱스가
+      // invalidate되면 다음 fetch 시 collectMetas가 N개 파일을 모두 재처리해
+      // size에 비례한 HMR latency 폭증을 야기했다. meta-only일 땐 인덱스를
+      // invalidate하지 않고 ws custom event로만 클라이언트 registry를 갱신한다.)
       const indexMod = devServer.moduleGraph.getModuleById(
         RESOLVED_VIRTUAL_INDEX_ID,
       )
-      if (indexMod !== undefined) {
-        devServer.moduleGraph.invalidateModule(indexMod)
-      }
-
       const entryId = fileToId.get(file)
       const entryModId =
         entryId !== undefined
@@ -286,9 +286,6 @@ export {}
         entryModId !== undefined
           ? devServer.moduleGraph.getModuleById(entryModId)
           : undefined
-      if (entryMod !== undefined) {
-        devServer.moduleGraph.invalidateModule(entryMod)
-      }
 
       // F4: 새 메타 추출 → 시그니처 비교
       let newMeta: ExtractedMetaPayload | null = null
@@ -315,6 +312,8 @@ export {}
       if (newMeta === null) {
         // extractor 없음 / 추출 실패 → 안전 fallback (full-reload).
         // lastSig는 갱신하지 않음 (다음 정상 추출에서 재설정).
+        if (indexMod !== undefined) devServer.moduleGraph.invalidateModule(indexMod)
+        if (entryMod !== undefined) devServer.moduleGraph.invalidateModule(entryMod)
         devServer.ws.send({ type: 'full-reload' })
         return
       }
@@ -326,6 +325,8 @@ export {}
 
       if (!isMetaOnly || entryId === undefined) {
         // 구조변경 또는 entry 매핑 없음 (첫 변경 등) → full-reload.
+        if (indexMod !== undefined) devServer.moduleGraph.invalidateModule(indexMod)
+        if (entryMod !== undefined) devServer.moduleGraph.invalidateModule(entryMod)
         devServer.ws.send({ type: 'full-reload' })
         return
       }
@@ -345,14 +346,19 @@ export {}
         metaExtras: newMeta.metaExtras,
       }
 
+      // entry 모듈만 invalidate (다음 requestEntry에서 새 args/component 받도록).
+      // 인덱스는 invalidate하지 않음 — collectMetas N개 재처리 비용 회피.
+      // 클라이언트 registry는 ws custom event로 변경 entry 1개만 patch.
+      // 새 페이지 로드/full reload 시 인덱스가 재 fetch되며 lastSig 기반의
+      // 최신 메타로 emit된다 (lastSig는 위 줄에서 이미 갱신).
+      if (entryMod !== undefined) devServer.moduleGraph.invalidateModule(entryMod)
+
       devServer.ws.send({
         type: 'custom',
         event: 'jogak:meta-update',
         data: { id: entryId, meta: newRegMeta },
       })
 
-      // 인덱스 + entry 모듈 모두 invalidate된 상태 — Vite가 다음 fetch 시 재평가.
-      // full-reload는 보내지 않음 (사이드바는 custom event로 즉시 reflow).
       // 빈 배열을 반환해 Vite가 module graph를 자연 propagate 하도록 한다.
       return []
     },
