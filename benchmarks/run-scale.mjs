@@ -188,7 +188,10 @@ async function measureBuild(target) {
 }
 
 async function measureExtract(generatedDir) {
-  // ts-morph extract — jogak 쪽만
+  // ts-morph extract — jogak 쪽만.
+  // 521e616 이후 extract는 child_process IPC라 Promise를 반환한다 (이전엔 동기).
+  // await 누락 시 result가 Promise가 되어 Object.keys(result)는 빈 배열,
+  // totalProps=0, totalMs는 IPC 시작만 측정된 가짜 값을 만든다.
   const tsConfigFilePath = resolve(ROOT, 'benchmarks/baselines/jogak/tsconfig.json')
 
   const t0 = nowMs()
@@ -202,9 +205,14 @@ async function measureExtract(generatedDir) {
 
   let totalProps = 0
   const t1 = nowMs()
-  for (const file of files) {
-    const result = extractor.extract(file)
-    totalProps += Object.keys(result).length
+  try {
+    for (const file of files) {
+      const result = await extractor.extract(file)
+      totalProps += Object.keys(result).length
+    }
+  } finally {
+    // 자식 프로세스 즉시 종료 — bench가 매달리지 않게.
+    extractor.releaseCache()
   }
   const totalMs = nowMs() - t1
 
