@@ -302,12 +302,6 @@ importers:
       prism-react-renderer:
         specifier: ^2.4.1
         version: 2.4.1(react@19.2.5)
-      react:
-        specifier: ^19.0.0
-        version: 19.2.5
-      react-dom:
-        specifier: ^19.0.0
-        version: 19.2.5(react@19.2.5)
     devDependencies:
       '@types/node':
         specifier: ^20.14.0
@@ -321,12 +315,21 @@ importers:
       '@vitejs/plugin-react':
         specifier: ^4.3.0
         version: 4.7.0(vite@6.4.2(@types/node@20.19.39))
+      react:
+        specifier: ^19.0.0
+        version: 19.2.5
+      react-dom:
+        specifier: ^19.0.0
+        version: 19.2.5(react@19.2.5)
       typescript:
         specifier: ^5.5.0
         version: 5.9.3
       vite:
         specifier: ^6.0.0
         version: 6.4.2(@types/node@20.19.39)
+      vite-plugin-dts:
+        specifier: ^4.5.4
+        version: 4.5.4(@types/node@20.19.39)(rollup@4.60.2)(typescript@5.9.3)(vite@6.4.2(@types/node@20.19.39))
 
   packages/web-components:
     dependencies:
