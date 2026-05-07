@@ -83,7 +83,7 @@ jobs:
           cd /tmp/jogak-tgz
           for pkg in core react ui web-components next cli; do
             echo "=== dry-run: @jogak/$pkg ==="
-            npm publish jogak-$pkg-*.tgz --access public --provenance --dry-run
+            npm publish jogak-$pkg-*.tgz --access public --provenance --tag alpha --dry-run
           done
 
       - name: Publish
@@ -91,7 +91,8 @@ jobs:
         run: |
           cd /tmp/jogak-tgz
           # 의존성 순서: core → react → ui → web-components → next → cli
+          # --tag alpha: prerelease를 latest 태그로 잘못 올리는 사고 방지 (npm publish가 명시적 요구)
           for pkg in core react ui web-components next cli; do
             echo "=== publishing @jogak/$pkg ==="
-            npm publish jogak-$pkg-*.tgz --access public --provenance
+            npm publish jogak-$pkg-*.tgz --access public --provenance --tag alpha
           done
