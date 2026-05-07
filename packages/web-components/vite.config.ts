@@ -32,7 +32,11 @@ export default defineConfig({
   },
   plugins: [
     preact(),
-    dts({ include: ['src/**/*.ts', 'src/**/*.tsx'], entryRoot: 'src' }),
+    dts({
+      include: ['src/**/*.ts', 'src/**/*.tsx'],
+      exclude: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
+      entryRoot: 'src',
+    }),
   ],
   test: {
     environment: 'happy-dom',

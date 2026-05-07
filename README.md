@@ -32,7 +32,7 @@ Reproduce: `pnpm bench:scale:full` · `pnpm bench:rss` · `pnpm bench:hmr`. Meas
 
 ## Requirements
 
-- **Node** 20.10+ (or 22+, 24+) — uses `--experimental-strip-types`, `fetch`, `AbortSignal.timeout`
+- **Node** 20.18+ (or 22+, 24+) — uses `fetch`, `AbortSignal.timeout`, `node:test` parity APIs
 - **React** 19.x — peer dependency
 - **Vite** 6.x — peer dependency (when embedding)
 - **TypeScript** 5.5+ — required for props auto-extraction (without `tsconfig.json`, extraction is skipped and you fall back to manual `meta.argTypes`)

@@ -54,6 +54,12 @@ export default function Page() {
 import { runHost } from '@jogak/ui/host' // Node-only, used by @jogak/cli
 ```
 
+> ⚠️ `@jogak/ui/host` requires `vite` and `@vitejs/plugin-react` at runtime. They are declared as **optional peers** because the main `JogakApp` export does not need them — install them only when using `runHost`:
+>
+> ```bash
+> pnpm add -D vite @vitejs/plugin-react
+> ```
+
 See the [main README](https://github.com/devclib/jogak#readme) for the full host embedding guide.
 
 - Repository: https://github.com/devclib/jogak

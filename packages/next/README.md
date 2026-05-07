@@ -48,8 +48,8 @@ export default {
 Server / client subpaths are exposed for advanced layout integration:
 
 ```ts
-import { JogakLayout } from '@jogak/next/server'   // RSC layout
-import { JogakClientShell } from '@jogak/next/client'  // client-side shell
+import { JogakLayout, type JogakLayoutProps } from '@jogak/next/server'      // RSC layout
+import { JogakClientShell, type JogakClientShellProps } from '@jogak/next/client' // client shell
 ```
 
 See the [main README](https://github.com/devclib/jogak#readme) for the host embedding guide.

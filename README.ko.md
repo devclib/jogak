@@ -32,7 +32,7 @@
 
 ## 필수 조건
 
-- **Node** 20.10+ (또는 22+, 24+) — `--experimental-strip-types`/`fetch`/`AbortSignal.timeout` 사용
+- **Node** 20.18+ (또는 22+, 24+) — `fetch`/`AbortSignal.timeout`/`node:test` parity API 사용
 - **React** 19.x — peer dependency
 - **Vite** 6.x — peer dependency (호스트 임베드 시)
 - **TypeScript** 5.5+ — props 자동 추출이 작동하려면 `tsconfig.json` 필요 (없으면 추출 skip, 수동 `meta.argTypes`로 fallback)
