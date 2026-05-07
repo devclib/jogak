@@ -31,8 +31,9 @@ jobs:
           node-version: 22
           cache: pnpm
 
-      - name: Upgrade npm CLI to latest (OIDC publish 정식 지원 11.5.1+)
-        run: npm install -g npm@latest
+      - name: Upgrade npm CLI to 11+ (OIDC publish 정식 지원 11.5.1+)
+        # --force: Node 동봉 npm 10.x가 self-upgrade 시 의존성 모듈을 잃는 알려진 버그 회피
+        run: npm install -g npm@11 --force
 
       - name: Verify npm version + clean .npmrc auth (OIDC fallback 보장)
         run: |
