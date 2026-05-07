@@ -29,8 +29,21 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          registry-url: https://registry.npmjs.org/
           cache: pnpm
+
+      - name: Upgrade npm CLI to latest (OIDC publish 정식 지원 11.5.1+)
+        run: npm install -g npm@latest
+
+      - name: Verify npm version + clean .npmrc auth (OIDC fallback 보장)
+        run: |
+          npm --version
+          # setup-node가 박아둔 _authToken 라인이 있으면 OIDC 흐름이 막힘.
+          # registry-url을 제거했으니 normally 없지만 안전하게 정리.
+          if [ -f "$HOME/.npmrc" ]; then
+            sed -i '/_authToken/d' "$HOME/.npmrc" || true
+            echo "--- ~/.npmrc after cleanup ---"
+            cat "$HOME/.npmrc" || true
+          fi
 
       - name: Install
         run: pnpm install --frozen-lockfile
