@@ -151,4 +151,19 @@ export interface JogakPluginOptions {
    * 또는 `--force`를 관리해야 한다.
    */
   readonly disableCacheValidation?: boolean
+  /**
+   * 사용자 명시 path alias. 미지정 시 사용자 tsconfig의 `compilerOptions.paths`를
+   * 자동으로 읽어 vite `resolve.alias`로 등록한다 (shadcn/ui 같이 `@/`를 쓰는
+   * 일반적 환경 대응).
+   *
+   * 자동 추출은 단순 prefix 매핑(`"@/*": ["./src/*"]`)만 처리하므로,
+   * `extends` 체인이나 복합 glob 패턴을 쓰는 경우 본 옵션으로 명시 전달한다.
+   * 본 옵션이 자동 추출 결과를 덮어쓴다.
+   *
+   * 값은 alias prefix → 절대 경로(또는 cwd 기준 상대 경로) 맵이다.
+   *
+   * @example
+   * jogak({ resolveAlias: { '@': './src', '@components': './src/components' } })
+   */
+  readonly resolveAlias?: Readonly<Record<string, string>>
 }

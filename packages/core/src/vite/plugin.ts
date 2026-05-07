@@ -13,6 +13,7 @@ import {
   type PropsExtractor,
 } from '../meta/extract-props.js'
 import { validateAndPurgeViteCache } from './cache-validate.js'
+import { readTsConfigAlias } from './resolve-paths.js'
 import {
   RESOLVED_VIRTUAL_ENTRY_PREFIX,
   RESOLVED_VIRTUAL_INDEX_ID,
@@ -62,6 +63,7 @@ export function jogak(options: JogakPluginOptions = {}): Plugin {
   const optionCwd = options.cwd
   const optionTsConfigFilePath = options.tsConfigFilePath
   const disableCacheValidation = options.disableCacheValidation === true
+  const userResolveAlias = options.resolveAlias
 
   let devServer: ViteDevServer | undefined
   let extractor: PropsExtractor | undefined
@@ -141,6 +143,40 @@ export function jogak(options: JogakPluginOptions = {}): Plugin {
 
   return {
     name: 'vite-plugin-jogak',
+
+    /**
+     * 사용자 path alias 주입.
+     *
+     * `runHost`는 vite root를 `@jogak/ui` 패키지로 두고 사용자 `vite.config.ts`를
+     * 무시하므로(`configFile: false`), 사용자가 컴포넌트 안에서 쓰는 `@/lib/utils`
+     * 같은 alias가 그냥은 적용되지 않는다. 본 hook이 사용자 tsconfig의
+     * `compilerOptions.paths`를 vite `resolve.alias`로 자동 변환해 주입한다.
+     *
+     * 우선순위: `options.resolveAlias` (명시) > tsconfig 자동 추출.
+     */
+    config() {
+      const root = optionCwd ?? process.cwd()
+      const tsConfigCandidate =
+        optionTsConfigFilePath ?? resolve(root, 'tsconfig.json')
+
+      // 자동 추출 (단순 prefix 매핑만 처리)
+      const autoAlias = readTsConfigAlias(tsConfigCandidate, root)
+
+      // 명시 옵션 — 자동 추출보다 우선. 상대 경로면 root 기준 절대화.
+      const resolvedUserAlias: Record<string, string> = {}
+      if (userResolveAlias !== undefined) {
+        for (const [key, value] of Object.entries(userResolveAlias)) {
+          resolvedUserAlias[key] = resolve(root, value)
+        }
+      }
+
+      const merged = { ...autoAlias, ...resolvedUserAlias }
+      if (Object.keys(merged).length === 0) return undefined
+
+      return {
+        resolve: { alias: merged },
+      }
+    },
 
     async configResolved(config) {
       // glob의 cwd: 옵션 우선, 미지정 시 Vite config.root (기존 동작 유지).
