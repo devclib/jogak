@@ -11,7 +11,10 @@
     "design-system",
     "component-library"
   ],
-  "author": "devclib",
+  "author": {
+    "name": "devclib",
+    "url": "https://github.com/devclib"
+  },
   "license": "MIT",
   "homepage": "https://github.com/devclib/jogak#readme",
   "bugs": "https://github.com/devclib/jogak/issues",
@@ -27,18 +30,21 @@
   "files": [
     "dist",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "CHANGELOG.md"
   ],
   "engines": {
     "node": ">=20.18"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc --noEmit",
-    "prepublishOnly": "tsc -p tsconfig.json"
+    "prepublishOnly": "tsc -p tsconfig.json",
+    "prepack": "tsc -p tsconfig.json"
   },
   "dependencies": {
     "@jogak/core": "workspace:*",

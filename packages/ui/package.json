@@ -10,7 +10,10 @@
     "design-system",
     "component-library"
   ],
-  "author": "devclib",
+  "author": {
+    "name": "devclib",
+    "url": "https://github.com/devclib"
+  },
   "license": "MIT",
   "homepage": "https://github.com/devclib/jogak#readme",
   "bugs": "https://github.com/devclib/jogak/issues",
@@ -40,20 +43,23 @@
     "dist",
     "index.html",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "CHANGELOG.md"
   ],
   "engines": {
     "node": ">=20.18"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "prepublishOnly": "vite build"
+    "prepublishOnly": "vite build",
+    "prepack": "vite build"
   },
   "dependencies": {
     "@jogak/core": "workspace:*",
