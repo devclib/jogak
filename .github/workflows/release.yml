@@ -77,13 +77,31 @@ jobs:
           done
           ls -la /tmp/jogak-tgz
 
+      - name: Resolve dist-tag from version
+        # 버전의 semver prerelease identifier로 npm dist-tag를 자동 결정한다.
+        # 0.1.0-alpha.2 → alpha, 1.0.0-beta.0 → beta, 1.0.0 → latest
+        # 하드코딩 시 stable 릴리스가 alpha 태그로 올라가 latest를 갱신 못 하는 사고 방지.
+        id: dist-tag
+        run: |
+          VERSION=$(node -p "require('./packages/core/package.json').version")
+          case "$VERSION" in
+            *-alpha.*) TAG=alpha ;;
+            *-beta.*)  TAG=beta ;;
+            *-rc.*)    TAG=rc ;;
+            *-*)       TAG=next ;;
+            *)         TAG=latest ;;
+          esac
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG"          >> "$GITHUB_OUTPUT"
+          echo "Resolved: $VERSION → dist-tag=$TAG"
+
       - name: Publish (dry run)
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
         run: |
           cd /tmp/jogak-tgz
           for pkg in core react ui web-components next cli; do
             echo "=== dry-run: @jogak/$pkg ==="
-            npm publish jogak-$pkg-*.tgz --access public --provenance --tag alpha --dry-run
+            npm publish jogak-$pkg-*.tgz --access public --provenance --tag '${{ steps.dist-tag.outputs.tag }}' --dry-run
           done
 
       - name: Publish
@@ -91,8 +109,7 @@ jobs:
         run: |
           cd /tmp/jogak-tgz
           # 의존성 순서: core → react → ui → web-components → next → cli
-          # --tag alpha: prerelease를 latest 태그로 잘못 올리는 사고 방지 (npm publish가 명시적 요구)
           for pkg in core react ui web-components next cli; do
-            echo "=== publishing @jogak/$pkg ==="
-            npm publish jogak-$pkg-*.tgz --access public --provenance --tag alpha
+            echo "=== publishing @jogak/$pkg with --tag ${{ steps.dist-tag.outputs.tag }} ==="
+            npm publish jogak-$pkg-*.tgz --access public --provenance --tag '${{ steps.dist-tag.outputs.tag }}'
           done
