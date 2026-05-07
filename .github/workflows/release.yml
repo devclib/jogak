@@ -28,22 +28,22 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: pnpm
 
-      - name: Upgrade npm CLI to 11+ (OIDC publish 정식 지원 11.5.1+)
-        # --force: Node 동봉 npm 10.x가 self-upgrade 시 의존성 모듈을 잃는 알려진 버그 회피
-        run: npm install -g npm@11 --force
-
-      - name: Verify npm version + clean .npmrc auth (OIDC fallback 보장)
+      - name: Verify versions + clean ~/.npmrc auth (OIDC fallback 보장)
+        # Node 24는 npm 11.x를 동봉 → self-upgrade 불필요.
+        # _authToken 라인이 ~/.npmrc에 박혀 있으면 OIDC fallback이 차단되므로 안전 정리.
         run: |
-          npm --version
-          # setup-node가 박아둔 _authToken 라인이 있으면 OIDC 흐름이 막힘.
-          # registry-url을 제거했으니 normally 없지만 안전하게 정리.
+          echo "node: $(node --version)"
+          echo "npm:  $(npm --version)"
+          echo "pnpm: $(pnpm --version)"
           if [ -f "$HOME/.npmrc" ]; then
             sed -i '/_authToken/d' "$HOME/.npmrc" || true
             echo "--- ~/.npmrc after cleanup ---"
             cat "$HOME/.npmrc" || true
+          else
+            echo "(no ~/.npmrc)"
           fi
 
       - name: Install
@@ -67,12 +67,31 @@ jobs:
             exit 1
           fi
 
+      - name: Pack all packages (workspace:* → 실제 버전 치환)
+        # pnpm pack이 workspace:*를 패키지 버전으로 치환한 tarball을 생성한다.
+        # 이후 npm publish에 tarball을 직접 넘기면 npm CLI(11+)의 OIDC 인증 흐름을 정확히 탄다.
+        run: |
+          mkdir -p /tmp/jogak-tgz
+          for pkg in core react ui web-components next cli; do
+            (cd packages/$pkg && pnpm pack --pack-destination /tmp/jogak-tgz)
+          done
+          ls -la /tmp/jogak-tgz
+
       - name: Publish (dry run)
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
-        run: pnpm -r --filter './packages/*' publish --access public --no-git-checks --dry-run
+        run: |
+          cd /tmp/jogak-tgz
+          for pkg in core react ui web-components next cli; do
+            echo "=== dry-run: @jogak/$pkg ==="
+            npm publish jogak-$pkg-*.tgz --access public --provenance --dry-run
+          done
 
       - name: Publish
         if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && !inputs.dry_run) }}
-        env:
-          NPM_CONFIG_PROVENANCE: 'true'
-        run: pnpm -r --filter './packages/*' publish --access public --no-git-checks
+        run: |
+          cd /tmp/jogak-tgz
+          # 의존성 순서: core → react → ui → web-components → next → cli
+          for pkg in core react ui web-components next cli; do
+            echo "=== publishing @jogak/$pkg ==="
+            npm publish jogak-$pkg-*.tgz --access public --provenance
+          done
