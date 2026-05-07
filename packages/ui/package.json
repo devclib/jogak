@@ -1,6 +1,6 @@
 {
   "name": "@jogak/ui",
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0-alpha.2",
   "description": "Showcase viewer UI for Jogak — Sidebar / Preview / Controls / Actions and the JogakApp shell.",
   "keywords": [
     "jogak",
@@ -42,6 +42,11 @@
   "files": [
     "dist",
     "index.html",
+    "src/app",
+    "src/components",
+    "src/hooks",
+    "src/index.ts",
+    "src/vite-env.d.ts",
     "README.md",
     "LICENSE",
     "CHANGELOG.md"
