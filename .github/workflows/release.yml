@@ -1,0 +1,65 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (no publish)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.18
+          registry-url: https://registry.npmjs.org/
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Test
+        run: pnpm test
+
+      - name: Build all packages
+        run: pnpm build
+
+      - name: Verify dist parity (no test files leaked)
+        run: |
+          leaked=$(find packages -path '*/dist/*' -name '*.test.*' || true)
+          if [ -n "$leaked" ]; then
+            echo "::error::test files leaked into dist:"
+            echo "$leaked"
+            exit 1
+          fi
+
+      - name: Publish (dry run)
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+        run: pnpm -r --filter './packages/*' publish --access public --no-git-checks --dry-run
+
+      - name: Publish
+        if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && !inputs.dry_run) }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: 'true'
+        run: pnpm -r --filter './packages/*' publish --access public --no-git-checks
