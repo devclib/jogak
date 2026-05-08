@@ -22,6 +22,10 @@ export interface BuildCliArgs {
   readonly minify: boolean | 'esbuild' | 'terser'
   readonly sourcemap: boolean
   readonly emitRegistry: boolean
+  /** 알파.7: 사용자 globalCss 옵션 (config 또는 CLI flag로 결정). */
+  readonly globalCss?: boolean | string | readonly string[]
+  /** 알파.7: preview 격리 모드. */
+  readonly previewIsolation: 'none' | 'shadow' | 'iframe'
 }
 
 export async function runBuildCommand(args: BuildCliArgs): Promise<void> {
@@ -54,6 +58,9 @@ export async function runBuildCommand(args: BuildCliArgs): Promise<void> {
     ...(args.tsConfigFilePath !== undefined
       ? { tsConfigFilePath: args.tsConfigFilePath }
       : {}),
+    // 알파.7: host 통로로 plugin 옵션 전달.
+    ...(args.globalCss !== undefined ? { globalCss: args.globalCss } : {}),
+    previewIsolation: args.previewIsolation,
   }
 
   const result: BuildResult = await runHost(buildOptions)

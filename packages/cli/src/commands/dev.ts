@@ -22,6 +22,10 @@ export interface DevCliArgs {
   readonly tsConfigFilePath: string | undefined
   readonly codeTheme: string
   readonly noGenerate: boolean
+  /** 알파.7: 사용자 globalCss 옵션 (config 또는 CLI flag로 결정). */
+  readonly globalCss?: boolean | string | readonly string[]
+  /** 알파.7: preview 격리 모드. */
+  readonly previewIsolation: 'none' | 'shadow' | 'iframe'
 }
 
 /**
@@ -77,6 +81,9 @@ export async function runDevCommand(args: DevCliArgs): Promise<void> {
     ...(args.tsConfigFilePath !== undefined
       ? { tsConfigFilePath: args.tsConfigFilePath }
       : {}),
+    // 알파.7: host 통로로 plugin 옵션 전달.
+    ...(args.globalCss !== undefined ? { globalCss: args.globalCss } : {}),
+    previewIsolation: args.previewIsolation,
   }
 
   const handle: DevHandle = await runHost(devOptions)

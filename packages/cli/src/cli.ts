@@ -2,8 +2,10 @@
 import { resolve } from 'node:path'
 import { existsSync } from 'node:fs'
 import { generateRegistryFile } from '@jogak/core/build'
+import type { JogakConfig } from '@jogak/core'
 import { runDevCommand, type DevCliArgs } from './commands/dev.js'
 import { runBuildCommand, type BuildCliArgs } from './commands/build.js'
+import { loadJogakConfig } from './config-loader.js'
 
 interface ParsedArgs {
   readonly _: readonly string[]
@@ -51,23 +53,22 @@ function resolveTsConfig(cwd: string, v: string | true | undefined): string | un
 }
 
 function parseHostFlag(v: string | true | undefined): string | boolean {
-  if (v === undefined) return 'localhost'
   if (v === true) return true // bare --host → enable
   if (v === 'true') return true
   if (v === 'false') return false
-  return v
+  if (typeof v === 'string') return v
+  return 'localhost'
 }
 
 function parseOpenFlag(v: string | true | undefined): boolean | string {
-  if (v === undefined) return false
   if (v === true) return true
   if (v === 'true') return true
   if (v === 'false') return false
-  return v
+  if (typeof v === 'string') return v
+  return false
 }
 
-function parsePortFlag(v: string | true | undefined): number {
-  if (typeof v !== 'string') return 5173
+function parsePortFlag(v: string): number {
   const n = Number(v)
   if (!Number.isFinite(n)) {
     process.stderr.write(`[jogak] invalid --port: ${v}\n`)
@@ -76,10 +77,7 @@ function parsePortFlag(v: string | true | undefined): number {
   return n
 }
 
-function parseMinifyFlag(
-  v: string | true | undefined,
-): boolean | 'esbuild' | 'terser' {
-  if (v === undefined) return 'esbuild'
+function parseMinifyFlag(v: string | true): boolean | 'esbuild' | 'terser' {
   if (v === true) return true
   if (v === 'true') return true
   if (v === 'false') return false
@@ -96,14 +94,49 @@ function parseBoolFlag(v: string | true | undefined, fallback: boolean): boolean
   return fallback
 }
 
-function parseBaseFlag(v: string | true | undefined): string {
-  const raw = asString(v, './')
-  if (!raw.startsWith('/') && raw !== './' && !raw.startsWith('./')) {
+function parseBaseFlag(v: string): string {
+  if (!v.startsWith('/') && v !== './' && !v.startsWith('./')) {
     process.stderr.write(
-      `[jogak] warning: --base "${raw}" does not start with '/' or './' — typo?\n`,
+      `[jogak] warning: --base "${v}" does not start with '/' or './' — typo?\n`,
     )
   }
-  return raw
+  return v
+}
+
+/**
+ * 알파.7: `--global-css` 플래그 normalizer.
+ * - 미지정 → fileValue 그대로 (config 또는 undefined)
+ * - bare `--global-css` 또는 `--global-css true` → true
+ * - `--global-css false` → false
+ * - `--global-css <path>` → 명시 경로 (string 1개)
+ */
+function parseGlobalCssFlag(
+  v: string | true | undefined,
+  fileValue: boolean | string | readonly string[] | undefined,
+): boolean | string | readonly string[] | undefined {
+  if (v === undefined) return fileValue
+  if (v === true) return true
+  if (v === 'true') return true
+  if (v === 'false') return false
+  return v
+}
+
+/**
+ * 알파.7: `--preview-isolation` 플래그 normalizer.
+ * - 미지정 → fileValue ?? 'none'
+ * - 'none'|'shadow'|'iframe' → 그대로
+ * - 그 외 → exit 1
+ */
+function parsePreviewIsolationFlag(
+  v: string | true | undefined,
+  fileValue: 'none' | 'shadow' | 'iframe' | undefined,
+): 'none' | 'shadow' | 'iframe' {
+  if (v === undefined || v === true) return fileValue ?? 'none'
+  if (v === 'none' || v === 'shadow' || v === 'iframe') return v
+  process.stderr.write(
+    `[jogak] invalid --preview-isolation: ${v} (expected none|shadow|iframe)\n`,
+  )
+  process.exit(1)
 }
 
 function help(): void {
@@ -115,10 +148,13 @@ USAGE
   jogak build [options]            쇼케이스 정적 빌드
 
 COMMON OPTIONS
+  --config <path>                  jogak.config 경로 (기본: '<cwd>/jogak.config.{ts,mts,mjs,js,json}' 자동 감지)
   --patterns <glob[,glob...]>      쇼케이스 파일 글롭 (기본: 'src/**/*.jogak.ts,src/**/*.jogak.tsx')
   --cwd <path>                     사용자 프로젝트 루트 (기본: process.cwd())
   --ts-config <path>               tsconfig 경로 (기본: '<cwd>/tsconfig.json' 자동 감지)
   --code-theme <name>              prism 테마 (기본: 'vsDark')
+  --global-css [true|false|path]   사용자 globalCss 적용 (알파.7, 기본: jogak.config 또는 false)
+  --preview-isolation <mode>       preview 격리 (none|shadow|iframe, 알파.7, 기본: 'none')
   --help                           도움말 출력
 
 generate OPTIONS
@@ -139,12 +175,20 @@ build OPTIONS
 `)
 }
 
-async function runGenerate(args: ParsedArgs): Promise<void> {
+async function runGenerate(args: ParsedArgs, fileConfig: JogakConfig): Promise<void> {
   const cwd = resolve(asString(args.flags['cwd'], process.cwd()))
-  const patterns = parsePatterns(args.flags['patterns'])
+  const cliPatterns = args.flags['patterns']
+  const patterns =
+    cliPatterns !== undefined
+      ? parsePatterns(cliPatterns)
+      : fileConfig.patterns ?? ['src/**/*.jogak.ts', 'src/**/*.jogak.tsx']
   const outFile = asString(args.flags['out'], '.jogak/registry.ts')
 
-  const tsConfigFilePath = resolveTsConfig(cwd, args.flags['ts-config'])
+  const tsConfigFlag = args.flags['ts-config']
+  const tsConfigFilePath =
+    typeof tsConfigFlag === 'string'
+      ? resolveTsConfig(cwd, tsConfigFlag)
+      : fileConfig.tsConfigFilePath ?? resolveTsConfig(cwd, undefined)
 
   const start = Date.now()
   const result = await generateRegistryFile(
@@ -158,41 +202,135 @@ async function runGenerate(args: ParsedArgs): Promise<void> {
   )
 }
 
-function parseDevArgs(parsed: ParsedArgs): DevCliArgs {
+function parseDevArgs(parsed: ParsedArgs, fileConfig: JogakConfig): DevCliArgs {
   const cwd = resolve(asString(parsed.flags['cwd'], process.cwd()))
-  const patterns = parsePatterns(parsed.flags['patterns'])
-  const tsConfigFilePath = resolveTsConfig(cwd, parsed.flags['ts-config'])
+
+  const cliPatterns = parsed.flags['patterns']
+  const patterns =
+    cliPatterns !== undefined
+      ? parsePatterns(cliPatterns)
+      : fileConfig.patterns ?? ['src/**/*.jogak.ts', 'src/**/*.jogak.tsx']
+
+  const tsConfigFlag = parsed.flags['ts-config']
+  const tsConfigFilePath =
+    typeof tsConfigFlag === 'string'
+      ? resolveTsConfig(cwd, tsConfigFlag)
+      : fileConfig.tsConfigFilePath ?? resolveTsConfig(cwd, undefined)
+
+  const portFlag = parsed.flags['port']
+  const port =
+    typeof portFlag === 'string'
+      ? parsePortFlag(portFlag)
+      : fileConfig.port ?? 5173
+
+  const hostFlag = parsed.flags['host']
+  const host =
+    hostFlag !== undefined
+      ? parseHostFlag(hostFlag)
+      : fileConfig.host ?? 'localhost'
+
+  const openFlag = parsed.flags['open']
+  const open =
+    openFlag !== undefined
+      ? parseOpenFlag(openFlag)
+      : fileConfig.open ?? false
+
+  const codeThemeFlag = parsed.flags['code-theme']
+  const codeTheme =
+    typeof codeThemeFlag === 'string'
+      ? codeThemeFlag
+      : fileConfig.codeTheme ?? 'vsDark'
+
+  const globalCss = parseGlobalCssFlag(
+    parsed.flags['global-css'],
+    fileConfig.globalCss,
+  )
 
   return {
     patterns,
-    port: parsePortFlag(parsed.flags['port']),
-    host: parseHostFlag(parsed.flags['host']),
-    open: parseOpenFlag(parsed.flags['open']),
+    port,
+    host,
+    open,
     cwd,
     tsConfigFilePath,
-    codeTheme: asString(parsed.flags['code-theme'], 'vsDark'),
+    codeTheme,
     noGenerate: parseBoolFlag(parsed.flags['no-generate'], false),
+    // exactOptionalPropertyTypes 컨벤션: undefined는 spread로 분기.
+    ...(globalCss !== undefined ? { globalCss } : {}),
+    previewIsolation: parsePreviewIsolationFlag(
+      parsed.flags['preview-isolation'],
+      fileConfig.previewIsolation,
+    ),
   }
 }
 
-function parseBuildArgs(parsed: ParsedArgs): BuildCliArgs {
+function parseBuildArgs(parsed: ParsedArgs, fileConfig: JogakConfig): BuildCliArgs {
   const cwd = resolve(asString(parsed.flags['cwd'], process.cwd()))
-  const patterns = parsePatterns(parsed.flags['patterns'])
-  const tsConfigFilePath = resolveTsConfig(cwd, parsed.flags['ts-config'])
 
-  const outDirRaw = asString(parsed.flags['out-dir'], 'jogak-static')
+  const cliPatterns = parsed.flags['patterns']
+  const patterns =
+    cliPatterns !== undefined
+      ? parsePatterns(cliPatterns)
+      : fileConfig.patterns ?? ['src/**/*.jogak.ts', 'src/**/*.jogak.tsx']
+
+  const tsConfigFlag = parsed.flags['ts-config']
+  const tsConfigFilePath =
+    typeof tsConfigFlag === 'string'
+      ? resolveTsConfig(cwd, tsConfigFlag)
+      : fileConfig.tsConfigFilePath ?? resolveTsConfig(cwd, undefined)
+
+  const outDirFlag = parsed.flags['out-dir']
+  const outDirRaw =
+    typeof outDirFlag === 'string'
+      ? outDirFlag
+      : fileConfig.outDir ?? 'jogak-static'
   const outDir = resolve(cwd, outDirRaw)
+
+  const baseFlag = parsed.flags['base']
+  const base =
+    typeof baseFlag === 'string'
+      ? parseBaseFlag(baseFlag)
+      : fileConfig.base ?? './'
+
+  const minifyFlag = parsed.flags['minify']
+  const minify =
+    minifyFlag !== undefined
+      ? parseMinifyFlag(minifyFlag)
+      : fileConfig.minify ?? 'esbuild'
+
+  const sourcemapFlag = parsed.flags['sourcemap']
+  const sourcemap =
+    sourcemapFlag !== undefined
+      ? parseBoolFlag(sourcemapFlag, false)
+      : fileConfig.sourcemap ?? false
+
+  const codeThemeFlag = parsed.flags['code-theme']
+  const codeTheme =
+    typeof codeThemeFlag === 'string'
+      ? codeThemeFlag
+      : fileConfig.codeTheme ?? 'vsDark'
+
+  const globalCss = parseGlobalCssFlag(
+    parsed.flags['global-css'],
+    fileConfig.globalCss,
+  )
 
   return {
     patterns,
     outDir,
-    base: parseBaseFlag(parsed.flags['base']),
+    base,
     cwd,
     tsConfigFilePath,
-    codeTheme: asString(parsed.flags['code-theme'], 'vsDark'),
-    minify: parseMinifyFlag(parsed.flags['minify']),
-    sourcemap: parseBoolFlag(parsed.flags['sourcemap'], false),
+    codeTheme,
+    minify,
+    sourcemap,
     emitRegistry: parseBoolFlag(parsed.flags['emit-registry'], false),
+    // exactOptionalPropertyTypes 컨벤션: undefined는 spread로 분기.
+    ...(globalCss !== undefined ? { globalCss } : {}),
+    previewIsolation: parsePreviewIsolationFlag(
+      parsed.flags['preview-isolation'],
+      fileConfig.previewIsolation,
+    ),
   }
 }
 
@@ -207,18 +345,30 @@ async function main(): Promise<void> {
   const rest = argv.slice(1)
   const parsed = parseArgs(rest)
 
+  // 알파.7: jogak.config.* 자동 발견 + 로드. CLI 플래그가 override.
+  const cwd = resolve(asString(parsed.flags['cwd'], process.cwd()))
+  const explicitConfig =
+    typeof parsed.flags['config'] === 'string' ? parsed.flags['config'] : undefined
+  const { path: configPath, config: fileConfig } = await loadJogakConfig(
+    cwd,
+    explicitConfig,
+  )
+  if (configPath !== undefined) {
+    process.stdout.write(`[jogak] config loaded: ${configPath}\n`)
+  }
+
   if (command === 'generate' || command === 'gen') {
-    await runGenerate(parsed)
+    await runGenerate(parsed, fileConfig)
     return
   }
 
   if (command === 'dev') {
-    await runDevCommand(parseDevArgs(parsed))
+    await runDevCommand(parseDevArgs(parsed, fileConfig))
     return
   }
 
   if (command === 'build') {
-    await runBuildCommand(parseBuildArgs(parsed))
+    await runBuildCommand(parseBuildArgs(parsed, fileConfig))
     return
   }
 

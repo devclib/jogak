@@ -6,4 +6,5 @@ export default defineWorkspace([
   'packages/next',
   'packages/web-components',
   'packages/ui',
+  'packages/cli',
 ])
