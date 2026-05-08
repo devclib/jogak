@@ -11,6 +11,9 @@ on:
       - 'Dockerfile.playwright'
       - '.github/workflows/visual-regression.yml'
       - 'pnpm-lock.yaml'
+      - 'eslint.config.js'
+      - 'scripts/lint-traps.mjs'
+      - 'package.json'
   push:
     branches: [main]
     paths:
@@ -22,6 +25,9 @@ on:
       - 'Dockerfile.playwright'
       - '.github/workflows/visual-regression.yml'
       - 'pnpm-lock.yaml'
+      - 'eslint.config.js'
+      - 'scripts/lint-traps.mjs'
+      - 'package.json'
   workflow_dispatch:
 
 permissions:
@@ -52,6 +58,11 @@ jobs:
         # @jogak/ui dev 가 @jogak/core / @jogak/react 를 워크스페이스 dependency 로 import 하므로
         # 사전 빌드 없으면 dev 서버 부팅 시 모듈 해석 실패.
         run: pnpm --filter @jogak/core --filter @jogak/react build
+
+      - name: Lint (eslint + alpha.5 trap grep)
+        # 알파.5 PR 4 도입: inline style forbid + 함정 1/2/4/5/6 grep + deprecated var 사용처 zero.
+        # VR 이전 단계에 둠 — VR 통과해도 lint 위반은 PR 차단해야 정공법.
+        run: pnpm lint
 
       - name: Run visual regression
         run: pnpm test:e2e:visual
