@@ -5,6 +5,14 @@ All notable changes to Jogak packages are documented here. The repository follow
 
 Version numbers apply to all packages in the workspace (synchronized release).
 
+## [0.1.0-alpha.9.2] — 2026-05-09
+
+### Fixed
+
+- **CI**: `release.yml`의 publish 단계가 `jogak-next-*.tgz` 글로브 패턴을 사용해 `next` 패키지 publish 시 `next-adapter` tarball까지 매치되어 npm publish가 EUSAGE(다중 tarball)으로 실패. 이로 인해 알파.9.1에서 `core/react/ui/web-components`만 publish되고 `next/cli` 및 4개 어댑터는 publish 안 됨. 정확한 파일명(`jogak-${pkg}-${VERSION}.tgz`)으로 변경.
+
+기타 패키지: source 변경 없음, synchronized release 유지를 위해 버전만 bump.
+
 ## [0.1.0-alpha.9.1] — 2026-05-09
 
 ### Fixed

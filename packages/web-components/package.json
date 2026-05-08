@@ -1,6 +1,6 @@
 {
   "name": "@jogak/web-components",
-  "version": "0.1.0-alpha.9.1",
+  "version": "0.1.0-alpha.9.2",
   "description": "Web Components adapter for Jogak — Preact runtime + Shadow DOM custom elements.",
   "keywords": [
     "jogak",
