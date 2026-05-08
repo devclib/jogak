@@ -1,6 +1,6 @@
 {
   "name": "@jogak/react",
-  "version": "0.1.0-alpha.8",
+  "version": "0.1.0-alpha.9",
   "description": "React adapter for Jogak (useEntry / useRegistry / useRegistryMeta hooks + JogakProvider).",
   "keywords": [
     "jogak",

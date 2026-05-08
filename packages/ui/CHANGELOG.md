@@ -5,152 +5,28 @@ All notable changes to Jogak packages are documented here. The repository follow
 
 Version numbers apply to all packages in the workspace (synchronized release).
 
-## [0.1.0-alpha.8] — 2026-05-09
+## [0.1.0-alpha.9] — 2026-05-09
 
 ### Added
 
-- **`JogakHostOptions.userViteUrl`** — 사용자 vite spawn URL을 jogak SPA host에 전달.
-  CLI의 `spawnUserVite` 결과가 `runHost`에 자동 전달되며 jogak() plugin의
-  `_jogakUserViteUrl`로 emit됨 → `IframeMount`가 iframe `src` base로 사용.
-- **`IframeMount` postMessage 통신 재작성** — cross-origin 환경(사용자 vite ≠ jogak
-  SPA)에서 `entry.id`를 메시지로 전달, iframe 안에서 `defaultRegistry.requestEntry(id)`로
-  dynamic import.
-
-### Changed (의도된 default 변경)
-
-- **`previewIsolation` default `'shadow'` → `'iframe'`** — 사용자 vite scope에서
-  사용자 컴포넌트가 사용자 디자인 그대로 보이는 것이 default 동작.
-- **`main.tsx` 단순화** — 사용자 globalCss는 사용자 vite scope에서만 처리되므로 jogak
-  SPA outer document inject는 `'none'` 모드(deprecated)에서만.
-
-### Notes
-
-- jogak-test-app(React + Vite + Tailwind v4 + shadcn) 검증: Badge가 사용자 디자인 그대로
-  표시 + chrome 침범 zero 입증.
-
-## [0.1.0-alpha.7.1] — 2026-05-09
-
-### Fixed
-
-- **`previewIsolation` 격리 통로 정정** — 알파.7은 `main.tsx`가 isolation 모드와
-  무관하게 사용자 globalCss를 outer document에 무조건 inject해서 jogak chrome
-  utility를 사용자 reset/preflight가 무력화하던 결함이 있었음. 알파.7.1:
-  - `main.tsx`: `_jogakPreviewIsolation === 'none'`일 때만 사용자 globalCss를
-    dynamic import. 다른 모드에서는 outer document inject 차단 → chrome 침범 zero.
-  - `ShadowMount`: `adoptedStyleSheets` 흡수 + MutationObserver HMR sync 로직 제거.
-    ShadowMount는 양방향 격리만 책임 (사용자 globalCss는 shadow scope에 inject 안 됨).
-  - 사용자 컴포넌트 styling 통로(사용자 디자인 토큰/Tailwind utility 적용)는 알파.8
-    사이클에서 사용자 vite 통합으로 별도 도입 예정.
-- **`Preview` cleanup race condition** — `NoneAdapterContent` / `ShadowAdapterContent`
-  / `IframeMount`의 unmount race(`Attempted to synchronously unmount...`)를
-  `queueMicrotask`로 defer해 회피.
-
-### Changed (의도된 default 변경)
-
-- **`JogakHostOptionsBase.previewIsolation` default `'none'` → `'shadow'`** —
-  양방향 격리가 default. back-compat은 `previewIsolation: 'none'` 명시.
-- **`JogakApp` / `Preview` `previewIsolation` prop default `'none'` → `'shadow'`**.
-
-### README 업데이트
-
-- "previewIsolation 사용 가이드" 섹션 재작성 — 3 모드 비교표 + `'shadow'` default
-  동작/한계 + `'iframe'` 주의 + `'none'` back-compat 사용법.
-- "격리 보장" 섹션 — default 표시 갱신 (`'none'` → `'shadow'`).
-- 로드맵 표 — alpha.7.1 entry 추가.
-
-## [0.1.0-alpha.7] — 2026-05-09
-
-### Added
-
-- **`JogakHostOptionsBase`에 `globalCss` / `previewIsolation` 필드** — `runHost({ globalCss: true,
-  previewIsolation: 'shadow' })` 형태로 programmatic API에서도 옵션 사용 가능.
-- **`Preview` Shadow / iframe 마운트 분기**
-  - `previewIsolation: 'none'` (default, 알파.6과 동일) — 같은 document에 마운트
-  - `'shadow'` — `attachShadow` + `createPortal` + `adoptedStyleSheets`로 외부 css/font 흡수,
-    `MutationObserver`로 외부 `<style>` HMR 동기화
-  - `'iframe'` — `/preview-frame.html` + `contentWindow.__jogak_setProps__` 직접 호출,
-    완벽 격리 (props 직렬화 불필요)
-- **`preview-frame.html` + `src/app/preview-frame.tsx`** — iframe-mode 전용 최소 entry.
-  `virtual:jogak/global-css`만 import (jogak chrome css는 미포함, 격리 보장).
-- **README "previewIsolation 모드 비교" + "알파.6 → 알파.7 마이그레이션" 섹션** — 3 모드의
-  trade-off / Radix portal 한계 / `jogak.config.ts` 패턴으로의 마이그레이션 안내.
-
-### Fixed
-
-- **알파.6 README의 `vite.config.ts` 가이드 정정** — 알파.6는 `vite.config.ts`에서
-  `jogak({ globalCss: true })`를 호출하라고 안내했으나 `runHost`가 `configFile: false`로
-  사용자 vite config를 무시해 옵션이 적용되지 않았음. 알파.7부터는 `jogak.config.ts`에
-  `defineJogakConfig({ globalCss: true })`로 작성.
-
-## [0.1.0-alpha.6] — 2026-05-09
-
-### Added
-
-- **`main.tsx` 에 `import 'virtual:jogak/global-css'` 추가** — `@jogak/core`의
-  `JogakPluginOptions.globalCss` opt-in 옵션이 켜진 환경에서 사용자 globalCss가
-  jogak SPA에 적용됨. opt-in이 꺼진 default 환경에서는 빈 모듈이라 SPA 번들 영향 zero.
-- **`jogak.css` chrome 보호 rule** — `[data-jogak-shell] :where(button, input, select, textarea):not([data-jogak-content] *)`
-  rule이 form element의 사용자 reset 침범을 차단. `:where()` specificity 0 +
-  `revert-layer`로 알파.5 baseline 영향 zero.
-- **README "사용자 globalCss 적용 (alpha.6)" 섹션** — 사용법 / 자동 감지 후보
-  8종 우선순위 / 격리 보장 3항목 / scope 가이드 / `[data-jogak-shell]` /
-  `[data-jogak-content]` selector hint / 알려진 한계 4항목.
-
-### Notes
-
-- 알파.4부터 hook으로 도입됐던 `data-jogak-shell` / `data-jogak-content` 속성이
-  본 릴리즈에서 처음으로 의미를 갖게 됨 (chrome 보호 rule + scope 가이드 hook).
-
-## [0.1.0-alpha.5] — 2026-05-09
+- **`@jogak/vite-adapter`**, **`@jogak/next-adapter`**, **`@jogak/webpack-adapter`**, **`@jogak/standalone-adapter`**: 새 builder-agnostic adapter 패키지군. CLI가 사용자 cwd의 빌더(`next.config`, `vite.config`, `webpack.config`)를 감지하여 해당 adapter를 dynamic import한다. 사용자 컴포넌트는 사용자의 정상 빌더 client에서 평가되므로 utility class compiler(Tailwind v4 등)이 자연스럽게 동작한다.
+- **`@jogak/core`**: `BuilderAdapter` ABI(`adapter.ts`), 빌더 자동 감지(`detectBuilder`, `@jogak/core/server`), preview entry 공통 source(`renderPreviewEntrySource`), postMessage 프로토콜(`@jogak/core/preview-entry/protocol`).
+- **`JogakPluginOptions.userPreviewUrl` / `previewEntryPath`**: adapter dispatch 결과를 host UI iframe src로 주입하는 통로. (`userViteUrl`은 alpha.8 호환을 위해 alias로 유지)
+- **`@jogak/next-adapter`**: Next 14+ App Router에 `<userRoot>/app/jogak-preview/page.tsx` scaffold(`.gitignore` 자동, shutdown cleanup). `next dev` child process spawn + HTTP poll ready 감지. CLI가 사전 생성한 `.jogak/registry.ts`의 entries를 import하여 모듈 평가 시점에 등록.
+- **`@jogak/webpack-adapter`**: `<userRoot>/.jogak/webpack-preview/preview-entry.tsx` scaffold + `webpack-dev-server` programmatic API + `webpack-merge`로 사용자 webpack.config 통합.
 
 ### Changed
 
-- **컴포넌트 4개 + App shell 전면 마이그레이션** — Sidebar / Preview / Controls / Actions /
-  JogakApp의 inline style을 `jogak:` prefix Tailwind class로 변경 완료. Playwright VR 9
-  시나리오 multi-run 결정성으로 픽셀 동등 입증. alpha.4 baseline 대비 8/9 unchanged.
-- **잔존 inline style 11건** — 모두 화이트리스트 (CSS variable 주입 + prism external interface).
-  각 라인 `eslint-disable-next-line no-restricted-syntax -- jogak: <카테고리>` 주석.
-- **dist 사이즈 감소** — mjs raw 35.3 → 33.9 KB / gzip 8.36 → 7.64 KB (skeleton inline
-  객체 + `<style>` 태그 제거 효과).
-
-### Added
-
-- 신규 dependency: `clsx@^2.1.1` (boolean variant 결합용).
-- `--jogak-radius-sm` CSS variable 첫 사용 (Clear 버튼).
-- `.jogak-skeleton-shimmer` class + `@keyframes jogakSkeleton` (jogak.css `@layer components`).
-
-### Removed
-
-- `--jogak-text-{xs,sm,base,md,lg}` 5개 CSS variable — 사용처 zero. font-size 픽셀 literal
-  채택 후 의미 상실. v4 `text-[var(--my-text-var)]` arbitrary value의 line-height 페어링
-  부수효과 회피 위해 픽셀 literal 정책 채택 (PR 1에서 발견).
-- `--jogak-sidebar-width` CSS variable — App grid 픽셀 literal 채택 후 사용처 zero.
+- **`@jogak/core`**: `fs`/`path`를 사용하는 server-only utility(`detectBuilder`, `resolveGlobalCssPaths`, `detectUserGlobalCss`)를 `@jogak/core/server` subpath로 분리. client bundle에 Node 모듈이 leak되는 문제를 차단.
+- **`@jogak/core`**, **`@jogak/ui`**, all adapters: CJS 산출물 확장자를 `.js` → `.cjs`로 변경. `"type": "module"` 환경에서 `.js`가 ESM으로 해석되어 발생하던 `exports is not defined in ES module scope` 오류를 해소.
+- **`previewIsolation`** default: `'shadow'` → `'iframe'`. shadow DOM 모드는 일부 portal 라이브러리(Radix 등)와 호환성 이슈가 있어 iframe 격리를 표준으로.
+- **`@jogak/ui`** preview-frame: 기존 `__jogak_setProps__` 직접 호출 프로토콜 → postMessage(`jogak:setProps` / `jogak:rendered` / `jogak:error`)로 통일. 모든 어댑터의 iframe entry가 동일 프로토콜을 따른다.
+- **`@jogak/cli`**: `jogak dev`가 registry 생성 완료를 대기한 뒤 어댑터를 spawn (이전: fire-and-forget). non-vite 어댑터의 scaffold가 비어있는 registry를 import하던 race condition 해소.
 
 ### Fixed
 
-- Preview source toggle / prism `<pre>` / Controls action span / json code / td name cell
-  등 5곳에서 `font-[var(--jogak-font-mono)]`가 v4에서 `font-weight: var(...)`로 잘못 컴파일되던
-  문제. `font-[family-name:var(--jogak-font-mono)]` hint로 차단.
-- Preview viewport toggle / bottom-panel tab button에 `leading-none` 적용 시 flex 부모
-  높이가 1~2px 단축되던 문제. padding 보유 button에는 leading 미적용으로 baseline 정합.
-
-## [0.1.0-alpha.4] — 2026-05-08
-
-### Internal
-
-- `@jogak/ui` SPA 빌드 파이프라인에 Tailwind v4 + `prefix(jogak)` 도입 (인프라 단계).
-  사용자 번들 / publish 산출물에는 영향 없음.
-- jogak 디자인 토큰을 `--jogak-*` CSS variable로 정의 (알파.5 컴포넌트 마이그레이션 대비).
-- jogak SPA에 `data-jogak-shell` / `data-jogak-content` wrapper 추가 (알파.6 사용자 globalCss
-  scope 정책 hook).
-
-### Notes
-
-- jogak UI 컴포넌트(Sidebar/Preview/Controls/Actions)는 여전히 inline style 사용. Tailwind class
-  마이그레이션은 알파.5에서 진행.
-- 사용자 프로젝트의 globalCss(예: `src/index.css`)는 **현재 jogak SPA에 적용되지 않습니다**. 알파.6에서
-  `JogakPluginOptions.globalCss` opt-in으로 지원 예정.
-- 사용자 프로젝트가 Tailwind를 사용해도 jogak prefix(`jogak:`)와 충돌하지 않음.
+- **`@jogak/cli`**: 어댑터 dynamic import 시 `import.meta.resolve`/`createRequire`가 cli/dist 기준으로 해석돼 사용자 cwd의 어댑터 패키지를 찾지 못하던 문제. `<cwd>/node_modules/@jogak/${name}-adapter/package.json`을 직접 읽어 `exports['.'].import` 경로로 해석하도록 변경.
+- **`@jogak/next-adapter`**: 이전 시도의 `__jogak_preview__` 경로는 Next App Router의 private folder convention(`_`로 시작하는 폴더는 라우팅 제외)과 충돌해 404. `jogak-preview`로 변경.
 
 ## [0.1.0-alpha.3] — 2026-05-07
 
