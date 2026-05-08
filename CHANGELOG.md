@@ -5,6 +5,52 @@ All notable changes to Jogak packages are documented here. The repository follow
 
 Version numbers apply to all packages in the workspace (synchronized release).
 
+## [0.1.0-alpha.8] — 2026-05-09
+
+### Added (alpha.8 — 사용자 vite 통합)
+
+- **`@jogak/cli`가 사용자 `vite.config.{ts,mts,js,mjs,cjs}`를 자동 탐지해 별도 vite dev
+  server를 spawn**한다. 사용자 plugins(@tailwindcss/vite, custom alias 등)이 정상
+  client에서 작동하므로 사용자 컴포넌트의 Tailwind utility가 정상 컴파일된다.
+- **`@jogak/core` `jogakPreviewFramePlugin`** — 사용자 vite scope에서 preview-frame
+  iframe entry를 emit. CLI가 `mergeConfig`로 자동 inject (사용자 액션 zero).
+- **`virtual:jogak/preview-entry`** + **`virtual:jogak/preview-global-css`** 가상 모듈 —
+  사용자 vite scope의 iframe entry용.
+- **`@jogak/core` `JogakConfig.userVite` 옵션** (`UserViteOptions`) — 사용자 vite spawn
+  설정 (configFile, port, host, disabled).
+- **`@jogak/core` `JogakPluginOptions.previewFrame` (internal)** — CLI가 사용자 vite에
+  jogak()을 inject할 때 자동 설정. chrome 가상 모듈 emit 비활성화.
+- **인덱스 가상 모듈에 `_jogakUserViteUrl` literal** — jogak SPA가 iframe `src` base로 사용.
+- **`@jogak/ui` `JogakHostOptions.userViteUrl`** — host 통로 확장.
+- **`IframeMount` postMessage 통신** — cross-origin 환경(사용자 vite ≠ jogak SPA)에서
+  `entry.id`를 메시지로 전달, iframe 안에서 `defaultRegistry.requestEntry(id)`로 dynamic
+  import (사용자 vite scope에서 평가).
+
+### Changed (의도된 default 변경)
+
+- **`previewIsolation` default `'shadow'` → `'iframe'`** — 사용자 vite scope에서 사용자
+  컴포넌트가 사용자 디자인 그대로 보이는 것이 default 동작. `'shadow'`/`'none'`은
+  deprecated (CLI에서 warning).
+- **CLI 사용자 vite default port 5174** — jogak SPA가 default 5173을 차지하도록.
+
+### Removed/Deprecated
+
+- **`'single Vite, no iframe'` 차별점 카피 폐기** — 사용자 vite 통합으로 차별점 갱신:
+  "사용자 vite/Tailwind/디자인 시스템 그대로 보임. 스토리 파일은 메타데이터만."
+- **`previewIsolation: 'shadow'`** deprecated (사용자 utility shadow inject 통로 미구현,
+  알파.9 부활 검토).
+- **`previewIsolation: 'none'`** deprecated (알파.10 제거 검토).
+
+### Notes
+
+- jogak-test-app(React + Vite + Tailwind v4 + shadcn) 검증: Badge 컴포넌트의
+  `bg-primary` / `px-2` / `py-0.5` / `rounded-full` / `text-xs` utility 모두 정상 컴파일
+  + 사용자 디자인 토큰 적용 + 동시에 jogak chrome border/spacing 침범 zero.
+- 사용자 vite spawn 자동화: 사용자가 `jogak.config.ts`에 `userVite` 옵션을 명시하지 않아도
+  cwd의 `vite.config.{ts,...}` 자동 탐지. 미발견 시 fallback 모드 (jogak SPA만 시작 +
+  warning).
+- dev cold start +100ms (vite × 2 병렬화). RSS +50~80MB.
+
 ## [0.1.0-alpha.7.1] — 2026-05-09
 
 ### Fixed

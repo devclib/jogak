@@ -5,6 +5,29 @@ All notable changes to Jogak packages are documented here. The repository follow
 
 Version numbers apply to all packages in the workspace (synchronized release).
 
+## [0.1.0-alpha.8] — 2026-05-09
+
+### Added
+
+- **`JogakHostOptions.userViteUrl`** — 사용자 vite spawn URL을 jogak SPA host에 전달.
+  CLI의 `spawnUserVite` 결과가 `runHost`에 자동 전달되며 jogak() plugin의
+  `_jogakUserViteUrl`로 emit됨 → `IframeMount`가 iframe `src` base로 사용.
+- **`IframeMount` postMessage 통신 재작성** — cross-origin 환경(사용자 vite ≠ jogak
+  SPA)에서 `entry.id`를 메시지로 전달, iframe 안에서 `defaultRegistry.requestEntry(id)`로
+  dynamic import.
+
+### Changed (의도된 default 변경)
+
+- **`previewIsolation` default `'shadow'` → `'iframe'`** — 사용자 vite scope에서
+  사용자 컴포넌트가 사용자 디자인 그대로 보이는 것이 default 동작.
+- **`main.tsx` 단순화** — 사용자 globalCss는 사용자 vite scope에서만 처리되므로 jogak
+  SPA outer document inject는 `'none'` 모드(deprecated)에서만.
+
+### Notes
+
+- jogak-test-app(React + Vite + Tailwind v4 + shadcn) 검증: Badge가 사용자 디자인 그대로
+  표시 + chrome 침범 zero 입증.
+
 ## [0.1.0-alpha.7.1] — 2026-05-09
 
 ### Fixed
