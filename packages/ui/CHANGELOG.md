@@ -5,6 +5,24 @@ All notable changes to Jogak packages are documented here. The repository follow
 
 Version numbers apply to all packages in the workspace (synchronized release).
 
+## [0.1.0-alpha.4] — 2026-05-08
+
+### Internal
+
+- `@jogak/ui` SPA 빌드 파이프라인에 Tailwind v4 + `prefix(jogak)` 도입 (인프라 단계).
+  사용자 번들 / publish 산출물에는 영향 없음.
+- jogak 디자인 토큰을 `--jogak-*` CSS variable로 정의 (알파.5 컴포넌트 마이그레이션 대비).
+- jogak SPA에 `data-jogak-shell` / `data-jogak-content` wrapper 추가 (알파.6 사용자 globalCss
+  scope 정책 hook).
+
+### Notes
+
+- jogak UI 컴포넌트(Sidebar/Preview/Controls/Actions)는 여전히 inline style 사용. Tailwind class
+  마이그레이션은 알파.5에서 진행.
+- 사용자 프로젝트의 globalCss(예: `src/index.css`)는 **현재 jogak SPA에 적용되지 않습니다**. 알파.6에서
+  `JogakPluginOptions.globalCss` opt-in으로 지원 예정.
+- 사용자 프로젝트가 Tailwind를 사용해도 jogak prefix(`jogak:`)와 충돌하지 않음.
+
 ## [0.1.0-alpha.3] — 2026-05-07
 
 ### Added
