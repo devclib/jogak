@@ -82,6 +82,26 @@
      * 회귀 자체 차단 + 알파.6 사용자 globalCss 충돌 가능성 zero.
      */
   }
+
+  /*
+   * 알파.6 wrapper 보호 rule (api-contracts §8 옵션 C).
+   *
+   * 사용자 globalCss(예: shadcn `@layer base { * { @apply border-border ... } }`)가
+   * jogak chrome의 form element를 침범하는 것을 차단한다. `:where(...)` specificity 0
+   * 으로 사용자가 명시적으로 `[data-jogak-shell] button { ... }`를 작성하면 자연스럽게
+   * 이긴다.
+   *
+   * 적용 범위: chrome의 모든 form element. preview(`[data-jogak-content]`) 안의
+   * 사용자 컴포넌트는 영향 받지 않음 — `:not([data-jogak-content] *)`로 제외.
+   *
+   * 알파.5 baseline 영향: zero. chrome 컴포넌트는 본 rule이 차단하는 사용자 reset이
+   * 없을 때 동일 시각 (revert-layer는 해당 layer가 없으면 no-op).
+   */
+  [data-jogak-shell] :where(button, input, select, textarea):not([data-jogak-content] *) {
+    border-color: revert-layer;
+    background-color: revert-layer;
+    color: revert-layer;
+  }
 }
 
 @layer components {
