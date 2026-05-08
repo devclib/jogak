@@ -32,10 +32,14 @@ export interface PreviewProps {
    */
   readonly previewIsolation?: 'none' | 'shadow' | 'iframe'
   /**
-   * 알파.8: 사용자 vite spawn URL. iframe `src` base.
+   * 알파.9: 어댑터 dev URL. iframe `src` base.
    * 빈 문자열 시 fallback (jogak SPA Vite scope의 `/preview-frame.html`).
    */
-  readonly userViteUrl?: string
+  readonly userPreviewUrl?: string
+  /**
+   * 알파.9: iframe entry path.
+   */
+  readonly previewEntryPath?: string
 }
 
 type ViewportKey = 'mobile' | 'tablet' | 'desktop'
@@ -126,7 +130,8 @@ export function Preview({
   codeTheme,
   onResolveJogak,
   previewIsolation = 'iframe',
-  userViteUrl = '',
+  userPreviewUrl = '',
+  previewEntryPath = '/__jogak_preview__/index.html',
 }: PreviewProps): ReactElement {
   const state = useEntry(entryId)
   const [viewport, setViewport] = useState<ViewportKey>('desktop')
@@ -193,7 +198,8 @@ export function Preview({
       onBottomTabChange={setBottomTab}
       prismTheme={prismTheme}
       previewIsolation={previewIsolation}
-      userViteUrl={userViteUrl}
+      userPreviewUrl={userPreviewUrl}
+      previewEntryPath={previewEntryPath}
     />
   )
 }
@@ -282,7 +288,8 @@ interface ReadyFrameProps {
   readonly onBottomTabChange: (tab: 'controls' | 'actions') => void
   readonly prismTheme: PrismTheme
   readonly previewIsolation: 'none' | 'shadow' | 'iframe'
-  readonly userViteUrl: string
+  readonly userPreviewUrl: string
+  readonly previewEntryPath: string
 }
 
 function ReadyFrame({
@@ -300,7 +307,8 @@ function ReadyFrame({
   onBottomTabChange,
   prismTheme,
   previewIsolation,
-  userViteUrl,
+  userPreviewUrl,
+  previewEntryPath,
 }: ReadyFrameProps): ReactElement {
   // jogakName이 비어있으면 (deep link `?entry=...&jogak` 누락) 첫 jogak로 보정.
   const resolvedJogakName = jogakName ?? entry.jogaks[0]?.name ?? null
@@ -373,7 +381,8 @@ function ReadyFrame({
             source={entry.source}
             theme={prismTheme}
             previewIsolation={previewIsolation}
-            userViteUrl={userViteUrl}
+            userPreviewUrl={userPreviewUrl}
+            previewEntryPath={previewEntryPath}
           />
         </div>
       </div>
@@ -524,19 +533,18 @@ interface JogakRendererProps {
   readonly source: string | undefined
   readonly theme: PrismTheme
   readonly previewIsolation: 'none' | 'shadow' | 'iframe'
-  readonly userViteUrl: string
+  readonly userPreviewUrl: string
+  readonly previewEntryPath: string
 }
 
 /**
- * 알파.8: previewIsolation 모드별로 사용자 콘텐츠 마운트 방식을 분기한다.
+ * 알파.9: previewIsolation 모드별로 사용자 콘텐츠 마운트 방식을 분기한다.
  *
- * - `'iframe'` (default) — 사용자 vite scope의 `<IframeMount>`로 별도 document.
+ * - `'iframe'` (default) — 어댑터 dev URL의 `<IframeMount>`로 별도 document.
  * - `'shadow'` (deprecated) — `<ShadowMount>` 안에 마운트.
  * - `'none'` (deprecated) — 같은 document에 직접 마운트.
- *
- * Show source 토글, 코드 패널 등 chrome 부분은 모드 무관하게 외부에 둔다.
  */
-function JogakRenderer({ entry, args, source, theme, previewIsolation, userViteUrl }: JogakRendererProps): ReactElement {
+function JogakRenderer({ entry, args, source, theme, previewIsolation, userPreviewUrl, previewEntryPath }: JogakRendererProps): ReactElement {
   const [showCode, setShowCode] = useState(false)
 
   const previewBody = (
@@ -545,7 +553,8 @@ function JogakRenderer({ entry, args, source, theme, previewIsolation, userViteU
         entry={entry}
         args={args}
         previewIsolation={previewIsolation}
-        userViteUrl={userViteUrl}
+        userPreviewUrl={userPreviewUrl}
+        previewEntryPath={previewEntryPath}
       />
       <button
         type="button"
@@ -587,14 +596,15 @@ interface PreviewMountProps {
   readonly entry: RegistryEntry
   readonly args: Readonly<Record<string, unknown>>
   readonly previewIsolation: 'none' | 'shadow' | 'iframe'
-  readonly userViteUrl: string
+  readonly userPreviewUrl: string
+  readonly previewEntryPath: string
 }
 
 const PREVIEW_HOST_CLASS =
   'jogak:border jogak:border-dashed jogak:border-[var(--jogak-color-border)] ' +
   'jogak:rounded-[var(--jogak-radius-xl)] jogak:p-4 jogak:pb-9'
 
-function PreviewMount({ entry, args, previewIsolation, userViteUrl }: PreviewMountProps): ReactElement {
+function PreviewMount({ entry, args, previewIsolation, userPreviewUrl, previewEntryPath }: PreviewMountProps): ReactElement {
   if (previewIsolation === 'shadow') {
     return (
       <ShadowMount
@@ -611,7 +621,8 @@ function PreviewMount({ entry, args, previewIsolation, userViteUrl }: PreviewMou
       <IframeMount
         entry={entry}
         args={args}
-        userViteUrl={userViteUrl}
+        userPreviewUrl={userPreviewUrl}
+        previewEntryPath={previewEntryPath}
         data-testid="preview-content"
         className={`${PREVIEW_HOST_CLASS} jogak:block jogak:w-full jogak:bg-transparent jogak:min-h-[256px]`}
       />

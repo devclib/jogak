@@ -9,8 +9,18 @@ declare module 'virtual:jogak' {
    */
   export const _jogakPreviewIsolation: 'none' | 'shadow' | 'iframe'
   /**
-   * 알파.8: 사용자 vite spawn URL. iframe `src` base로 사용 (예: `http://localhost:5174`).
+   * 알파.9: 어댑터 dev URL. iframe `src` base로 사용 (예: `http://localhost:5174`).
    * 빈 문자열 시 fallback (jogak SPA Vite scope의 preview-frame.tsx).
+   */
+  export const _jogakUserPreviewUrl: string
+  /**
+   * 알파.9: iframe entry path (`BuilderAdapter.previewEntryMeta.devEntryPath`).
+   * 어댑터별 routing (vite: `/__jogak_preview__/index.html`).
+   */
+  export const _jogakPreviewEntryPath: string
+  /**
+   * @deprecated 알파.10 제거 예정. `_jogakUserPreviewUrl` 사용.
+   * 알파.8 호환 alias.
    */
   export const _jogakUserViteUrl: string
 }

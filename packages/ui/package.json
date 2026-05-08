@@ -1,6 +1,6 @@
 {
   "name": "@jogak/ui",
-  "version": "0.1.0-alpha.8",
+  "version": "0.1.0-alpha.9",
   "description": "Showcase viewer UI for Jogak — Sidebar / Preview / Controls / Actions and the JogakApp shell.",
   "keywords": [
     "jogak",
@@ -24,19 +24,19 @@
   },
   "type": "module",
   "sideEffects": false,
-  "main": "./dist/index.js",
+  "main": "./dist/index.cjs",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
+      "require": "./dist/index.cjs"
     },
     "./host": {
       "types": "./dist/host/index.d.ts",
       "import": "./dist/host/index.mjs",
-      "require": "./dist/host/index.js"
+      "require": "./dist/host/index.cjs"
     }
   },
   "files": [

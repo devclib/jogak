@@ -4,16 +4,14 @@ import 'virtual:jogak'
 import {
   _jogakCodeTheme,
   _jogakPreviewIsolation,
-  _jogakUserViteUrl,
+  _jogakUserPreviewUrl,
+  _jogakPreviewEntryPath,
 } from 'virtual:jogak'
 import '../styles/jogak.css'
 import { JogakApp } from './App.js'
 
-// 알파.8: 사용자 globalCss는 사용자 vite scope(iframe entry)에서 처리되므로
-// jogak SPA outer document에는 import하지 않는다 — chrome 격리 보존.
-//
-// 'none' 모드(deprecated): 알파.7.1 동작 유지가 필요한 사용자만 명시 사용.
-// 이 경우만 outer document에 사용자 globalCss inject.
+// 알파.9: 사용자 globalCss는 어댑터 scope(iframe entry)에서 처리되므로 jogak SPA outer
+// document에는 import하지 않는다. 'none' 모드(deprecated)에서만 outer inject.
 if (_jogakPreviewIsolation === 'none') {
   await import('virtual:jogak/global-css')
 }
@@ -26,7 +24,8 @@ createRoot(rootEl).render(
     <JogakApp
       codeTheme={_jogakCodeTheme}
       previewIsolation={_jogakPreviewIsolation}
-      userViteUrl={_jogakUserViteUrl}
+      userPreviewUrl={_jogakUserPreviewUrl}
+      previewEntryPath={_jogakPreviewEntryPath}
     />
   </StrictMode>,
 )

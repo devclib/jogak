@@ -31,8 +31,16 @@ export interface JogakAppProps {
    */
   readonly previewIsolation?: 'none' | 'shadow' | 'iframe'
   /**
-   * 알파.8: 사용자 vite spawn URL. iframe `src` base로 사용.
+   * 알파.9: 어댑터 dev URL. iframe `src` base.
    * 빈 문자열 시 fallback (jogak SPA Vite scope의 preview-frame.tsx).
+   */
+  readonly userPreviewUrl?: string
+  /**
+   * 알파.9: iframe entry path (예: `/__jogak_preview__/index.html`).
+   */
+  readonly previewEntryPath?: string
+  /**
+   * @deprecated 알파.10 제거 예정. `userPreviewUrl` 사용.
    */
   readonly userViteUrl?: string
 }
@@ -58,8 +66,12 @@ export function JogakApp({
   metas,
   codeTheme = 'vsDark',
   previewIsolation = 'iframe',
-  userViteUrl = '',
+  userPreviewUrl = '',
+  previewEntryPath = '/__jogak_preview__/index.html',
+  userViteUrl,
 }: JogakAppProps = {}): ReactElement {
+  // 알파.9: userViteUrl alias (deprecated). userPreviewUrl 우선.
+  const resolvedPreviewUrl = userPreviewUrl !== '' ? userPreviewUrl : (userViteUrl ?? '')
   // ── 4가지 모드 결정 (계약 §5.2) ─────────────────────────────────────
   // 1) entries가 주어지면: 새 ComponentRegistry에 register (eager, 기존 동작)
   // 2) metas만 주어지면: defaultRegistry 사용 + metas를 registerMeta로 등록
@@ -162,7 +174,8 @@ export function JogakApp({
               codeTheme={codeTheme}
               onResolveJogak={handleResolveJogak}
               previewIsolation={previewIsolation}
-              userViteUrl={userViteUrl}
+              userPreviewUrl={resolvedPreviewUrl}
+              previewEntryPath={previewEntryPath}
             />
           ) : (
             <div className="jogak:flex jogak:items-center jogak:justify-center jogak:h-full jogak:text-[var(--jogak-color-fg-subtle)]">

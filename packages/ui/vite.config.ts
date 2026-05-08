@@ -52,7 +52,7 @@ export default defineConfig({
       },
       formats: ['es', 'cjs'],
       fileName: (format, entryName) =>
-        `${entryName}.${format === 'es' ? 'mjs' : 'js'}`,
+        `${entryName}.${format === 'es' ? 'mjs' : 'cjs'}`,
     },
     rollupOptions: {
       // 사용자 호스트의 react / react-dom / vite 등은 external — 중복 번들 방지.

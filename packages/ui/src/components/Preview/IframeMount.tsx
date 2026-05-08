@@ -6,10 +6,15 @@ export interface IframeMountProps {
   readonly entry: RegistryEntry
   readonly args: Readonly<Record<string, unknown>>
   /**
-   * 알파.8: 사용자 vite spawn URL (예: `http://localhost:5174`).
+   * 알파.9: 어댑터 dev URL (예: `http://localhost:5174`).
    * 빈 문자열 시 fallback (jogak SPA Vite scope의 `/preview-frame.html`).
    */
-  readonly userViteUrl: string
+  readonly userPreviewUrl: string
+  /**
+   * 알파.9: iframe entry path (예: `/__jogak_preview__/index.html`).
+   * 어댑터의 `previewEntryMeta.devEntryPath`.
+   */
+  readonly previewEntryPath: string
   readonly className?: string
   readonly 'data-testid'?: string
 }
@@ -33,7 +38,8 @@ export interface IframeMountProps {
 export function IframeMount({
   entry,
   args,
-  userViteUrl,
+  userPreviewUrl,
+  previewEntryPath,
   className,
   'data-testid': dataTestId,
 }: IframeMountProps): ReactElement {
@@ -41,8 +47,8 @@ export function IframeMount({
   const [ready, setReady] = useState(false)
 
   const src =
-    userViteUrl !== ''
-      ? `${userViteUrl}/__jogak_preview__/index.html`
+    userPreviewUrl !== ''
+      ? `${userPreviewUrl}${previewEntryPath}`
       : '/preview-frame.html'
 
   // postMessage 리스너 — iframe contentWindow 일치성 검증 후 처리.

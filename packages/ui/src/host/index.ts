@@ -80,12 +80,21 @@ export interface JogakHostOptionsBase {
    */
   readonly previewIsolation?: 'none' | 'shadow' | 'iframe'
   /**
-   * 알파.8: 사용자 vite 인스턴스의 dev server URL (예: `http://localhost:5174`).
-   * jogak SPA가 iframe `src` base로 사용한다 (`<iframe src="${userViteUrl}/__jogak_preview__/index.html">`).
+   * 알파.9: 어댑터 dev URL (예: `http://localhost:5174`).
+   * jogak SPA가 iframe `src` base로 사용한다.
    *
    * 미지정/빈 문자열 시 fallback (jogak SPA Vite scope의 preview-frame.tsx).
    *
-   * jogak CLI가 spawnUserVite 결과를 자동 전달 — 사용자가 직접 설정하지 않는다.
+   * jogak CLI의 어댑터 dispatch 결과 자동 전달 — 사용자가 직접 설정하지 않는다.
+   */
+  readonly userPreviewUrl?: string
+  /**
+   * 알파.9: iframe entry path (예: `/__jogak_preview__/index.html`).
+   * `BuilderAdapter.previewEntryMeta.devEntryPath` 값. CLI 자동 전달.
+   */
+  readonly previewEntryPath?: string
+  /**
+   * @deprecated 알파.10 제거 예정. `userPreviewUrl` 사용.
    */
   readonly userViteUrl?: string
 }
@@ -156,6 +165,8 @@ export async function runHost(
     tsConfigFilePath?: string
     globalCss?: boolean | string | readonly string[]
     previewIsolation?: 'none' | 'shadow' | 'iframe'
+    userPreviewUrl?: string
+    previewEntryPath?: string
     userViteUrl?: string
   } = {
     patterns: opts.patterns,
@@ -172,8 +183,15 @@ export async function runHost(
   if (opts.previewIsolation !== undefined) {
     jogakOptions.previewIsolation = opts.previewIsolation
   }
-  // ── 알파.8 ──────────────────────────────────────────
-  if (opts.userViteUrl !== undefined) {
+  // ── 알파.9 ──────────────────────────────────────────
+  if (opts.userPreviewUrl !== undefined) {
+    jogakOptions.userPreviewUrl = opts.userPreviewUrl
+  }
+  if (opts.previewEntryPath !== undefined) {
+    jogakOptions.previewEntryPath = opts.previewEntryPath
+  }
+  // ── 알파.8 alias (deprecated) ───────────────────────
+  if (opts.userViteUrl !== undefined && opts.userPreviewUrl === undefined) {
     jogakOptions.userViteUrl = opts.userViteUrl
   }
 
