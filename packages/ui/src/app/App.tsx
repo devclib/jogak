@@ -52,7 +52,7 @@ export function JogakApp({
   entries,
   metas,
   codeTheme = 'vsDark',
-  previewIsolation = 'none',
+  previewIsolation = 'shadow',
 }: JogakAppProps = {}): ReactElement {
   // ── 4가지 모드 결정 (계약 §5.2) ─────────────────────────────────────
   // 1) entries가 주어지면: 새 ComponentRegistry에 register (eager, 기존 동작)

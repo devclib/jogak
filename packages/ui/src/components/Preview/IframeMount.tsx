@@ -58,8 +58,10 @@ export function IframeMount({
     iframe.addEventListener('load', handleLoad)
     return () => {
       iframe.removeEventListener('load', handleLoad)
-      // unmount 시 iframe 안 react root도 정리 (best-effort)
-      iframe.contentWindow?.__jogak_unmount__?.()
+      // 알파.7.1: unmount race 회피 — iframe contentWindow 정리도 microtask defer.
+      queueMicrotask(() => {
+        iframe.contentWindow?.__jogak_unmount__?.()
+      })
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])

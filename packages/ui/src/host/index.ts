@@ -71,9 +71,9 @@ export interface JogakHostOptionsBase {
    */
   readonly globalCss?: boolean | string | readonly string[]
   /**
-   * 알파.7: Preview 영역 격리 모드.
+   * 알파.7.1: Preview 영역 격리 모드.
    *
-   * `'none'` (default), `'shadow'`, `'iframe'` 중 하나.
+   * `'shadow'` (default, 알파.7.1), `'iframe'`, `'none'` 중 하나.
    * jogak() Vite plugin의 `previewIsolation` 옵션으로 그대로 전달된다 + UI 측
    * Preview 컴포넌트가 해당 모드별 분기로 렌더한다.
    *

@@ -120,7 +120,7 @@ export function Preview({
   onReset,
   codeTheme,
   onResolveJogak,
-  previewIsolation = 'none',
+  previewIsolation = 'shadow',
 }: PreviewProps): ReactElement {
   const state = useEntry(entryId)
   const [viewport, setViewport] = useState<ViewportKey>('desktop')
@@ -615,7 +615,11 @@ function NoneAdapterContent({ entry, args }: { entry: RegistryEntry; args: Reado
     const container = containerRef.current
     if (container === null) return
     reactAdapter.render(entry, args, container)
-    return () => { reactAdapter.unmount(container) }
+    return () => {
+      // 알파.7.1: React 18 concurrent unmount race(`Attempted to synchronously unmount...`)
+      // 회피 — fiber commit 끝난 직후로 defer.
+      queueMicrotask(() => { reactAdapter.unmount(container) })
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entry])
 
@@ -645,7 +649,10 @@ function ShadowAdapterContent({ entry, args }: { entry: RegistryEntry; args: Rea
     const c = ref.current
     if (c === null) return
     reactAdapter.render(entry, args, c)
-    return () => { reactAdapter.unmount(c) }
+    return () => {
+      // 알파.7.1: unmount race 회피
+      queueMicrotask(() => { reactAdapter.unmount(c) })
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entry])
 
