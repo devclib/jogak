@@ -126,6 +126,7 @@ export function JogakApp({
   return (
     <JogakProvider registry={registry}>
       <div
+        data-jogak-shell
         style={{
           display: 'grid',
           gridTemplateColumns: '260px 1fr',

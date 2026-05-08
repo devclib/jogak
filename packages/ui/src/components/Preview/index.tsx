@@ -336,6 +336,7 @@ function ReadyFrame({
         }}
       >
         <div
+          data-jogak-content
           style={{
             maxWidth: maxWidth === 'none' ? '100%' : maxWidth,
             margin: '0 auto',
