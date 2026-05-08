@@ -72,7 +72,7 @@ jobs:
         # 이후 npm publish에 tarball을 직접 넘기면 npm CLI(11+)의 OIDC 인증 흐름을 정확히 탄다.
         run: |
           mkdir -p /tmp/jogak-tgz
-          for pkg in core react ui web-components next cli; do
+          for pkg in core react ui web-components next cli vite-adapter next-adapter webpack-adapter standalone-adapter; do
             (cd packages/$pkg && pnpm pack --pack-destination /tmp/jogak-tgz)
           done
           ls -la /tmp/jogak-tgz

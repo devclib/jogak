@@ -1,6 +1,6 @@
 {
   "name": "@jogak/webpack-adapter",
-  "version": "0.1.0-alpha.9",
+  "version": "0.1.0-alpha.9.1",
   "description": "Webpack 5 builder adapter for Jogak — sources the user's webpack.config and runs a separate dev server for the preview iframe.",
   "keywords": [
     "jogak",

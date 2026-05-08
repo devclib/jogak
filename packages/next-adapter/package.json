@@ -1,6 +1,6 @@
 {
   "name": "@jogak/next-adapter",
-  "version": "0.1.0-alpha.9",
+  "version": "0.1.0-alpha.9.1",
   "description": "Next.js builder adapter for Jogak — spawns Next dev server and scaffolds preview route in user's app directory.",
   "keywords": [
     "jogak",

@@ -1,6 +1,6 @@
 {
   "name": "@jogak/vite-adapter",
-  "version": "0.1.0-alpha.9",
+  "version": "0.1.0-alpha.9.1",
   "description": "Vite builder adapter for Jogak — sources the user's vite.config and spawns a separate dev server for the preview iframe.",
   "keywords": [
     "jogak",

@@ -1,6 +1,6 @@
 {
   "name": "@jogak/standalone-adapter",
-  "version": "0.1.0-alpha.9",
+  "version": "0.1.0-alpha.9.1",
   "description": "Standalone fallback adapter for Jogak — used when no builder is detected. Limited to user pre-built css.",
   "keywords": [
     "jogak",

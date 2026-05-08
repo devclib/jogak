@@ -5,6 +5,14 @@ All notable changes to Jogak packages are documented here. The repository follow
 
 Version numbers apply to all packages in the workspace (synchronized release).
 
+## [0.1.0-alpha.9.1] — 2026-05-09
+
+### Fixed
+
+- **CI**: `release.yml`의 pack 단계가 `core/react/ui/web-components/next/cli`만 포함했고 알파.9에서 신규 추가된 4개 어댑터(`vite-adapter` / `next-adapter` / `webpack-adapter` / `standalone-adapter`)를 누락. v0.1.0-alpha.9 태그로 부분 publish됐으나 어댑터들이 npm에 올라가지 않아 사용자가 import 불가. 4개 어댑터를 pack 목록에 추가 후 alpha.9.1로 재발행.
+
+기타 패키지: source 변경 없음, synchronized release 유지를 위해 버전만 bump.
+
 ## [0.1.0-alpha.9] — 2026-05-09
 
 ### Added
