@@ -1,7 +1,13 @@
 import { useState, useEffect } from 'react'
-import type { ReactElement } from 'react'
+import type { CSSProperties, ReactElement } from 'react'
+import clsx from 'clsx'
 import type { CategoryMetaTree, RegistryEntryMeta } from '@jogak/core'
 import { useRegistryMeta } from '@jogak/react'
+
+// CSS custom property를 React style prop에 주입하기 위한 헬퍼 타입.
+// React 18+는 string-keyed `--` prefix를 인식하나 TS는 명시적 cast 필요.
+// spec §6.1 참조.
+type CSSVarStyle = CSSProperties & Record<`--${string}`, string | number>
 
 export interface SidebarProps {
   readonly selectedEntryId: string | null
@@ -26,15 +32,9 @@ export function Sidebar({
   return (
     <aside
       data-testid="sidebar"
-      style={{
-        borderRight: '1px solid #e5e7eb',
-        height: '100%',
-        overflow: 'auto',
-        display: 'flex',
-        flexDirection: 'column',
-      }}
+      className="jogak:flex jogak:flex-col jogak:h-full jogak:overflow-auto jogak:border-r jogak:border-[var(--jogak-color-border)]"
     >
-      <div style={{ padding: '12px', borderBottom: '1px solid #e5e7eb' }}>
+      <div className="jogak:p-3 jogak:border-b jogak:border-[var(--jogak-color-border)]">
         <input
           type="search"
           placeholder="Search components..."
@@ -42,16 +42,11 @@ export function Sidebar({
           onChange={(e) => {
             setQuery(e.target.value)
           }}
-          style={{
-            width: '100%',
-            padding: '6px 8px',
-            border: '1px solid #d1d5db',
-            borderRadius: 4,
-          }}
+          className="jogak:w-full jogak:px-2 jogak:py-1.5 jogak:border jogak:border-[var(--jogak-color-border-strong)] jogak:rounded-[var(--jogak-radius-md)]"
           aria-label="Search components"
         />
       </div>
-      <nav style={{ flex: 1, overflow: 'auto', padding: '8px 0' }}>
+      <nav className="jogak:flex-1 jogak:overflow-auto jogak:py-2">
         {filtered !== null ? (
           <FlatList
             metas={filtered}
@@ -87,13 +82,13 @@ function FlatList({
 }: FlatListProps): ReactElement {
   if (metas.length === 0) {
     return (
-      <p style={{ padding: '0 12px', color: '#9ca3af', fontSize: 13 }}>
+      <p className="jogak:px-3 jogak:text-[var(--jogak-color-fg-subtle)] jogak:text-[13px]">
         No results
       </p>
     )
   }
   return (
-    <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+    <ul className="jogak:list-none jogak:m-0 jogak:p-0">
       {metas.map((meta) => (
         <li key={meta.id}>
           <EntryGroup
@@ -126,11 +121,8 @@ function TreeView({
 }: TreeViewProps): ReactElement {
   return (
     <ul
-      style={{
-        listStyle: 'none',
-        margin: 0,
-        padding: `0 0 0 ${depth * 12}px`,
-      }}
+      className="jogak:list-none jogak:m-0 jogak:pr-0 jogak:py-0 jogak:pl-[var(--jogak-tree-pl)]"
+      style={{ '--jogak-tree-pl': `${depth * 12}px` } as CSSVarStyle}
     >
       {Object.entries(node).map(([key, child]) => (
         <li key={key}>
@@ -183,21 +175,7 @@ function CategoryGroup({
         onClick={() => {
           setOpen((v) => !v)
         }}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 4,
-          width: '100%',
-          padding: '4px 12px',
-          background: 'none',
-          border: 'none',
-          cursor: 'pointer',
-          fontSize: 12,
-          fontWeight: 600,
-          color: '#6b7280',
-          textTransform: 'uppercase',
-          letterSpacing: '0.05em',
-        }}
+        className="jogak:flex jogak:items-center jogak:gap-1 jogak:w-full jogak:px-3 jogak:py-1 jogak:bg-transparent jogak:border-none jogak:cursor-pointer jogak:text-[12px] jogak:font-semibold jogak:text-[var(--jogak-color-fg-muted)] jogak:uppercase jogak:tracking-wider"
         aria-expanded={open}
       >
         <span>{open ? '▾' : '▸'}</span>
@@ -254,29 +232,24 @@ function EntryGroup({
             setOpen((v) => !v)
           }
         }}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6,
-          width: '100%',
-          padding: `5px 12px 5px ${paddingLeft}px`,
-          background: isCurrentEntry ? '#eff6ff' : 'none',
-          border: 'none',
-          cursor: 'pointer',
-          fontSize: 13,
-          color: isCurrentEntry ? '#2563eb' : '#374151',
-          fontWeight: isCurrentEntry ? 500 : 400,
-          textAlign: 'left',
-        }}
+        className={clsx(
+          'jogak:flex jogak:items-center jogak:gap-1.5 jogak:w-full jogak:pr-3 jogak:py-[5px]',
+          'jogak:pl-[var(--jogak-entry-pl)]',
+          'jogak:border-none jogak:cursor-pointer jogak:text-left jogak:text-[13px]',
+          isCurrentEntry
+            ? 'jogak:bg-[var(--jogak-color-accent-bg)] jogak:text-[var(--jogak-color-accent)] jogak:font-medium'
+            : 'jogak:bg-transparent jogak:text-[var(--jogak-color-fg)] jogak:font-normal',
+        )}
+        style={{ '--jogak-entry-pl': `${paddingLeft}px` } as CSSVarStyle}
         aria-expanded={open}
       >
-        <span style={{ fontSize: 10, flexShrink: 0, lineHeight: 1 }}>
+        <span className="jogak:text-[10px] jogak:shrink-0 jogak:leading-none">
           {open ? '▾' : '▸'}
         </span>
         {label}
       </button>
       {open && (
-        <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+        <ul className="jogak:list-none jogak:m-0 jogak:p-0">
           {meta.jogakNames.map((jogakName) => {
             const isSelected = isCurrentEntry && jogakName === selectedJogakName
             return (
@@ -286,18 +259,15 @@ function EntryGroup({
                   onClick={() => {
                     onSelect(meta.id, jogakName)
                   }}
-                  style={{
-                    display: 'block',
-                    width: '100%',
-                    textAlign: 'left',
-                    padding: `4px 12px 4px ${paddingLeft + 18}px`,
-                    background: isSelected ? '#dbeafe' : 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    fontSize: 12,
-                    color: isSelected ? '#1d4ed8' : '#6b7280',
-                    fontWeight: isSelected ? 500 : 400,
-                  }}
+                  className={clsx(
+                    'jogak:block jogak:w-full jogak:text-left jogak:pr-3 jogak:py-1',
+                    'jogak:pl-[var(--jogak-jogak-pl)]',
+                    'jogak:border-none jogak:cursor-pointer jogak:text-[12px]',
+                    isSelected
+                      ? 'jogak:bg-[var(--jogak-color-accent-bg-soft)] jogak:text-[var(--jogak-color-accent-fg)] jogak:font-medium'
+                      : 'jogak:bg-transparent jogak:text-[var(--jogak-color-fg-muted)] jogak:font-normal',
+                  )}
+                  style={{ '--jogak-jogak-pl': `${paddingLeft + 18}px` } as CSSVarStyle}
                   aria-current={isSelected ? 'true' : undefined}
                 >
                   {jogakName}

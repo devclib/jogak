@@ -305,6 +305,9 @@ importers:
       '@tailwindcss/vite':
         specifier: ^4.0.0
         version: 4.2.4(vite@6.4.2(@types/node@20.19.39)(jiti@2.7.0)(lightningcss@1.32.0))
+      clsx:
+        specifier: ^2.1.1
+        version: 2.1.1
       prism-react-renderer:
         specifier: ^2.4.1
         version: 2.4.1(react@19.2.5)
