@@ -122,8 +122,8 @@ function parseGlobalCssFlag(
 }
 
 /**
- * 알파.7: `--preview-isolation` 플래그 normalizer.
- * - 미지정 → fileValue ?? 'none'
+ * 알파.7.1: `--preview-isolation` 플래그 normalizer.
+ * - 미지정 → fileValue ?? 'shadow' (알파.7.1 default 변경)
  * - 'none'|'shadow'|'iframe' → 그대로
  * - 그 외 → exit 1
  */
@@ -131,7 +131,7 @@ function parsePreviewIsolationFlag(
   v: string | true | undefined,
   fileValue: 'none' | 'shadow' | 'iframe' | undefined,
 ): 'none' | 'shadow' | 'iframe' {
-  if (v === undefined || v === true) return fileValue ?? 'none'
+  if (v === undefined || v === true) return fileValue ?? 'shadow'
   if (v === 'none' || v === 'shadow' || v === 'iframe') return v
   process.stderr.write(
     `[jogak] invalid --preview-isolation: ${v} (expected none|shadow|iframe)\n`,
