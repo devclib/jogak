@@ -85,7 +85,11 @@ export function jogak(options: JogakPluginOptions = {}): Plugin {
   async function collectMetas(): Promise<readonly FileEntry[]> {
     const { glob } = await import('glob')
     const cwd = resolvedCwd ?? process.cwd()
-    const files = await glob(patterns as string[], { cwd, absolute: true })
+    // build 의 generate.ts 와 대칭. registry 가 결정성을 보장하므로 본 sort 는
+    // defensive layer (인덱스 가상모듈 emit 순서까지 결정적으로 만들어 디버깅 용이).
+    const files = (
+      await glob(patterns as string[], { cwd, absolute: true })
+    ).sort()
 
     const result: FileEntry[] = []
     // file path 중복 register 방지를 위해 사전 정리.

@@ -52,6 +52,15 @@ export class ComponentRegistry {
   readonly #listeners = new Set<() => void>()
   #cachedMetas: readonly RegistryEntryMeta[] | undefined = undefined
   #cachedMetaTree: CategoryMetaTree | undefined = undefined
+  // 결정성 fix: hydrated entry list / tree 도 캐시. mutation 시 invalidate.
+  #cachedEntries: readonly RegistryEntry[] | undefined = undefined
+  #cachedTree: CategoryTree | undefined = undefined
+  /**
+   * 정렬된 id 순서. mutation 시 invalidate, 다음 호출에서 한 번만 재계산.
+   * getAll / getTree / getAllMeta / getMetaTree 모두 이 순서를 따른다.
+   * 결과: 모든 외부 노출 collection 이 동일 ordering 을 가진다.
+   */
+  #cachedSortedIds: readonly string[] | undefined = undefined
   /** register()가 registerMeta + hydrateEntry를 합쳐 호출할 때 중간 notify를 억제한다. */
   #batching = false
   /** batch 도중에 mutation이 한 번이라도 일어났는지 — false면 batch 종료 시 notify 안 한다. */
@@ -93,11 +102,15 @@ export class ComponentRegistry {
 
   /** hydrated 항목만 반환. meta-only는 `getAllMeta()` 사용. */
   getAll(): readonly RegistryEntry[] {
+    if (this.#cachedEntries !== undefined) return this.#cachedEntries
     const result: RegistryEntry[] = []
-    for (const state of this.#states.values()) {
-      if (state.kind === 'hydrated') result.push(state.entry)
+    for (const id of this.#getSortedIds()) {
+      const state = this.#states.get(id)
+      if (state?.kind === 'hydrated') result.push(state.entry)
     }
-    return result
+    const frozen = result as readonly RegistryEntry[]
+    this.#cachedEntries = frozen
+    return frozen
   }
 
   search(query: string): readonly RegistryEntry[] {
@@ -107,8 +120,12 @@ export class ComponentRegistry {
 
   /**
    * title의 '/' 구분자로 hydrated entry만의 계층 트리를 구성한다.
+   *
+   * `getAll()`이 정렬된 순서를 반환하므로 트리 객체의 키 iteration order
+   * (ECMA-262 §OrdinaryOwnPropertyKeys: insertion order for string keys)도 결정적이다.
    */
   getTree(): CategoryTree {
+    if (this.#cachedTree !== undefined) return this.#cachedTree
     const tree: CategoryTree = {}
     for (const entry of this.getAll()) {
       const parts = entry.title.split('/')
@@ -127,6 +144,7 @@ export class ComponentRegistry {
         node[leaf] = entry
       }
     }
+    this.#cachedTree = tree
     return tree
   }
 
@@ -329,8 +347,9 @@ export class ComponentRegistry {
   getAllMeta(): readonly RegistryEntryMeta[] {
     if (this.#cachedMetas !== undefined) return this.#cachedMetas
     const result: RegistryEntryMeta[] = []
-    for (const state of this.#states.values()) {
-      result.push(state.meta)
+    for (const id of this.#getSortedIds()) {
+      const state = this.#states.get(id)
+      if (state !== undefined) result.push(state.meta)
     }
     const frozen = result as readonly RegistryEntryMeta[]
     this.#cachedMetas = frozen
@@ -344,7 +363,9 @@ export class ComponentRegistry {
   getMetaTree(): CategoryMetaTree {
     if (this.#cachedMetaTree !== undefined) return this.#cachedMetaTree
     const tree: CategoryMetaTree = {}
-    for (const state of this.#states.values()) {
+    for (const id of this.#getSortedIds()) {
+      const state = this.#states.get(id)
+      if (state === undefined) continue
       const meta = state.meta
       const parts = meta.title.split('/')
       let node: CategoryMetaTree = tree
@@ -412,6 +433,9 @@ export class ComponentRegistry {
   #invalidateAndNotify(): void {
     this.#cachedMetas = undefined
     this.#cachedMetaTree = undefined
+    this.#cachedEntries = undefined
+    this.#cachedTree = undefined
+    this.#cachedSortedIds = undefined
     if (this.#batching) {
       this.#batchDirty = true
       return
@@ -426,6 +450,24 @@ export class ComponentRegistry {
         console.error('[jogak] subscribe listener threw:', e)
       }
     }
+  }
+
+  /**
+   * 모든 외부 노출 collection 이 공유하는 정렬된 id 순서.
+   * mutation 시 #cachedSortedIds 가 undefined 로 invalidate, 다음 호출에서 한 번만 재계산.
+   *
+   * 정렬 정책은 module-private `compareMetaForOrdering` 단일 source.
+   */
+  #getSortedIds(): readonly string[] {
+    if (this.#cachedSortedIds !== undefined) return this.#cachedSortedIds
+    const items: { id: string; title: string }[] = []
+    for (const [id, state] of this.#states) {
+      items.push({ id, title: state.meta.title })
+    }
+    items.sort(compareMetaForOrdering)
+    const ids = items.map((it) => it.id)
+    this.#cachedSortedIds = ids
+    return ids
   }
 
   /**
@@ -494,6 +536,30 @@ function synthJogakMeta(meta: RegistryEntryMeta, component: unknown): JogakMeta 
       ? { parameters: meta.metaExtras.parameters }
       : {}),
   }
+}
+
+/**
+ * registry 노출 collection 의 결정성을 보장하는 비교 함수.
+ *
+ *  - title 알파벳 (영어 base, 대소문자 무시, 자연 정렬) → 사용자 시각 자연 순서.
+ *  - tie-break id (동일) → 동명 entry 도 결정적.
+ *
+ * dev/build 양쪽 mode 가 같은 ordering 을 만들도록 ordering 정책의 단일 source.
+ *
+ * `localeCompare('en', ...)` 의 'en' 명시는 환경 default locale 의존 (Node 의
+ * `process.env.LANG` 등) 을 끊기 위함. 다국어 정렬 우선순위는 본 fix 범위 밖이며,
+ * 알파/한글 혼재 시 영어 base 결과는 ASCII 순으로 안정.
+ */
+function compareMetaForOrdering(
+  a: { readonly title: string; readonly id: string },
+  b: { readonly title: string; readonly id: string },
+): number {
+  const t = a.title.localeCompare(b.title, 'en', {
+    sensitivity: 'base',
+    numeric: true,
+  })
+  if (t !== 0) return t
+  return a.id.localeCompare(b.id, 'en', { sensitivity: 'base', numeric: true })
 }
 
 export const defaultRegistry = new ComponentRegistry()
