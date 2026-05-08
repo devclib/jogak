@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ReactElement, CSSProperties } from 'react'
+import clsx from 'clsx'
 import { Highlight, themes } from 'prism-react-renderer'
 import type { PrismTheme } from 'prism-react-renderer'
 import { reactAdapter, useEntry } from '@jogak/react'
@@ -25,6 +26,12 @@ export interface PreviewProps {
 type ViewportKey = 'mobile' | 'tablet' | 'desktop'
 type BgMode = 'white' | 'dark' | 'transparent'
 
+/**
+ * dynamic style + CSS variable 주입을 위한 React `CSSProperties` 확장 타입
+ * (api-contracts 알파.5 PR 2 §6.1).
+ */
+type CSSVarStyle = CSSProperties & Record<`--${string}`, string | number>
+
 const VIEWPORT_WIDTHS: Record<ViewportKey, number | 'none'> = {
   mobile: 375,
   tablet: 768,
@@ -37,21 +44,45 @@ const VIEWPORT_LABELS: Record<ViewportKey, string> = {
   desktop: 'Desktop',
 }
 
-const BG_STYLES: Record<BgMode, CSSProperties> = {
-  white: { background: '#ffffff' },
-  dark: { background: '#1f2937' },
+/**
+ * bgMode별 캔버스 background 표현 — 4개 longhand CSS variable로 분해.
+ *
+ * v4 background shorthand arbitrary value(`bg-[...]`)는 ambiguous 하므로
+ * `bg-[image:...]`, `bg-[length:...]`, `bg-[position:...]` longhand hint를 사용해야 한다.
+ * 따라서 `BG_STYLES` (CSSProperties spread)를 폐기하고 mode별 변수 묶음만 정의한다
+ * (api-contracts 알파.5 PR 2 §3.2 결정 B).
+ */
+const BG_VARS: Record<BgMode, CSSVarStyle> = {
+  white: {
+    '--jogak-canvas-bg': '#ffffff',
+    '--jogak-canvas-bg-image': 'none',
+    '--jogak-canvas-bg-size': 'auto',
+    '--jogak-canvas-bg-position': '0 0',
+  },
+  dark: {
+    '--jogak-canvas-bg': '#1f2937',
+    '--jogak-canvas-bg-image': 'none',
+    '--jogak-canvas-bg-size': 'auto',
+    '--jogak-canvas-bg-position': '0 0',
+  },
   transparent: {
-    backgroundImage: [
-      'linear-gradient(45deg, #e2e8f0 25%, transparent 25%)',
-      'linear-gradient(-45deg, #e2e8f0 25%, transparent 25%)',
-      'linear-gradient(45deg, transparent 75%, #e2e8f0 75%)',
+    '--jogak-canvas-bg': '#ffffff',
+    '--jogak-canvas-bg-image':
+      'linear-gradient(45deg, #e2e8f0 25%, transparent 25%), ' +
+      'linear-gradient(-45deg, #e2e8f0 25%, transparent 25%), ' +
+      'linear-gradient(45deg, transparent 75%, #e2e8f0 75%), ' +
       'linear-gradient(-45deg, transparent 75%, #e2e8f0 75%)',
-    ].join(', '),
-    backgroundSize: '16px 16px',
-    backgroundPosition: '0 0, 0 8px, 8px -8px, -8px 0px',
-    backgroundColor: '#ffffff',
+    '--jogak-canvas-bg-size': '16px 16px',
+    '--jogak-canvas-bg-position': '0 0, 0 8px, 8px -8px, -8px 0px',
   },
 }
+
+/** 캔버스/미니버튼 공통 — 모드 무관. BG_VARS 가 변수 값을 mode별로 swap. */
+const CANVAS_BG_CLASS =
+  'jogak:bg-[var(--jogak-canvas-bg)] ' +
+  'jogak:bg-[image:var(--jogak-canvas-bg-image)] ' +
+  'jogak:bg-[length:var(--jogak-canvas-bg-size)] ' +
+  'jogak:bg-[position:var(--jogak-canvas-bg-position)]'
 
 /** 캔버스 영역 minHeight — loading/ready 사이 layout shift 방지 (계약 §10). */
 const CANVAS_MIN_HEIGHT = 320
@@ -90,7 +121,10 @@ export function Preview({
   // ── unknown ───────────────────────────────────────────────
   if (state.status === 'unknown') {
     return (
-      <div data-testid="preview-not-found" style={{ padding: 24, color: '#ef4444' }}>
+      <div
+        data-testid="preview-not-found"
+        className="jogak:p-6 jogak:text-[var(--jogak-color-error)]"
+      >
         Entry not found: {entryId}
       </div>
     )
@@ -101,30 +135,10 @@ export function Preview({
     return (
       <div
         data-testid="preview-error"
-        style={{
-          padding: 24,
-          color: '#b91c1c',
-          background: '#fef2f2',
-          height: '100%',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 12,
-          alignItems: 'flex-start',
-        }}
+        className="jogak:p-6 jogak:text-[var(--jogak-color-error-fg)] jogak:bg-[var(--jogak-color-bg-error)] jogak:h-full jogak:flex jogak:flex-col jogak:gap-3 jogak:items-start"
       >
-        <div style={{ fontWeight: 600 }}>Failed to load entry: {entryId}</div>
-        <pre
-          style={{
-            margin: 0,
-            padding: 12,
-            background: '#fff',
-            border: '1px solid #fecaca',
-            borderRadius: 6,
-            fontSize: 12,
-            whiteSpace: 'pre-wrap',
-            maxWidth: '100%',
-          }}
-        >
+        <div className="jogak:font-semibold">Failed to load entry: {entryId}</div>
+        <pre className="jogak:m-0 jogak:p-3 jogak:bg-[var(--jogak-color-bg)] jogak:border jogak:border-[var(--jogak-color-error-border)] jogak:rounded-[var(--jogak-radius-lg)] jogak:text-[12px] jogak:whitespace-pre-wrap jogak:max-w-full">
           {state.error.message}
         </pre>
       </div>
@@ -190,7 +204,7 @@ function LoadingFrame({
   return (
     <div
       data-testid="preview-loading"
-      style={{ display: 'flex', flexDirection: 'column', height: '100%' }}
+      className="jogak:flex jogak:flex-col jogak:h-full"
     >
       <Toolbar
         title={meta.title}
@@ -203,31 +217,26 @@ function LoadingFrame({
         onReset={() => {}}
       />
       <div
-        style={{
-          flex: 1,
-          minHeight: CANVAS_MIN_HEIGHT,
-          overflow: 'auto',
-          ...BG_STYLES[bgMode],
-        }}
+        className={`jogak:flex-1 jogak:overflow-auto jogak:min-h-[320px] ${CANVAS_BG_CLASS}`}
+        style={BG_VARS[bgMode]}
       >
         <div
-          style={{
-            maxWidth: maxWidth === 'none' ? '100%' : maxWidth,
-            margin: '0 auto',
-            padding: 24,
-          }}
+          className="jogak:mx-auto jogak:p-6 jogak:max-w-[var(--jogak-canvas-mw)]"
+          style={
+            {
+              '--jogak-canvas-mw': maxWidth === 'none' ? '100%' : `${maxWidth}px`,
+            } as CSSVarStyle
+          }
         >
+          {/*
+           * skeleton box — §4.3 P8 화이트리스트 예외:
+           * gradient + keyframe animation 은 v4 arbitrary value 로 표현하면 escape 복잡 +
+           * jogak.css 수정 금지(§1.3) 정책으로 본 PR 잔존 (PR 4 정리 예정).
+           * 정적 부분(border / radius / padding / flex / color / fontSize / minHeight)만 className 으로 이전.
+           */}
           <div
+            className="jogak:border jogak:border-dashed jogak:border-[var(--jogak-color-border)] jogak:rounded-[var(--jogak-radius-xl)] jogak:p-4 jogak:flex jogak:items-center jogak:justify-center jogak:text-[var(--jogak-color-fg-subtle)] jogak:text-[13px] jogak:min-h-[256px]"
             style={{
-              border: '1px dashed #e5e7eb',
-              borderRadius: 8,
-              padding: 16,
-              minHeight: CANVAS_MIN_HEIGHT - 64,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#9ca3af',
-              fontSize: 13,
               background:
                 'linear-gradient(90deg, rgba(229,231,235,0) 0%, rgba(229,231,235,0.45) 50%, rgba(229,231,235,0) 100%)',
               backgroundSize: '200% 100%',
@@ -289,7 +298,7 @@ function ReadyFrame({
 
   if (resolvedJogakName === null) {
     return (
-      <div style={{ padding: 24, color: '#ef4444' }}>
+      <div className="jogak:p-6 jogak:text-[var(--jogak-color-error)]">
         Entry has no jogaks: {entry.id}
       </div>
     )
@@ -298,7 +307,7 @@ function ReadyFrame({
   const jogak = entry.jogaks.find((j) => j.name === resolvedJogakName)
   if (jogak === undefined) {
     return (
-      <div style={{ padding: 24, color: '#ef4444' }}>
+      <div className="jogak:p-6 jogak:text-[var(--jogak-color-error)]">
         Jogak not found: {resolvedJogakName}
       </div>
     )
@@ -314,7 +323,7 @@ function ReadyFrame({
   const maxWidth = VIEWPORT_WIDTHS[viewport]
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div className="jogak:flex jogak:flex-col jogak:h-full">
       <Toolbar
         title={entry.title}
         jogakName={jogak.name}
@@ -328,20 +337,17 @@ function ReadyFrame({
 
       {/* ── 캔버스 ───────────────────────────────────────── */}
       <div
-        style={{
-          flex: 1,
-          minHeight: CANVAS_MIN_HEIGHT,
-          overflow: 'auto',
-          ...BG_STYLES[bgMode],
-        }}
+        className={`jogak:flex-1 jogak:overflow-auto jogak:min-h-[320px] ${CANVAS_BG_CLASS}`}
+        style={BG_VARS[bgMode]}
       >
         <div
           data-jogak-content
-          style={{
-            maxWidth: maxWidth === 'none' ? '100%' : maxWidth,
-            margin: '0 auto',
-            padding: 24,
-          }}
+          className="jogak:mx-auto jogak:p-6 jogak:max-w-[var(--jogak-canvas-mw)]"
+          style={
+            {
+              '--jogak-canvas-mw': maxWidth === 'none' ? '100%' : `${maxWidth}px`,
+            } as CSSVarStyle
+          }
         >
           <JogakRenderer
             key={`${entry.id}/${jogak.name}`}
@@ -356,24 +362,11 @@ function ReadyFrame({
       {/* ── 컨트롤/액션 패널 ──────────────────────────────── */}
       <div
         data-testid="bottom-panel"
-        style={{
-          height: 260,
-          flexShrink: 0,
-          display: 'flex',
-          flexDirection: 'column',
-          borderTop: '2px solid #e5e7eb',
-        }}
+        className="jogak:h-[260px] jogak:shrink-0 jogak:flex jogak:flex-col jogak:border-t-2 jogak:border-[var(--jogak-color-border)]"
       >
         <div
           role="tablist"
-          style={{
-            display: 'flex',
-            gap: 4,
-            padding: '4px 12px 0',
-            background: '#fff',
-            borderBottom: '1px solid #e5e7eb',
-            flexShrink: 0,
-          }}
+          className="jogak:flex jogak:gap-1 jogak:pt-1 jogak:px-3 jogak:pb-0 jogak:bg-[var(--jogak-color-bg)] jogak:border-b jogak:border-[var(--jogak-color-border)] jogak:shrink-0"
         >
           {(['controls', 'actions'] as const).map((tab) => {
             const active = bottomTab === tab
@@ -384,18 +377,12 @@ function ReadyFrame({
                 role="tab"
                 aria-selected={active}
                 onClick={() => { onBottomTabChange(tab) }}
-                style={{
-                  padding: '6px 14px',
-                  fontSize: 12,
-                  fontWeight: active ? 600 : 500,
-                  color: active ? '#111827' : '#6b7280',
-                  background: 'transparent',
-                  border: 'none',
-                  borderBottom: active ? '2px solid #2563eb' : '2px solid transparent',
-                  marginBottom: -1,
-                  cursor: 'pointer',
-                  textTransform: 'capitalize',
-                }}
+                className={clsx(
+                  'jogak:px-[14px] jogak:py-[6px] jogak:text-[12px] jogak:bg-transparent jogak:border-x-0 jogak:border-t-0 jogak:border-b-2 jogak:border-solid jogak:-mb-px jogak:cursor-pointer jogak:capitalize',
+                  active
+                    ? 'jogak:font-semibold jogak:text-[var(--jogak-color-fg-strong)] jogak:border-[var(--jogak-color-accent)]'
+                    : 'jogak:font-medium jogak:text-[var(--jogak-color-fg-muted)] jogak:border-transparent',
+                )}
               >
                 {tab}
               </button>
@@ -403,7 +390,7 @@ function ReadyFrame({
           })}
         </div>
 
-        <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+        <div className="jogak:flex-1 jogak:min-h-0 jogak:overflow-auto">
           {bottomTab === 'controls' ? (
             <Controls
               args={mergedArgs}
@@ -443,51 +430,31 @@ function Toolbar({
   onReset,
 }: ToolbarProps): ReactElement {
   return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 10,
-        padding: '7px 14px',
-        borderBottom: '1px solid #e5e7eb',
-        background: '#fff',
-        flexShrink: 0,
-      }}
-    >
-      <div style={{ flex: 1, fontSize: 13 }}>
-        <span style={{ color: '#9ca3af' }}>{title}</span>
-        <span style={{ color: '#d1d5db', margin: '0 6px' }}>/</span>
-        <span style={{ color: '#111827', fontWeight: 600 }}>{jogakName}</span>
+    <div className="jogak:flex jogak:items-center jogak:gap-[10px] jogak:px-[14px] jogak:py-[7px] jogak:border-b jogak:border-[var(--jogak-color-border)] jogak:bg-[var(--jogak-color-bg)] jogak:shrink-0">
+      <div className="jogak:flex-1 jogak:text-[13px]">
+        <span className="jogak:text-[var(--jogak-color-fg-subtle)]">{title}</span>
+        <span className="jogak:text-[var(--jogak-color-border-strong)] jogak:mx-1.5 jogak:leading-none">
+          /
+        </span>
+        <span className="jogak:text-[var(--jogak-color-fg-strong)] jogak:font-semibold">
+          {jogakName}
+        </span>
       </div>
 
       {/* 뷰포트 토글 */}
-      <div
-        style={{
-          display: 'flex',
-          gap: 2,
-          background: '#f3f4f6',
-          borderRadius: 6,
-          padding: 2,
-        }}
-      >
+      <div className="jogak:flex jogak:gap-0.5 jogak:bg-[var(--jogak-color-bg-subtle)] jogak:rounded-[var(--jogak-radius-lg)] jogak:p-0.5">
         {(['mobile', 'tablet', 'desktop'] as const).map((vp) => (
           <button
             key={vp}
             type="button"
             onClick={() => { onViewportChange(vp) }}
             aria-pressed={viewport === vp}
-            style={{
-              padding: '3px 9px',
-              fontSize: 12,
-              border: 'none',
-              borderRadius: 4,
-              cursor: 'pointer',
-              background: viewport === vp ? '#fff' : 'transparent',
-              color: viewport === vp ? '#111827' : '#6b7280',
-              fontWeight: viewport === vp ? 600 : 400,
-              boxShadow: viewport === vp ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
-              transition: 'all 0.1s',
-            }}
+            className={clsx(
+              'jogak:px-[9px] jogak:py-[3px] jogak:text-[12px] jogak:border-none jogak:rounded-[var(--jogak-radius-md)] jogak:cursor-pointer jogak:transition-all jogak:duration-100',
+              viewport === vp
+                ? 'jogak:bg-[var(--jogak-color-bg-elevated)] jogak:text-[var(--jogak-color-fg-strong)] jogak:font-semibold jogak:shadow-[0_1px_2px_rgba(0,0,0,0.08)]'
+                : 'jogak:bg-transparent jogak:text-[var(--jogak-color-fg-muted)] jogak:font-normal jogak:shadow-none',
+            )}
           >
             {VIEWPORT_LABELS[vp]}
           </button>
@@ -495,7 +462,7 @@ function Toolbar({
       </div>
 
       {/* 배경 토글 */}
-      <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+      <div className="jogak:flex jogak:gap-1 jogak:items-center">
         {(['white', 'dark', 'transparent'] as const).map((bg) => (
           <button
             key={bg}
@@ -503,16 +470,14 @@ function Toolbar({
             onClick={() => { onBgModeChange(bg) }}
             aria-pressed={bgMode === bg}
             aria-label={`${bg} background`}
-            style={{
-              width: 20,
-              height: 20,
-              borderRadius: 4,
-              border: bgMode === bg ? '2px solid #2563eb' : '2px solid #d1d5db',
-              cursor: 'pointer',
-              padding: 0,
-              flexShrink: 0,
-              ...BG_STYLES[bg],
-            }}
+            className={clsx(
+              'jogak:w-5 jogak:h-5 jogak:rounded-[var(--jogak-radius-md)] jogak:border-2 jogak:cursor-pointer jogak:p-0 jogak:shrink-0',
+              CANVAS_BG_CLASS,
+              bgMode === bg
+                ? 'jogak:border-[var(--jogak-color-accent)]'
+                : 'jogak:border-[var(--jogak-color-border-strong)]',
+            )}
+            style={BG_VARS[bg]}
           />
         ))}
       </div>
@@ -522,15 +487,7 @@ function Toolbar({
         <button
           type="button"
           onClick={onReset}
-          style={{
-            padding: '3px 10px',
-            fontSize: 12,
-            border: '1px solid #d1d5db',
-            borderRadius: 4,
-            background: '#fff',
-            cursor: 'pointer',
-            color: '#374151',
-          }}
+          className="jogak:px-[10px] jogak:py-[3px] jogak:text-[12px] jogak:border jogak:border-[var(--jogak-color-border-strong)] jogak:rounded-[var(--jogak-radius-md)] jogak:bg-[var(--jogak-color-bg)] jogak:cursor-pointer jogak:text-[var(--jogak-color-fg)] jogak:leading-none"
         >
           Reset
         </button>
@@ -569,40 +526,24 @@ function JogakRenderer({ entry, args, source, theme }: JogakRendererProps): Reac
   return (
     <div>
       {/* preview-content 영역 + 토글 버튼 */}
-      <div style={{ position: 'relative' }}>
+      <div className="jogak:relative">
         <div
           ref={containerRef}
           data-testid="preview-content"
-          style={{
-            border: '1px dashed #e5e7eb',
-            borderRadius: 8,
-            padding: 16,
-            paddingBottom: 36,
-          }}
+          className="jogak:border jogak:border-dashed jogak:border-[var(--jogak-color-border)] jogak:rounded-[var(--jogak-radius-xl)] jogak:p-4 jogak:pb-9"
         />
         <button
           type="button"
           onClick={() => { setShowCode((v) => !v) }}
           aria-pressed={showCode}
           aria-label={showCode ? 'Hide source code' : 'Show source code'}
-          style={{
-            position: 'absolute',
-            bottom: 8,
-            right: 8,
-            padding: '4px 9px',
-            fontSize: 11,
-            fontFamily:
-              'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
-            fontWeight: 600,
-            letterSpacing: '0.02em',
-            background: showCode ? '#2563eb' : '#1e293b',
-            color: '#fff',
-            border: 'none',
-            borderRadius: 5,
-            cursor: 'pointer',
-            boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
-            transition: 'background 0.15s',
-          }}
+          className={clsx(
+            'jogak:absolute jogak:bottom-2 jogak:right-2 jogak:px-[9px] jogak:py-1',
+            'jogak:text-[11px] jogak:font-[family-name:var(--jogak-font-mono)] jogak:font-semibold jogak:tracking-[0.02em]',
+            'jogak:text-[var(--jogak-color-bg)] jogak:border-none jogak:rounded-[5px] jogak:cursor-pointer',
+            'jogak:shadow-[0_1px_4px_rgba(0,0,0,0.2)] jogak:transition-[background-color] jogak:duration-150 jogak:leading-none',
+            showCode ? 'jogak:bg-[var(--jogak-color-accent)]' : 'jogak:bg-[#1e293b]',
+          )}
         >
           {'</>'}
         </button>
@@ -610,15 +551,7 @@ function JogakRenderer({ entry, args, source, theme }: JogakRendererProps): Reac
 
       {/* 코드 패널 — preview-content 하단으로 펼쳐짐 */}
       {showCode && (
-        <div
-          style={{
-            marginTop: 8,
-            borderRadius: 8,
-            overflow: 'hidden',
-            height: 320,
-            boxShadow: '0 0 0 1px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.12)',
-          }}
-        >
+        <div className="jogak:mt-2 jogak:rounded-[var(--jogak-radius-xl)] jogak:overflow-hidden jogak:h-[320px] jogak:shadow-[0_0_0_1px_rgba(0,0,0,0.08),_0_4px_16px_rgba(0,0,0,0.12)]">
           <SourceViewer source={source} theme={theme} />
         </div>
       )}
@@ -640,15 +573,8 @@ function SourceViewer({ source, theme }: SourceViewerProps): ReactElement {
   if (source === undefined) {
     return (
       <div
-        style={{
-          height: '100%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: bgColor,
-          color: '#94a3b8',
-          fontSize: 13,
-        }}
+        className="jogak:h-full jogak:flex jogak:items-center jogak:justify-center jogak:bg-[var(--jogak-source-bg)] jogak:text-[#94a3b8] jogak:text-[13px]"
+        style={{ '--jogak-source-bg': bgColor } as CSSVarStyle}
       >
         Source not available
       </div>
@@ -663,23 +589,11 @@ function SourceViewer({ source, theme }: SourceViewerProps): ReactElement {
   }
 
   return (
-    <div style={{ position: 'relative', height: '100%' }}>
+    <div className="jogak:relative jogak:h-full">
       <button
         type="button"
         onClick={handleCopy}
-        style={{
-          position: 'absolute',
-          top: 10,
-          right: 12,
-          zIndex: 1,
-          padding: '3px 9px',
-          fontSize: 11,
-          background: 'rgba(255,255,255,0.1)',
-          color: '#e2e8f0',
-          border: '1px solid rgba(255,255,255,0.18)',
-          borderRadius: 4,
-          cursor: 'pointer',
-        }}
+        className="jogak:absolute jogak:top-[10px] jogak:right-3 jogak:z-[1] jogak:px-[9px] jogak:py-[3px] jogak:text-[11px] jogak:bg-[rgba(255,255,255,0.1)] jogak:text-[#e2e8f0] jogak:border jogak:border-[rgba(255,255,255,0.18)] jogak:rounded-[var(--jogak-radius-md)] jogak:cursor-pointer jogak:leading-none"
       >
         {copied ? '✓ Copied' : 'Copy'}
       </button>
@@ -687,40 +601,17 @@ function SourceViewer({ source, theme }: SourceViewerProps): ReactElement {
       <Highlight code={source.trim()} language="tsx" theme={theme}>
         {({ style, tokens, getLineProps, getTokenProps }) => (
           <pre
-            style={{
-              ...style,
-              margin: 0,
-              padding: '12px 0',
-              fontSize: 12.5,
-              lineHeight: 1.7,
-              fontFamily:
-                'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
-              height: '100%',
-              boxSizing: 'border-box',
-              overflow: 'auto',
-            }}
+            className="jogak:m-0 jogak:py-3 jogak:px-0 jogak:text-[12.5px] jogak:leading-[1.7] jogak:font-[family-name:var(--jogak-font-mono)] jogak:h-full jogak:box-border jogak:overflow-auto"
+            style={style}
           >
             {tokens.map((line, i) => (
               <div
                 key={i}
                 {...getLineProps({ line })}
-                style={{
-                  ...getLineProps({ line }).style,
-                  display: 'flex',
-                  paddingRight: 24,
-                }}
+                className="jogak:flex jogak:pr-6"
+                style={getLineProps({ line }).style}
               >
-                <span
-                  style={{
-                    userSelect: 'none',
-                    minWidth: 40,
-                    paddingLeft: 14,
-                    paddingRight: 14,
-                    textAlign: 'right',
-                    color: 'rgba(148,163,184,0.45)',
-                    flexShrink: 0,
-                  }}
-                >
+                <span className="jogak:select-none jogak:min-w-10 jogak:pl-[14px] jogak:pr-[14px] jogak:text-right jogak:text-[rgba(148,163,184,0.45)] jogak:shrink-0 jogak:leading-[1.7]">
                   {i + 1}
                 </span>
                 <span>
