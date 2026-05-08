@@ -20,6 +20,16 @@ export interface JogakAppProps {
   readonly entries?: readonly RegistryEntry[]
   readonly metas?: readonly RegistryEntryMeta[]
   readonly codeTheme?: string
+  /**
+   * 알파.7: Preview 영역 격리 모드. default `'none'`.
+   *
+   * - `'none'` — Preview 콘텐츠를 chrome 같은 document에 렌더 (알파.6까지의 동작).
+   * - `'shadow'` — ShadowRoot 안에 마운트. 사용자 globalCss/reset이 chrome 침범 차단.
+   * - `'iframe'` — 별도 document(iframe)에 마운트. 가장 강한 격리.
+   *
+   * 자세한 트레이드오프는 `@jogak/ui` README의 "previewIsolation 사용 가이드" 참조.
+   */
+  readonly previewIsolation?: 'none' | 'shadow' | 'iframe'
 }
 
 function readUrlParams(): { entryId: string; jogakName: string | null } | null {
@@ -42,6 +52,7 @@ export function JogakApp({
   entries,
   metas,
   codeTheme = 'vsDark',
+  previewIsolation = 'none',
 }: JogakAppProps = {}): ReactElement {
   // ── 4가지 모드 결정 (계약 §5.2) ─────────────────────────────────────
   // 1) entries가 주어지면: 새 ComponentRegistry에 register (eager, 기존 동작)
@@ -144,6 +155,7 @@ export function JogakApp({
               onReset={handleReset}
               codeTheme={codeTheme}
               onResolveJogak={handleResolveJogak}
+              previewIsolation={previewIsolation}
             />
           ) : (
             <div className="jogak:flex jogak:items-center jogak:justify-center jogak:h-full jogak:text-[var(--jogak-color-fg-subtle)]">

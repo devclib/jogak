@@ -42,6 +42,7 @@
   "files": [
     "dist",
     "index.html",
+    "preview-frame.html",
     "src/app",
     "src/components",
     "src/hooks",

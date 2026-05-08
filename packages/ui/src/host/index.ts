@@ -60,6 +60,26 @@ export interface JogakHostOptionsBase {
   readonly extraPlugins?: readonly unknown[]
   /** stdout/stderr 출력 stream (테스트 시 주입). */
   readonly logger?: HostLogger
+  /**
+   * 알파.7: 사용자 globalCss를 jogak SPA에 import한다 (algfa.6 옵션의 host 통로).
+   *
+   * `false`/`undefined` (default): 미주입.
+   * `true`: `<userRoot>/src/{...}.css` 자동 감지 후 첫 발견 1개 import.
+   * `string` / `readonly string[]`: 명시 경로.
+   *
+   * 본 옵션은 jogak() Vite plugin의 `globalCss` 옵션으로 그대로 전달된다.
+   */
+  readonly globalCss?: boolean | string | readonly string[]
+  /**
+   * 알파.7: Preview 영역 격리 모드.
+   *
+   * `'none'` (default), `'shadow'`, `'iframe'` 중 하나.
+   * jogak() Vite plugin의 `previewIsolation` 옵션으로 그대로 전달된다 + UI 측
+   * Preview 컴포넌트가 해당 모드별 분기로 렌더한다.
+   *
+   * 자세한 모드 설명은 `JogakPluginOptions.previewIsolation` JSDoc 참조.
+   */
+  readonly previewIsolation?: 'none' | 'shadow' | 'iframe'
 }
 
 export interface JogakDevOptions extends JogakHostOptionsBase {
@@ -126,6 +146,8 @@ export async function runHost(
     codeTheme: string
     cwd: string
     tsConfigFilePath?: string
+    globalCss?: boolean | string | readonly string[]
+    previewIsolation?: 'none' | 'shadow' | 'iframe'
   } = {
     patterns: opts.patterns,
     codeTheme,
@@ -133,6 +155,13 @@ export async function runHost(
   }
   if (opts.tsConfigFilePath !== undefined) {
     jogakOptions.tsConfigFilePath = opts.tsConfigFilePath
+  }
+  // ── 알파.7 ──────────────────────────────────────────
+  if (opts.globalCss !== undefined) {
+    jogakOptions.globalCss = opts.globalCss
+  }
+  if (opts.previewIsolation !== undefined) {
+    jogakOptions.previewIsolation = opts.previewIsolation
   }
 
   const extraPlugins = (opts.extraPlugins ?? []) as ReadonlyArray<
@@ -193,6 +222,9 @@ export async function runHost(
   }
 
   // build mode
+  // 알파.7: previewIsolation='iframe' 모드를 위해 preview-frame.html을 별도 entry로 emit.
+  // 'none'/'shadow' 모드에서도 이 chunk는 unused이지만, build 시점에 isolation 모드를
+  // 알 수 없는 경우(또는 모드 변경 시 재빌드 회피)를 위해 항상 포함한다.
   const buildConfig: import('vite').InlineConfig = {
     ...baseConfig,
     base: opts.base ?? './',
@@ -201,6 +233,12 @@ export async function runHost(
       emptyOutDir: true,
       sourcemap: opts.sourcemap ?? false,
       minify: opts.minify ?? 'esbuild',
+      rollupOptions: {
+        input: {
+          main: resolve(UI_PKG_ROOT, 'index.html'),
+          preview: resolve(UI_PKG_ROOT, 'preview-frame.html'),
+        },
+      },
     },
   }
 

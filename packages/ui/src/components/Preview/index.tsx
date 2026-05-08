@@ -8,6 +8,8 @@ import type { UseEntryState } from '@jogak/react'
 import type { RegistryEntry, RegistryEntryMeta, ArgType } from '@jogak/core'
 import { Controls } from '../Controls/index.js'
 import { Actions } from '../Actions/index.js'
+import { ShadowMount } from './ShadowMount.js'
+import { IframeMount } from './IframeMount.js'
 
 export interface PreviewProps {
   readonly entryId: string
@@ -21,6 +23,14 @@ export interface PreviewProps {
    * 첫 jogak로 자동 보정하기 위한 콜백. 부모가 selectedJogakName / URL을 갱신.
    */
   readonly onResolveJogak?: (entryId: string, jogakName: string) => void
+  /**
+   * 알파.7: Preview 영역 격리 모드. default `'none'`.
+   *
+   * - `'none'` — 기존 동작 (chrome과 같은 document, 알파.6 chrome 보호 rule 적용).
+   * - `'shadow'` — ShadowRoot에 마운트. 사용자 globalCss reset이 chrome 침범 차단.
+   * - `'iframe'` — `/preview-frame.html` iframe에 마운트. 강한 격리.
+   */
+  readonly previewIsolation?: 'none' | 'shadow' | 'iframe'
 }
 
 type ViewportKey = 'mobile' | 'tablet' | 'desktop'
@@ -110,6 +120,7 @@ export function Preview({
   onReset,
   codeTheme,
   onResolveJogak,
+  previewIsolation = 'none',
 }: PreviewProps): ReactElement {
   const state = useEntry(entryId)
   const [viewport, setViewport] = useState<ViewportKey>('desktop')
@@ -175,6 +186,7 @@ export function Preview({
       onBgModeChange={setBgMode}
       onBottomTabChange={setBottomTab}
       prismTheme={prismTheme}
+      previewIsolation={previewIsolation}
     />
   )
 }
@@ -262,6 +274,7 @@ interface ReadyFrameProps {
   readonly onBgModeChange: (bg: BgMode) => void
   readonly onBottomTabChange: (tab: 'controls' | 'actions') => void
   readonly prismTheme: PrismTheme
+  readonly previewIsolation: 'none' | 'shadow' | 'iframe'
 }
 
 function ReadyFrame({
@@ -278,6 +291,7 @@ function ReadyFrame({
   onBgModeChange,
   onBottomTabChange,
   prismTheme,
+  previewIsolation,
 }: ReadyFrameProps): ReactElement {
   // jogakName이 비어있으면 (deep link `?entry=...&jogak` 누락) 첫 jogak로 보정.
   const resolvedJogakName = jogakName ?? entry.jogaks[0]?.name ?? null
@@ -349,6 +363,7 @@ function ReadyFrame({
             args={mergedArgs}
             source={entry.source}
             theme={prismTheme}
+            previewIsolation={previewIsolation}
           />
         </div>
       </div>
@@ -498,11 +513,103 @@ interface JogakRendererProps {
   readonly args: Readonly<Record<string, unknown>>
   readonly source: string | undefined
   readonly theme: PrismTheme
+  readonly previewIsolation: 'none' | 'shadow' | 'iframe'
 }
 
-function JogakRenderer({ entry, args, source, theme }: JogakRendererProps): ReactElement {
-  const containerRef = useRef<HTMLDivElement>(null)
+/**
+ * 알파.7: previewIsolation 모드별로 사용자 콘텐츠 마운트 방식을 분기한다.
+ *
+ * - `'none'` — 같은 document에 직접 마운트 (알파.6까지의 동작 그대로).
+ * - `'shadow'` — `<ShadowMount>` 안에 마운트해 ShadowRoot 격리.
+ * - `'iframe'` — `<IframeMount>`로 별도 document에 마운트.
+ *
+ * Show source 토글, 코드 패널 등 chrome 부분은 모드 무관하게 외부에 둔다.
+ */
+function JogakRenderer({ entry, args, source, theme, previewIsolation }: JogakRendererProps): ReactElement {
   const [showCode, setShowCode] = useState(false)
+
+  const previewBody = (
+    <div className="jogak:relative">
+      <PreviewMount
+        entry={entry}
+        args={args}
+        previewIsolation={previewIsolation}
+      />
+      <button
+        type="button"
+        onClick={() => { setShowCode((v) => !v) }}
+        aria-pressed={showCode}
+        aria-label={showCode ? 'Hide source code' : 'Show source code'}
+        className={clsx(
+          'jogak:absolute jogak:bottom-2 jogak:right-2 jogak:px-[9px] jogak:py-1',
+          'jogak:text-[11px] jogak:font-[family-name:var(--jogak-font-mono)] jogak:font-semibold jogak:tracking-[0.02em]',
+          'jogak:text-[var(--jogak-color-bg)] jogak:border-none jogak:rounded-[5px] jogak:cursor-pointer',
+          'jogak:shadow-[0_1px_4px_rgba(0,0,0,0.2)] jogak:transition-[background-color] jogak:duration-150 jogak:leading-none',
+          showCode ? 'jogak:bg-[var(--jogak-color-accent)]' : 'jogak:bg-[#1e293b]',
+        )}
+      >
+        {'</>'}
+      </button>
+    </div>
+  )
+
+  return (
+    <div>
+      {previewBody}
+      {/* 코드 패널 — preview-content 하단으로 펼쳐짐 */}
+      {showCode && (
+        <div className="jogak:mt-2 jogak:rounded-[var(--jogak-radius-xl)] jogak:overflow-hidden jogak:h-[320px] jogak:shadow-[0_0_0_1px_rgba(0,0,0,0.08),_0_4px_16px_rgba(0,0,0,0.12)]">
+          <SourceViewer source={source} theme={theme} />
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── PreviewMount ──────────────────────────────────────────
+//
+// previewIsolation 모드별 콘텐츠 마운트. chrome 외곽 (border/radius/padding)은 모드
+// 별 호스트 element에 동일하게 적용해 VR baseline 변경을 zero로 유지한다.
+
+interface PreviewMountProps {
+  readonly entry: RegistryEntry
+  readonly args: Readonly<Record<string, unknown>>
+  readonly previewIsolation: 'none' | 'shadow' | 'iframe'
+}
+
+const PREVIEW_HOST_CLASS =
+  'jogak:border jogak:border-dashed jogak:border-[var(--jogak-color-border)] ' +
+  'jogak:rounded-[var(--jogak-radius-xl)] jogak:p-4 jogak:pb-9'
+
+function PreviewMount({ entry, args, previewIsolation }: PreviewMountProps): ReactElement {
+  if (previewIsolation === 'shadow') {
+    return (
+      <ShadowMount
+        data-testid="preview-content"
+        className={PREVIEW_HOST_CLASS}
+      >
+        <ShadowAdapterContent entry={entry} args={args} />
+      </ShadowMount>
+    )
+  }
+
+  if (previewIsolation === 'iframe') {
+    return (
+      <IframeMount
+        entry={entry}
+        args={args}
+        data-testid="preview-content"
+        className={`${PREVIEW_HOST_CLASS} jogak:block jogak:w-full jogak:bg-transparent jogak:min-h-[256px]`}
+      />
+    )
+  }
+
+  // 'none' — 기존 동작 그대로
+  return <NoneAdapterContent entry={entry} args={args} />
+}
+
+function NoneAdapterContent({ entry, args }: { entry: RegistryEntry; args: Readonly<Record<string, unknown>> }): ReactElement {
+  const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const container = containerRef.current
@@ -519,39 +626,36 @@ function JogakRenderer({ entry, args, source, theme }: JogakRendererProps): Reac
   }, [entry, args])
 
   return (
-    <div>
-      {/* preview-content 영역 + 토글 버튼 */}
-      <div className="jogak:relative">
-        <div
-          ref={containerRef}
-          data-testid="preview-content"
-          className="jogak:border jogak:border-dashed jogak:border-[var(--jogak-color-border)] jogak:rounded-[var(--jogak-radius-xl)] jogak:p-4 jogak:pb-9"
-        />
-        <button
-          type="button"
-          onClick={() => { setShowCode((v) => !v) }}
-          aria-pressed={showCode}
-          aria-label={showCode ? 'Hide source code' : 'Show source code'}
-          className={clsx(
-            'jogak:absolute jogak:bottom-2 jogak:right-2 jogak:px-[9px] jogak:py-1',
-            'jogak:text-[11px] jogak:font-[family-name:var(--jogak-font-mono)] jogak:font-semibold jogak:tracking-[0.02em]',
-            'jogak:text-[var(--jogak-color-bg)] jogak:border-none jogak:rounded-[5px] jogak:cursor-pointer',
-            'jogak:shadow-[0_1px_4px_rgba(0,0,0,0.2)] jogak:transition-[background-color] jogak:duration-150 jogak:leading-none',
-            showCode ? 'jogak:bg-[var(--jogak-color-accent)]' : 'jogak:bg-[#1e293b]',
-          )}
-        >
-          {'</>'}
-        </button>
-      </div>
-
-      {/* 코드 패널 — preview-content 하단으로 펼쳐짐 */}
-      {showCode && (
-        <div className="jogak:mt-2 jogak:rounded-[var(--jogak-radius-xl)] jogak:overflow-hidden jogak:h-[320px] jogak:shadow-[0_0_0_1px_rgba(0,0,0,0.08),_0_4px_16px_rgba(0,0,0,0.12)]">
-          <SourceViewer source={source} theme={theme} />
-        </div>
-      )}
-    </div>
+    <div
+      ref={containerRef}
+      data-testid="preview-content"
+      className={PREVIEW_HOST_CLASS}
+    />
   )
+}
+
+/**
+ * Shadow 모드 — ShadowMount의 ShadowRoot 안에서 react-adapter.render를 호출하는
+ * 작은 wrapper. ShadowMount 안 portal 내부에 위치하므로 useRef는 ShadowRoot scope.
+ */
+function ShadowAdapterContent({ entry, args }: { entry: RegistryEntry; args: Readonly<Record<string, unknown>> }): ReactElement {
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const c = ref.current
+    if (c === null) return
+    reactAdapter.render(entry, args, c)
+    return () => { reactAdapter.unmount(c) }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entry])
+
+  useEffect(() => {
+    const c = ref.current
+    if (c === null) return
+    reactAdapter.render(entry, args, c)
+  }, [entry, args])
+
+  return <div ref={ref} data-testid="preview-content-shadow" />
 }
 
 // ── SourceViewer ──────────────────────────────────────────

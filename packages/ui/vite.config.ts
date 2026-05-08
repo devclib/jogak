@@ -32,6 +32,7 @@ export default defineConfig({
         'src/**/*.spec.*',
         'src/test/**',
         'src/app/main.tsx',
+        'src/app/preview-frame.tsx',
         'src/examples/**',
         'src/styles/**',
         'src/vite-env.d.ts',
