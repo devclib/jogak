@@ -13,11 +13,14 @@ import {
   type PropsExtractor,
 } from '../meta/extract-props.js'
 import { validateAndPurgeViteCache } from './cache-validate.js'
+import { resolveGlobalCssPaths } from './detect-global-css.js'
 import { readTsConfigAlias } from './resolve-paths.js'
 import {
   RESOLVED_VIRTUAL_ENTRY_PREFIX,
+  RESOLVED_VIRTUAL_GLOBAL_CSS_ID,
   RESOLVED_VIRTUAL_INDEX_ID,
   VIRTUAL_ENTRY_PREFIX,
+  VIRTUAL_GLOBAL_CSS_ID,
   VIRTUAL_INDEX_ID,
   idToSlug,
   slugToId,
@@ -64,6 +67,8 @@ export function jogak(options: JogakPluginOptions = {}): Plugin {
   const optionTsConfigFilePath = options.tsConfigFilePath
   const disableCacheValidation = options.disableCacheValidation === true
   const userResolveAlias = options.resolveAlias
+  // 알파.6: globalCss opt-in. default false → 빈 모듈 emit (사용자 환경 영향 zero).
+  const globalCssOption = options.globalCss
 
   let devServer: ViteDevServer | undefined
   let extractor: PropsExtractor | undefined
@@ -223,6 +228,9 @@ export function jogak(options: JogakPluginOptions = {}): Plugin {
       if (id === VIRTUAL_INDEX_ID) {
         return RESOLVED_VIRTUAL_INDEX_ID
       }
+      if (id === VIRTUAL_GLOBAL_CSS_ID) {
+        return RESOLVED_VIRTUAL_GLOBAL_CSS_ID
+      }
       if (id.startsWith(VIRTUAL_ENTRY_PREFIX)) {
         return '\0' + id
       }
@@ -230,6 +238,34 @@ export function jogak(options: JogakPluginOptions = {}): Plugin {
     },
 
     async load(id) {
+      // ── Global css 모듈 ─────────────────────────────────────────
+      // 알파.6 opt-in. 사용자 main.tsx가 항상 import하도록 빈 모듈도 emit한다
+      // (조건부 import 회피 → ui-dev의 main.tsx는 단일 import 1줄로 끝).
+      //
+      // Vite css 처리 파이프라인이 본 모듈에서 emit된 import 문을 보고 사용자
+      // css 파일을 module graph에 등록 → dev에서는 css HMR이 자연스럽게 작동
+      // (Vite 표준 경로). 별도 watcher hook 불필요.
+      if (id === RESOLVED_VIRTUAL_GLOBAL_CSS_ID) {
+        const userRoot = resolvedCwd ?? process.cwd()
+        const paths = resolveGlobalCssPaths(globalCssOption, userRoot)
+
+        if (paths.length === 0) {
+          // 미발견 또는 opt-out — 빈 모듈. 다음 케이스 모두 동일:
+          // - globalCss undefined / false (default)
+          // - globalCss true 인데 자동 감지 실패
+          // - globalCss '' (빈 문자열) 또는 [] (빈 배열)
+          return `// [jogak] globalCss not configured or no candidates found.\nexport {}\n`
+        }
+
+        // 각 path를 side-effect import. 절대 경로를 specifier로 그대로 넘겨도
+        // Vite가 처리 가능 (Windows 경로는 JSON.stringify가 escape).
+        // 배열 순서 보존 — 사용자 명시 ['tokens.css', 'reset.css'] 시 cascade order.
+        const importLines = paths
+          .map((p) => `import ${JSON.stringify(p)}`)
+          .join('\n')
+        return `${importLines}\nexport {}\n`
+      }
+
       // ── 인덱스 모듈 ─────────────────────────────────────────────
       if (id === RESOLVED_VIRTUAL_INDEX_ID) {
         const fileEntries = await collectMetas()

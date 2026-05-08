@@ -166,4 +166,58 @@ export interface JogakPluginOptions {
    * jogak({ resolveAlias: { '@': './src', '@components': './src/components' } })
    */
   readonly resolveAlias?: Readonly<Record<string, string>>
+  /**
+   * 사용자 globalCss를 jogak SPA에 import한다 (알파.6 opt-in).
+   *
+   * 동기:
+   * - `runHost`는 vite root를 `@jogak/ui` 패키지로 두고 사용자 `vite.config.ts`/
+   *   `main.tsx`를 무시하므로(`configFile: false`), 사용자 `index.css`(Tailwind/
+   *   shadcn 디자인 토큰)가 jogak SPA에 자동 적용되지 않는다.
+   * - 본 옵션이 `true`이거나 명시 경로면 plugin이 사용자 css를 가상 모듈로
+   *   주입해 jogak SPA가 import한다.
+   *
+   * 의미:
+   * - `false` (default): 미주입. jogak chrome 기본 스타일만 사용 (알파.4~5 동작 그대로).
+   * - `true`: `<userRoot>/src/{index,main,styles,global,app,globals}.css` 후보를
+   *   순차 검사해 **첫 발견 1개**만 import. 미발견 시 빈 모듈 (no-op).
+   * - `string`: 사용자 root 기준 상대 경로 또는 절대 경로 1개. 자동 감지 비활성화.
+   * - `string[]`: 명시 경로 N개를 배열 순서대로 모두 import. 자동 감지 비활성화.
+   *
+   * 자동 감지 후보 (우선순위 순):
+   * 1. `src/index.css` (shadcn/ui Vite)
+   * 2. `src/main.css`
+   * 3. `src/styles.css`
+   * 4. `src/styles/globals.css` (Next.js shadcn)
+   * 5. `src/styles/index.css`
+   * 6. `src/app/globals.css` (Next.js App Router shadcn)
+   * 7. `src/global.css`
+   * 8. `src/app.css`
+   *
+   * 격리:
+   * - jogak UI는 알파.4~5에서 Tailwind v4 + `prefix=jogak`로 마이그레이션되어
+   *   사용자 utility class와 충돌 zero (예: 사용자 `.bg-primary` ≠ jogak `.jogak\:bg-...`).
+   * - jogak CSS variable은 `--jogak-*` prefix → 사용자 `:root { --primary }` 같은
+   *   토큰과 namespace 충돌 zero.
+   * - 단, 사용자 css의 `*` selector / `body` selector / reset 류는 jogak chrome에
+   *   영향 가능. README의 "scope 가이드" 패턴 참조.
+   *
+   * 한계 (알파.7+ 로드맵):
+   * - 사용자 css를 preview 영역으로만 한정하는 Shadow DOM/iframe 격리는 미지원.
+   * - `previewIsolation` 옵션은 알파.7+에서 별도 도입.
+   * - `globalCss: true` 자동 감지는 dev 시작 시점에 한 번만 수행 — 후보 css 파일이
+   *   dev 시작 후에 새로 추가되면 dev 서버 재시작이 필요하다. 명시 경로
+   *   (`globalCss: './src/index.css'`)는 파일이 나중에 생성되어도 정상 hot reload된다.
+   *
+   * @default false
+   *
+   * @example 자동 감지
+   * jogak({ globalCss: true })
+   *
+   * @example 명시 경로
+   * jogak({ globalCss: './src/index.css' })
+   *
+   * @example 다중 import (디자인 토큰 + reset 분리)
+   * jogak({ globalCss: ['./src/tokens.css', './src/index.css'] })
+   */
+  readonly globalCss?: boolean | string | readonly string[]
 }

@@ -18,6 +18,10 @@ export const RESOLVED_VIRTUAL_INDEX_ID = '\0' + VIRTUAL_INDEX_ID
 export const VIRTUAL_ENTRY_PREFIX = 'virtual:jogak/entry/'
 export const RESOLVED_VIRTUAL_ENTRY_PREFIX = '\0' + VIRTUAL_ENTRY_PREFIX
 
+/** Global css 모듈 — 사용자 globalCss를 import한다 (알파.6, opt-in). */
+export const VIRTUAL_GLOBAL_CSS_ID = 'virtual:jogak/global-css'
+export const RESOLVED_VIRTUAL_GLOBAL_CSS_ID = '\0' + VIRTUAL_GLOBAL_CSS_ID
+
 export function idToSlug(id: string): string {
   return Buffer.from(id, 'utf8').toString('base64url')
 }
