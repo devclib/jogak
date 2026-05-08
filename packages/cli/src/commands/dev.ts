@@ -7,11 +7,13 @@
  */
 
 import { generateRegistryFile } from '@jogak/core/build'
+import type { UserViteOptions } from '@jogak/core'
 import type {
   DevHandle,
   JogakDevOptions,
 } from '@jogak/ui/host'
 import { runHost } from '@jogak/ui/host'
+import { spawnUserVite } from '../spawn-user-vite.js'
 
 export interface DevCliArgs {
   readonly patterns: readonly string[]
@@ -26,6 +28,8 @@ export interface DevCliArgs {
   readonly globalCss?: boolean | string | readonly string[]
   /** 알파.7: preview 격리 모드. */
   readonly previewIsolation: 'none' | 'shadow' | 'iframe'
+  /** 알파.8: 사용자 vite spawn 옵션 (config 파일에서만 결정). */
+  readonly userVite?: UserViteOptions
 }
 
 /**
@@ -70,6 +74,20 @@ export async function runDevCommand(args: DevCliArgs): Promise<void> {
     )
   }
 
+  // 알파.8: previewIsolation === 'iframe'인 경우(default)에만 사용자 vite spawn.
+  // 'shadow'/'none'은 deprecated 경로 — fallback 모드와 동일하게 jogak SPA만 시작.
+  let userVite: { url: string; port: number; close(): Promise<void> } | undefined
+  if (args.previewIsolation === 'iframe') {
+    userVite = await spawnUserVite({
+      cwd: args.cwd,
+      ...(args.userVite !== undefined ? { userVite: args.userVite } : {}),
+      ...(args.globalCss !== undefined ? { globalCss: args.globalCss } : {}),
+    })
+    if (userVite !== undefined) {
+      process.stdout.write(`[jogak] user vite ready: ${userVite.url}\n`)
+    }
+  }
+
   const devOptions: JogakDevOptions = {
     mode: 'dev',
     userRoot: args.cwd,
@@ -84,6 +102,7 @@ export async function runDevCommand(args: DevCliArgs): Promise<void> {
     // 알파.7: host 통로로 plugin 옵션 전달.
     ...(args.globalCss !== undefined ? { globalCss: args.globalCss } : {}),
     previewIsolation: args.previewIsolation,
+    ...(userVite !== undefined ? { userViteUrl: userVite.url } : {}),
   }
 
   const handle: DevHandle = await runHost(devOptions)
@@ -94,8 +113,10 @@ export async function runDevCommand(args: DevCliArgs): Promise<void> {
   const shutdown = (): void => {
     if (shuttingDown) return
     shuttingDown = true
-    handle
-      .close()
+    Promise.all([
+      handle.close(),
+      userVite !== undefined ? userVite.close() : Promise.resolve(),
+    ])
       .catch((err: unknown) => {
         const message = err instanceof Error ? err.message : String(err)
         process.stderr.write(`[jogak] dev close error: ${message}\n`)

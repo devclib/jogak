@@ -122,17 +122,34 @@ function parseGlobalCssFlag(
 }
 
 /**
- * 알파.7.1: `--preview-isolation` 플래그 normalizer.
- * - 미지정 → fileValue ?? 'shadow' (알파.7.1 default 변경)
+ * 알파.8: `--preview-isolation` 플래그 normalizer.
+ * - 미지정 → fileValue ?? 'iframe' (알파.8 default 변경, 사용자 vite 통합)
  * - 'none'|'shadow'|'iframe' → 그대로
  * - 그 외 → exit 1
+ *
+ * 'shadow'/'none'은 deprecated — warning 출력.
  */
 function parsePreviewIsolationFlag(
   v: string | true | undefined,
   fileValue: 'none' | 'shadow' | 'iframe' | undefined,
 ): 'none' | 'shadow' | 'iframe' {
-  if (v === undefined || v === true) return fileValue ?? 'shadow'
-  if (v === 'none' || v === 'shadow' || v === 'iframe') return v
+  if (v === undefined || v === true) {
+    const resolved = fileValue ?? 'iframe'
+    if (resolved === 'shadow' || resolved === 'none') {
+      process.stderr.write(
+        `[jogak] previewIsolation '${resolved}' is deprecated in alpha.8 (사용자 utility 미적용 한계). 'iframe' 권장.\n`,
+      )
+    }
+    return resolved
+  }
+  if (v === 'none' || v === 'shadow' || v === 'iframe') {
+    if (v === 'shadow' || v === 'none') {
+      process.stderr.write(
+        `[jogak] previewIsolation '${v}' is deprecated in alpha.8. 'iframe' 권장.\n`,
+      )
+    }
+    return v
+  }
   process.stderr.write(
     `[jogak] invalid --preview-isolation: ${v} (expected none|shadow|iframe)\n`,
   )
@@ -261,6 +278,8 @@ function parseDevArgs(parsed: ParsedArgs, fileConfig: JogakConfig): DevCliArgs {
       parsed.flags['preview-isolation'],
       fileConfig.previewIsolation,
     ),
+    // 알파.8: userVite 옵션은 jogak.config.ts에서만 결정 (CLI flag 미노출).
+    ...(fileConfig.userVite !== undefined ? { userVite: fileConfig.userVite } : {}),
   }
 }
 
