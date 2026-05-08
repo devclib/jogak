@@ -5,6 +5,30 @@ All notable changes to Jogak packages are documented here. The repository follow
 
 Version numbers apply to all packages in the workspace (synchronized release).
 
+## [0.1.0-alpha.7] — 2026-05-09
+
+### Added
+
+- **`JogakHostOptionsBase`에 `globalCss` / `previewIsolation` 필드** — `runHost({ globalCss: true,
+  previewIsolation: 'shadow' })` 형태로 programmatic API에서도 옵션 사용 가능.
+- **`Preview` Shadow / iframe 마운트 분기**
+  - `previewIsolation: 'none'` (default, 알파.6과 동일) — 같은 document에 마운트
+  - `'shadow'` — `attachShadow` + `createPortal` + `adoptedStyleSheets`로 외부 css/font 흡수,
+    `MutationObserver`로 외부 `<style>` HMR 동기화
+  - `'iframe'` — `/preview-frame.html` + `contentWindow.__jogak_setProps__` 직접 호출,
+    완벽 격리 (props 직렬화 불필요)
+- **`preview-frame.html` + `src/app/preview-frame.tsx`** — iframe-mode 전용 최소 entry.
+  `virtual:jogak/global-css`만 import (jogak chrome css는 미포함, 격리 보장).
+- **README "previewIsolation 모드 비교" + "알파.6 → 알파.7 마이그레이션" 섹션** — 3 모드의
+  trade-off / Radix portal 한계 / `jogak.config.ts` 패턴으로의 마이그레이션 안내.
+
+### Fixed
+
+- **알파.6 README의 `vite.config.ts` 가이드 정정** — 알파.6는 `vite.config.ts`에서
+  `jogak({ globalCss: true })`를 호출하라고 안내했으나 `runHost`가 `configFile: false`로
+  사용자 vite config를 무시해 옵션이 적용되지 않았음. 알파.7부터는 `jogak.config.ts`에
+  `defineJogakConfig({ globalCss: true })`로 작성.
+
 ## [0.1.0-alpha.6] — 2026-05-09
 
 ### Added

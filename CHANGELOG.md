@@ -5,6 +5,47 @@ All notable changes to Jogak packages are documented here. The repository follow
 
 Version numbers apply to all packages in the workspace (synchronized release).
 
+## [0.1.0-alpha.7] — 2026-05-09
+
+### Added
+
+- **`@jogak/cli` `jogak.config.{ts,mjs,js,json}` 자동 발견** — user root에 config 파일을
+  두면 CLI가 자동으로 발견해 `runHost`에 전파. `.ts`/`.mjs`/`.js`는 Vite의
+  `loadConfigFromFile` 사용, `.json`은 `JSON.parse`. 발견 우선순위: `.ts` > `.mjs` >
+  `.js` > `.json`. CLI 플래그가 항상 config 파일보다 우선(override).
+- **`@jogak/core` `defineJogakConfig<T>(config)` identity helper** — `jogak.config.ts`에서
+  타입 추론된 config를 작성할 수 있도록 export. `JogakConfig` 타입은 `JogakPluginOptions` +
+  host-specific 옵션(`port`/`host`/`open`/`outDir`/`base`/`minify`/`sourcemap`)을 합친 통합 타입.
+- **`@jogak/core` `JogakPluginOptions.previewIsolation`** — Preview 영역의 사용자 컴포넌트
+  마운트 격리 모드. `'none' | 'shadow' | 'iframe'`. default `'none'`(알파.6까지의 동작).
+  - `'shadow'` — Preview 마운트 노드를 Shadow DOM으로. 외부 document의 css에서 격리되지만,
+    Radix portal(`document.body`)을 사용하는 컴포넌트는 shadow 안 utility class를 받지 못함
+    (호환성 한계 README에 명시).
+  - `'iframe'` — `/preview-frame.html`을 통한 완벽 격리. `contentWindow.__jogak_setProps__`
+    로 직접 props 주입. "single Vite, no iframe" 차별점과 상충하므로 명시적 opt-in 전용.
+- **`@jogak/ui` `JogakHostOptionsBase`에 `globalCss` / `previewIsolation` 추가** —
+  programmatic API(`runHost({ globalCss: true })`)로도 옵션 사용 가능.
+- **`@jogak/ui` `preview-frame.html` + `src/app/preview-frame.tsx`** — iframe-mode 전용
+  최소 entry. `virtual:jogak/global-css`만 import.
+
+### Fixed
+
+- **알파.6 결정적 결함 해결** — 알파.6는 `JogakPluginOptions.globalCss` 타입과 가상 모듈은
+  정상 동작했지만, `runHost`가 `configFile: false`로 사용자 `vite.config.ts`를 무시하고
+  `JogakHostOptionsBase`도 `globalCss`를 수용하지 않아 사용자가 옵션을 켤 통로가 없었음.
+  README 가이드(`jogak({ globalCss: true })` in `vite.config.ts`)는 무효였음.
+  알파.7에서 `jogak.config.ts` 통로를 정식 도입해 해결.
+
+### Notes
+
+- `previewIsolation: 'shadow'`에서 Tailwind utility class는 외부 document에 정의되어
+  shadow root에 inject(adoptedStyleSheets)됨. Radix처럼 `document.body`로 portal하는
+  컴포넌트는 portal target이 shadow 외부이므로 utility를 받지 못함 — 사용자가 명시적으로
+  trade-off를 인지하고 선택해야 함 (README "previewIsolation 모드 비교").
+- 알파.6 publish 사용자는 `vite.config.ts`의 `jogak({ globalCss })` 호출을 제거하고
+  `jogak.config.ts`로 옮겨야 함. 마이그레이션 가이드는 `packages/ui/README.md`의
+  "알파.6 → 알파.7 마이그레이션" 섹션 참조.
+
 ## [0.1.0-alpha.6] — 2026-05-09
 
 ### Added
