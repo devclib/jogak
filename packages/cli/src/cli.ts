@@ -278,8 +278,11 @@ function parseDevArgs(parsed: ParsedArgs, fileConfig: JogakConfig): DevCliArgs {
       parsed.flags['preview-isolation'],
       fileConfig.previewIsolation,
     ),
-    // 알파.8: userVite 옵션은 jogak.config.ts에서만 결정 (CLI flag 미노출).
+    // 알파.8 alias (deprecated): userVite — jogak.config.ts에만 노출.
     ...(fileConfig.userVite !== undefined ? { userVite: fileConfig.userVite } : {}),
+    // 알파.9: builder/builderOptions — jogak.config.ts에만 노출 (CLI flag 미노출).
+    ...(fileConfig.builder !== undefined ? { builder: fileConfig.builder } : {}),
+    ...(fileConfig.builderOptions !== undefined ? { builderOptions: fileConfig.builderOptions } : {}),
   }
 }
 
