@@ -71,15 +71,23 @@ export interface JogakHostOptionsBase {
    */
   readonly globalCss?: boolean | string | readonly string[]
   /**
-   * 알파.7.1: Preview 영역 격리 모드.
+   * 알파.8: Preview 영역 격리 모드.
    *
-   * `'shadow'` (default, 알파.7.1), `'iframe'`, `'none'` 중 하나.
-   * jogak() Vite plugin의 `previewIsolation` 옵션으로 그대로 전달된다 + UI 측
-   * Preview 컴포넌트가 해당 모드별 분기로 렌더한다.
+   * `'iframe'` (default, 알파.8), `'shadow'` (deprecated), `'none'` (deprecated) 중 하나.
+   * jogak() Vite plugin의 `previewIsolation` 옵션으로 그대로 전달된다.
    *
    * 자세한 모드 설명은 `JogakPluginOptions.previewIsolation` JSDoc 참조.
    */
   readonly previewIsolation?: 'none' | 'shadow' | 'iframe'
+  /**
+   * 알파.8: 사용자 vite 인스턴스의 dev server URL (예: `http://localhost:5174`).
+   * jogak SPA가 iframe `src` base로 사용한다 (`<iframe src="${userViteUrl}/__jogak_preview__/index.html">`).
+   *
+   * 미지정/빈 문자열 시 fallback (jogak SPA Vite scope의 preview-frame.tsx).
+   *
+   * jogak CLI가 spawnUserVite 결과를 자동 전달 — 사용자가 직접 설정하지 않는다.
+   */
+  readonly userViteUrl?: string
 }
 
 export interface JogakDevOptions extends JogakHostOptionsBase {
@@ -148,6 +156,7 @@ export async function runHost(
     tsConfigFilePath?: string
     globalCss?: boolean | string | readonly string[]
     previewIsolation?: 'none' | 'shadow' | 'iframe'
+    userViteUrl?: string
   } = {
     patterns: opts.patterns,
     codeTheme,
@@ -162,6 +171,10 @@ export async function runHost(
   }
   if (opts.previewIsolation !== undefined) {
     jogakOptions.previewIsolation = opts.previewIsolation
+  }
+  // ── 알파.8 ──────────────────────────────────────────
+  if (opts.userViteUrl !== undefined) {
+    jogakOptions.userViteUrl = opts.userViteUrl
   }
 
   const extraPlugins = (opts.extraPlugins ?? []) as ReadonlyArray<

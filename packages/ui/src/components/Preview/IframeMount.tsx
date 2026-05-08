@@ -1,81 +1,92 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { ReactElement } from 'react'
 import type { RegistryEntry } from '@jogak/core'
 
 export interface IframeMountProps {
   readonly entry: RegistryEntry
   readonly args: Readonly<Record<string, unknown>>
+  /**
+   * 알파.8: 사용자 vite spawn URL (예: `http://localhost:5174`).
+   * 빈 문자열 시 fallback (jogak SPA Vite scope의 `/preview-frame.html`).
+   */
+  readonly userViteUrl: string
   readonly className?: string
   readonly 'data-testid'?: string
 }
 
-interface SetPropsArgs {
-  readonly entry: RegistryEntry
-  readonly args: Readonly<Record<string, unknown>>
-}
-
-declare global {
-  interface Window {
-    __jogak_setProps__?: (args: SetPropsArgs) => void
-    __jogak_unmount__?: () => void
-  }
-}
-
 /**
- * 알파.7: previewIsolation='iframe' 모드의 mount 컴포넌트.
+ * 알파.8: previewIsolation='iframe' 모드의 mount 컴포넌트.
  *
- * - `<iframe src="/preview-frame.html">`을 마운트.
- * - iframe load 후 `iframe.contentWindow.__jogak_setProps__({ entry, args })`를
- *   호출해 entry/args를 주입한다 (postMessage 미사용 — 동일 origin이므로
- *   contentWindow 직접 접근 가능).
- * - entry/args 변경 시 setProps 재호출 (load 완료 이후).
+ * 통신:
+ * - 사용자 vite spawn URL이 주어지면(`userViteUrl !== ''`) iframe src를
+ *   `${userViteUrl}/__jogak_preview__/index.html` (cross-origin)로 설정.
+ * - 동일 origin fallback 시 `/preview-frame.html` (jogak SPA Vite scope).
  *
- * HMR:
- * - iframe document 자체도 Vite dev server module을 import하므로 사용자 컴포넌트
- *   파일 변경 시 fast refresh가 iframe 안에서 작동.
- * - previewIsolation 모드 자체 변경은 가상 모듈 invalidate → full reload.
+ * 양쪽 모두 postMessage로 통신:
+ * - 부모 → iframe: `{ type: 'jogak:setProps', entryId, args }` | `{ type: 'jogak:unmount' }`
+ * - iframe → 부모: `{ type: 'jogak:ready' }` | `{ type: 'jogak:rendered', entryId }`
  *
- * sandbox 미설정:
- * - 사용자 컴포넌트가 fetch/clipboard/storage 등 자유롭게 사용해야 하므로 sandbox X.
+ * `entry`는 객체가 아닌 **id만 전달** — iframe 안에서 `defaultRegistry.requestEntry(id)`로
+ * dynamic import. 사용자 vite scope의 entry 가상 모듈이 사용자 컴포넌트를 fetch하므로
+ * 사용자 plugins(@tailwindcss/vite, custom alias 등)이 정상 작동.
  */
 export function IframeMount({
   entry,
   args,
+  userViteUrl,
   className,
   'data-testid': dataTestId,
 }: IframeMountProps): ReactElement {
   const iframeRef = useRef<HTMLIFrameElement | null>(null)
-  const readyRef = useRef(false)
+  const [ready, setReady] = useState(false)
 
-  // iframe load 후 첫 setProps
+  const src =
+    userViteUrl !== ''
+      ? `${userViteUrl}/__jogak_preview__/index.html`
+      : '/preview-frame.html'
+
+  // postMessage 리스너 — iframe contentWindow 일치성 검증 후 처리.
   useEffect(() => {
-    const iframe = iframeRef.current
-    if (iframe === null) return
-    const handleLoad = (): void => {
-      readyRef.current = true
-      iframe.contentWindow?.__jogak_setProps__?.({ entry, args })
+    const handler = (event: MessageEvent): void => {
+      const iframe = iframeRef.current
+      if (iframe === null) return
+      if (event.source !== iframe.contentWindow) return
+      const data = event.data
+      if (data == null || typeof data !== 'object') return
+      if (data.type === 'jogak:ready') setReady(true)
     }
-    iframe.addEventListener('load', handleLoad)
+    window.addEventListener('message', handler)
     return () => {
-      iframe.removeEventListener('load', handleLoad)
-      // 알파.7.1: unmount race 회피 — iframe contentWindow 정리도 microtask defer.
-      queueMicrotask(() => {
-        iframe.contentWindow?.__jogak_unmount__?.()
-      })
+      window.removeEventListener('message', handler)
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // entry/args 변경 시 setProps 재호출 (load 후에만)
+  // iframe ready 또는 entry/args 변경 시 setProps.
   useEffect(() => {
-    if (!readyRef.current) return
-    iframeRef.current?.contentWindow?.__jogak_setProps__?.({ entry, args })
-  }, [entry, args])
+    if (!ready) return
+    const iframe = iframeRef.current
+    if (iframe === null) return
+    iframe.contentWindow?.postMessage(
+      { type: 'jogak:setProps', entryId: entry.id, args },
+      '*',
+    )
+  }, [ready, entry, args])
+
+  // unmount 시 unmount 메시지 (race 회피 microtask defer).
+  useEffect(() => {
+    const iframe = iframeRef.current
+    return () => {
+      if (iframe === null) return
+      queueMicrotask(() => {
+        iframe.contentWindow?.postMessage({ type: 'jogak:unmount' }, '*')
+      })
+    }
+  }, [])
 
   return (
     <iframe
       ref={iframeRef}
-      src="/preview-frame.html"
+      src={src}
       title="Preview"
       className={className}
       data-testid={dataTestId}

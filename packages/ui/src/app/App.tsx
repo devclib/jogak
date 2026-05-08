@@ -21,15 +21,20 @@ export interface JogakAppProps {
   readonly metas?: readonly RegistryEntryMeta[]
   readonly codeTheme?: string
   /**
-   * 알파.7: Preview 영역 격리 모드. default `'none'`.
+   * 알파.8: Preview 영역 격리 모드. default `'iframe'`.
    *
-   * - `'none'` — Preview 콘텐츠를 chrome 같은 document에 렌더 (알파.6까지의 동작).
-   * - `'shadow'` — ShadowRoot 안에 마운트. 사용자 globalCss/reset이 chrome 침범 차단.
-   * - `'iframe'` — 별도 document(iframe)에 마운트. 가장 강한 격리.
+   * - `'iframe'` (default) — 사용자 vite 정상 client(iframe)에 마운트. 사용자 utility 정상 컴파일.
+   * - `'shadow'` (deprecated) — ShadowRoot 안에 마운트. 사용자 utility 미적용.
+   * - `'none'` (deprecated) — chrome 같은 document에 렌더. 알파.6까지의 동작.
    *
    * 자세한 트레이드오프는 `@jogak/ui` README의 "previewIsolation 사용 가이드" 참조.
    */
   readonly previewIsolation?: 'none' | 'shadow' | 'iframe'
+  /**
+   * 알파.8: 사용자 vite spawn URL. iframe `src` base로 사용.
+   * 빈 문자열 시 fallback (jogak SPA Vite scope의 preview-frame.tsx).
+   */
+  readonly userViteUrl?: string
 }
 
 function readUrlParams(): { entryId: string; jogakName: string | null } | null {
@@ -52,7 +57,8 @@ export function JogakApp({
   entries,
   metas,
   codeTheme = 'vsDark',
-  previewIsolation = 'shadow',
+  previewIsolation = 'iframe',
+  userViteUrl = '',
 }: JogakAppProps = {}): ReactElement {
   // ── 4가지 모드 결정 (계약 §5.2) ─────────────────────────────────────
   // 1) entries가 주어지면: 새 ComponentRegistry에 register (eager, 기존 동작)
@@ -156,6 +162,7 @@ export function JogakApp({
               codeTheme={codeTheme}
               onResolveJogak={handleResolveJogak}
               previewIsolation={previewIsolation}
+              userViteUrl={userViteUrl}
             />
           ) : (
             <div className="jogak:flex jogak:items-center jogak:justify-center jogak:h-full jogak:text-[var(--jogak-color-fg-subtle)]">

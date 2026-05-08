@@ -24,13 +24,18 @@ export interface PreviewProps {
    */
   readonly onResolveJogak?: (entryId: string, jogakName: string) => void
   /**
-   * 알파.7: Preview 영역 격리 모드. default `'none'`.
+   * 알파.8: Preview 영역 격리 모드. default `'iframe'`.
    *
-   * - `'none'` — 기존 동작 (chrome과 같은 document, 알파.6 chrome 보호 rule 적용).
-   * - `'shadow'` — ShadowRoot에 마운트. 사용자 globalCss reset이 chrome 침범 차단.
-   * - `'iframe'` — `/preview-frame.html` iframe에 마운트. 강한 격리.
+   * - `'iframe'` (default) — 사용자 vite scope에 마운트. 사용자 utility 정상 컴파일.
+   * - `'shadow'` (deprecated) — ShadowRoot에 마운트. 사용자 utility 미적용.
+   * - `'none'` (deprecated) — chrome과 같은 document에 렌더.
    */
   readonly previewIsolation?: 'none' | 'shadow' | 'iframe'
+  /**
+   * 알파.8: 사용자 vite spawn URL. iframe `src` base.
+   * 빈 문자열 시 fallback (jogak SPA Vite scope의 `/preview-frame.html`).
+   */
+  readonly userViteUrl?: string
 }
 
 type ViewportKey = 'mobile' | 'tablet' | 'desktop'
@@ -120,7 +125,8 @@ export function Preview({
   onReset,
   codeTheme,
   onResolveJogak,
-  previewIsolation = 'shadow',
+  previewIsolation = 'iframe',
+  userViteUrl = '',
 }: PreviewProps): ReactElement {
   const state = useEntry(entryId)
   const [viewport, setViewport] = useState<ViewportKey>('desktop')
@@ -187,6 +193,7 @@ export function Preview({
       onBottomTabChange={setBottomTab}
       prismTheme={prismTheme}
       previewIsolation={previewIsolation}
+      userViteUrl={userViteUrl}
     />
   )
 }
@@ -275,6 +282,7 @@ interface ReadyFrameProps {
   readonly onBottomTabChange: (tab: 'controls' | 'actions') => void
   readonly prismTheme: PrismTheme
   readonly previewIsolation: 'none' | 'shadow' | 'iframe'
+  readonly userViteUrl: string
 }
 
 function ReadyFrame({
@@ -292,6 +300,7 @@ function ReadyFrame({
   onBottomTabChange,
   prismTheme,
   previewIsolation,
+  userViteUrl,
 }: ReadyFrameProps): ReactElement {
   // jogakName이 비어있으면 (deep link `?entry=...&jogak` 누락) 첫 jogak로 보정.
   const resolvedJogakName = jogakName ?? entry.jogaks[0]?.name ?? null
@@ -364,6 +373,7 @@ function ReadyFrame({
             source={entry.source}
             theme={prismTheme}
             previewIsolation={previewIsolation}
+            userViteUrl={userViteUrl}
           />
         </div>
       </div>
@@ -514,18 +524,19 @@ interface JogakRendererProps {
   readonly source: string | undefined
   readonly theme: PrismTheme
   readonly previewIsolation: 'none' | 'shadow' | 'iframe'
+  readonly userViteUrl: string
 }
 
 /**
- * 알파.7: previewIsolation 모드별로 사용자 콘텐츠 마운트 방식을 분기한다.
+ * 알파.8: previewIsolation 모드별로 사용자 콘텐츠 마운트 방식을 분기한다.
  *
- * - `'none'` — 같은 document에 직접 마운트 (알파.6까지의 동작 그대로).
- * - `'shadow'` — `<ShadowMount>` 안에 마운트해 ShadowRoot 격리.
- * - `'iframe'` — `<IframeMount>`로 별도 document에 마운트.
+ * - `'iframe'` (default) — 사용자 vite scope의 `<IframeMount>`로 별도 document.
+ * - `'shadow'` (deprecated) — `<ShadowMount>` 안에 마운트.
+ * - `'none'` (deprecated) — 같은 document에 직접 마운트.
  *
  * Show source 토글, 코드 패널 등 chrome 부분은 모드 무관하게 외부에 둔다.
  */
-function JogakRenderer({ entry, args, source, theme, previewIsolation }: JogakRendererProps): ReactElement {
+function JogakRenderer({ entry, args, source, theme, previewIsolation, userViteUrl }: JogakRendererProps): ReactElement {
   const [showCode, setShowCode] = useState(false)
 
   const previewBody = (
@@ -534,6 +545,7 @@ function JogakRenderer({ entry, args, source, theme, previewIsolation }: JogakRe
         entry={entry}
         args={args}
         previewIsolation={previewIsolation}
+        userViteUrl={userViteUrl}
       />
       <button
         type="button"
@@ -575,13 +587,14 @@ interface PreviewMountProps {
   readonly entry: RegistryEntry
   readonly args: Readonly<Record<string, unknown>>
   readonly previewIsolation: 'none' | 'shadow' | 'iframe'
+  readonly userViteUrl: string
 }
 
 const PREVIEW_HOST_CLASS =
   'jogak:border jogak:border-dashed jogak:border-[var(--jogak-color-border)] ' +
   'jogak:rounded-[var(--jogak-radius-xl)] jogak:p-4 jogak:pb-9'
 
-function PreviewMount({ entry, args, previewIsolation }: PreviewMountProps): ReactElement {
+function PreviewMount({ entry, args, previewIsolation, userViteUrl }: PreviewMountProps): ReactElement {
   if (previewIsolation === 'shadow') {
     return (
       <ShadowMount
@@ -598,13 +611,14 @@ function PreviewMount({ entry, args, previewIsolation }: PreviewMountProps): Rea
       <IframeMount
         entry={entry}
         args={args}
+        userViteUrl={userViteUrl}
         data-testid="preview-content"
         className={`${PREVIEW_HOST_CLASS} jogak:block jogak:w-full jogak:bg-transparent jogak:min-h-[256px]`}
       />
     )
   }
 
-  // 'none' — 기존 동작 그대로
+  // 'none' — deprecated 경로 (알파.7.1 동등 동작 보존, back-compat)
   return <NoneAdapterContent entry={entry} args={args} />
 }
 

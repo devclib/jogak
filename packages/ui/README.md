@@ -22,8 +22,9 @@ pnpm add @jogak/ui @jogak/core @jogak/react react react-dom
 import { defineJogakConfig } from '@jogak/core'
 
 export default defineJogakConfig({
-  globalCss: true,             // 사용자 globalCss 자동 감지 + import
-  // previewIsolation: 'shadow', // 'shadow' (default, 알파.7.1) | 'iframe' | 'none'
+  globalCss: true,              // 사용자 globalCss 자동 감지 + import
+  // previewIsolation: 'iframe',  // 'iframe' (default, 알파.8) | 'shadow' (deprecated) | 'none' (deprecated)
+  // userVite: { port: 5174 },    // 사용자 vite spawn 옵션 (자동 탐지 시 미명시)
   codeTheme: 'vsDark',
   port: 5173,                  // dev server (CLI --port로 override)
 })
@@ -85,8 +86,9 @@ See the [main README](https://github.com/devclib/jogak#readme) for the full host
 | alpha.5 | ✅ 완료 | jogak UI 컴포넌트를 Tailwind class로 마이그레이션 (4 PR) |
 | alpha.6 | ✅ 완료 | `JogakPluginOptions.globalCss` 옵션 + chrome 보호 rule (단, 통로 부재로 사용자 환경에서 무효 — 알파.7에서 정정) |
 | alpha.7 | ✅ 완료 | `jogak.config.ts` 통로 + `previewIsolation` 옵션 + `JogakHostOptionsBase` 확장 (단, isolation 통로 결함으로 격리 무효 — 알파.7.1에서 정정) |
-| **alpha.7.1** | ✅ **본 릴리즈** | **isolation 통로 hotfix + default `previewIsolation: 'shadow'` + main.tsx isolation-aware import** |
-| alpha.8+ | 예정 | 사용자 vite 통합으로 사용자 Tailwind utility 컴파일 통로, multi-baseline VR |
+| alpha.7.1 | ✅ 완료 | isolation 통로 hotfix + default `previewIsolation: 'shadow'` (단, 사용자 utility 미컴파일 한계 — 알파.8에서 사용자 vite 통합으로 해결) |
+| **alpha.8** | ✅ **본 릴리즈** | **사용자 vite 자동 spawn + 사용자 Tailwind utility 정상 컴파일 + default `previewIsolation: 'iframe'`** |
+| alpha.9+ | 예정 | shadow 모드 사용자 utility inject 부활, iframe sandbox 옵션, multi-baseline VR |
 
 ### 사용자 globalCss 적용
 
@@ -124,43 +126,59 @@ defineJogakConfig({ globalCss: './src/index.css' })
 defineJogakConfig({ globalCss: ['./src/tokens.css', './src/reset.css'] })
 ```
 
-#### 격리 보장 (default `previewIsolation: 'shadow'`, 알파.7.1)
+#### 격리 보장 (default `previewIsolation: 'iframe'`, 알파.8)
 
 - **Tailwind utility class**: jogak UI는 `prefix=jogak`로 빌드되어 사용자 utility와 충돌 zero (예: 사용자 `bg-primary` ≠ jogak `jogak:bg-...`).
 - **CSS variable**: jogak은 `--jogak-*` prefix로 namespace 격리 → 사용자 `:root { --primary }` 같은 디자인 토큰은 영향 없음.
 - **Form element 보호**: `[data-jogak-shell]` 안의 button/input/select/textarea는 사용자 reset의 `border` / `background` / `color` 침범을 받지 않도록 `:where()` 보호 rule 적용. specificity 0이라 사용자가 명시적으로 `[data-jogak-shell] button { ... }`를 작성하면 정상 override됩니다.
 
-### previewIsolation 사용 가이드 (알파.7.1)
+### previewIsolation 사용 가이드 (알파.8)
 
-jogak chrome ↔ 사용자 영역의 **양방향 격리** 모드. 알파.7.1부터 default가 `'shadow'`로 변경되어 사용자 reset/preflight가 jogak chrome을 침범하는 결함이 자동 차단됩니다.
+jogak chrome ↔ 사용자 영역의 **양방향 격리** + 사용자 컴포넌트는 사용자 디자인 시스템 그대로 표시. 알파.8부터 default가 `'iframe'`로 변경되어 사용자 vite 인스턴스가 자동 spawn되고, iframe document가 사용자 vite의 정상 client로 작동합니다.
 
 #### 모드 비교
 
-| 모드 | mount | 사용자 globalCss inject 위치 | chrome 침범 | Radix portal | cold start |
-|------|-------|---------------------------|-----------|--------------|-----------|
-| `'shadow'` (default) | ShadowRoot | **inject 안 됨** (격리) | zero | document.body (shadow 외부) | ★★★ |
-| `'iframe'` | iframe document | iframe document | zero | iframe document (정상) | ★★ |
-| `'none'` (back-compat) | 같은 document | outer document | **있음 (의도된 허용)** | document.body | ★★★ |
+| 모드 | mount | 사용자 utility 컴파일 | chrome 침범 | Radix portal | cold start |
+|------|-------|---------------------|-----------|--------------|-----------|
+| `'iframe'` (default) | iframe document (사용자 vite scope) | **정상** ✅ | zero | iframe document (정상) | ★★ |
+| `'shadow'` (deprecated) | ShadowRoot | **미컴파일** | zero | document.body (shadow 외부) | ★★★ |
+| `'none'` (deprecated) | 같은 document | 미컴파일 | **있음** | document.body | ★★★ |
 
-#### `'shadow'` 모드 (default) 동작과 한계
+#### `'iframe'` 모드 (default, 알파.8)
 
-알파.7.1에서 ShadowMount는 **사용자 css를 shadow root에 inject하지 않습니다**. outer document에도 inject 안 됨 (main.tsx 가드). 결과적으로:
+jogak CLI가 사용자 cwd의 `vite.config.{ts,mts,js,mjs,cjs}`를 자동 탐지해 별도 vite dev server를 spawn합니다. iframe `src`가 그 사용자 vite를 가리키므로 사용자 plugins(@tailwindcss/vite, custom alias 등)이 정상 작동 → **사용자 컴포넌트가 사용자 디자인 그대로 표시**.
 
-- **chrome 보호**: 사용자 `* { ... }` reset이나 Tailwind preflight가 jogak utility를 덮어쓸 수 없음
-- **사용자 컴포넌트 styling**: shadow scope 안에서는 사용자 globalCss가 적용되지 않으므로 디자인 토큰/Tailwind utility 미적용 (raw HTML 형태). **사용자 컴포넌트의 styling 통로는 알파.8 사이클**에서 사용자 vite 통합으로 별도 도입 예정
-- **Radix portal**: default Portal target은 `document.body` (shadow 외부) — portal 내용은 shadow scope 외부라 사용자 토큰 미적용. 회피: `<Dialog.Portal container={shadowRootEl}>` 명시 전달
+```ts
+// jogak.config.ts (사용자 프로젝트 root)
+import { defineJogakConfig } from '@jogak/core'
 
-#### `'iframe'` 모드
+export default defineJogakConfig({
+  globalCss: true,
+  // previewIsolation: 'iframe',  // default
+  // userVite: { port: 5174 },    // 명시 시
+})
+```
 
-iframe document scope에 사용자 globalCss가 import되어 사용자 컴포넌트가 토큰 적용을 받습니다. outer chrome은 사용자 css 영향 zero.
+**자동 동작:**
+- 사용자 `vite.config.ts` 자동 탐지 → `loadConfigFromFile` + `mergeConfig`로 jogak plugins 자동 inject (사용자 액션 zero)
+- 사용자 vite default port 5174 (jogak SPA가 default 5173 차지). 사용자 명시 가능
+- cross-origin postMessage로 entry/args 전달 (`entry.id`만, iframe 안에서 `defaultRegistry.requestEntry(id)` dynamic import)
+- HMR: 사용자 vite의 React Fast Refresh + Tailwind utility 재생성 정상 작동
 
-> ⚠️ jogak 차별점("single Vite, no iframe")과 일부 상충 — iframe load + 별도 module graph 비용. Radix portal까지 완벽 격리해야 하는 시나리오 한정.
+**Fallback:**
+- `vite.config.ts` 미발견 또는 평가 실패 → spawn skip + warning. jogak SPA만 시작 (`'none'` 모드 동등 동작).
 
-iframe은 `<iframe src="/preview-frame.html">`로 로드되며, 부모-자식 동일 origin이라 부모가 `iframe.contentWindow.__jogak_setProps__({ entry, args })`를 직접 호출하는 방식으로 props를 전달합니다.
+**주의:**
+- jogak ↔ 사용자 vite 두 인스턴스 (vs 알파.7.1까지의 single vite). dev cold start +100ms, RSS +50~80MB.
+- iframe sandbox 미적용 (사용자 컴포넌트의 fetch/clipboard/storage 자유 사용).
 
-#### `'none'` 모드 (back-compat opt-in)
+#### `'shadow'` 모드 (deprecated)
 
-사용자 globalCss를 outer document에 inject. 사용자 reset이 jogak chrome에 영향을 주는 것을 의도적으로 허용하는 경우만 사용:
+ShadowRoot 격리는 정상 작동하나 사용자 utility가 shadow scope에 inject되지 않아 사용자 컴포넌트가 raw 형태로 표시됩니다. 알파.9에서 사용자 vite의 `transformRequest` API로 shadow inject 부활 검토.
+
+#### `'none'` 모드 (deprecated)
+
+사용자 globalCss를 outer document에 inject. 사용자 reset이 jogak chrome 침범. back-compat 시나리오만 사용:
 
 ```ts
 defineJogakConfig({ globalCss: true, previewIsolation: 'none' })
