@@ -220,4 +220,35 @@ export interface JogakPluginOptions {
    * jogak({ globalCss: ['./src/tokens.css', './src/index.css'] })
    */
   readonly globalCss?: boolean | string | readonly string[]
+  /**
+   * Preview 영역의 격리 모드 (알파.7 도입, opt-in).
+   *
+   * 사용자 globalCss(알파.6의 `globalCss` 옵션)가 jogak chrome에까지 전역 영향을
+   * 주는 것을 막고 싶을 때 사용한다. default `'none'`은 알파.6 동작 그대로.
+   *
+   * 모드:
+   * - `'none'` (default): Preview는 jogak SPA와 동일 document에 마운트.
+   *   알파.6 chrome 보호 rule(`[data-jogak-shell] :where(button,...)`)만으로
+   *   격리. 사용자 globalCss는 chrome + preview 모두 영향.
+   * - `'shadow'`: Preview의 `[data-jogak-content]` 영역만 ShadowRoot에 마운트.
+   *   사용자 globalCss를 `adoptedStyleSheets`로 ShadowRoot에 주입해 preview에서
+   *   디자인 토큰이 작동. **한계**: Radix UI(shadcn dialog/popover/tooltip 등)는
+   *   `Portal`을 `document.body`로 띄우므로 포털 내용은 ShadowRoot 외부로 빠져
+   *   utility class가 적용되지 않을 수 있다 (사용자 컴포넌트가 Portal `container`
+   *   prop으로 ShadowRoot 내부 element를 지정하면 회피 가능). 자세한 한계는
+   *   README 참조.
+   * - `'iframe'`: Preview를 별도 `<iframe>`에 로드. 완벽 격리. **한계**: jogak의
+   *   "single Vite, no iframe" 차별점과 상충하므로 명시적 opt-in 한정. HMR은
+   *   iframe도 Vite dev server module이라 작동하지만, args/이벤트 전달이
+   *   postMessage 또는 `contentWindow` 직접 접근 한 단계 추가됨.
+   *
+   * @default 'none'
+   *
+   * @example shadcn/ui dialog가 preview에서 사용자 토큰을 받게 하려면
+   * jogak({ globalCss: true, previewIsolation: 'none' })  // 기본 — 충분
+   *
+   * @example chrome 까지 사용자 reset이 침범하는 게 싫다면
+   * jogak({ globalCss: true, previewIsolation: 'shadow' })
+   */
+  readonly previewIsolation?: 'none' | 'shadow' | 'iframe'
 }

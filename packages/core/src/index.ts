@@ -19,3 +19,4 @@ export {
   type ActionLog,
   type ActionListener,
 } from './actions.js'
+export { defineJogakConfig, type JogakConfig } from './config.js'

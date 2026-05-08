@@ -69,6 +69,10 @@ export function jogak(options: JogakPluginOptions = {}): Plugin {
   const userResolveAlias = options.resolveAlias
   // 알파.6: globalCss opt-in. default false → 빈 모듈 emit (사용자 환경 영향 zero).
   const globalCssOption = options.globalCss
+  // 알파.7: previewIsolation opt-in. default 'none' (= 알파.6 동작 그대로).
+  // 인덱스 가상 모듈에 `_jogakPreviewIsolation` literal로 emit → ui main.tsx가 import.
+  const previewIsolation: 'none' | 'shadow' | 'iframe' =
+    options.previewIsolation ?? 'none'
 
   let devServer: ViteDevServer | undefined
   let extractor: PropsExtractor | undefined
@@ -294,6 +298,7 @@ const _metas = ${JSON.stringify(metas)}
 for (const m of _metas) defaultRegistry.registerMeta(m)
 
 export const _jogakCodeTheme = ${JSON.stringify(codeTheme)}
+export const _jogakPreviewIsolation = ${JSON.stringify(previewIsolation)}
 export const _jogakMetas = _metas
 `
       }
