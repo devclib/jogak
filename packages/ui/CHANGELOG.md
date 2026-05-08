@@ -5,6 +5,25 @@ All notable changes to Jogak packages are documented here. The repository follow
 
 Version numbers apply to all packages in the workspace (synchronized release).
 
+## [0.1.0-alpha.6] — 2026-05-09
+
+### Added
+
+- **`main.tsx` 에 `import 'virtual:jogak/global-css'` 추가** — `@jogak/core`의
+  `JogakPluginOptions.globalCss` opt-in 옵션이 켜진 환경에서 사용자 globalCss가
+  jogak SPA에 적용됨. opt-in이 꺼진 default 환경에서는 빈 모듈이라 SPA 번들 영향 zero.
+- **`jogak.css` chrome 보호 rule** — `[data-jogak-shell] :where(button, input, select, textarea):not([data-jogak-content] *)`
+  rule이 form element의 사용자 reset 침범을 차단. `:where()` specificity 0 +
+  `revert-layer`로 알파.5 baseline 영향 zero.
+- **README "사용자 globalCss 적용 (alpha.6)" 섹션** — 사용법 / 자동 감지 후보
+  8종 우선순위 / 격리 보장 3항목 / scope 가이드 / `[data-jogak-shell]` /
+  `[data-jogak-content]` selector hint / 알려진 한계 4항목.
+
+### Notes
+
+- 알파.4부터 hook으로 도입됐던 `data-jogak-shell` / `data-jogak-content` 속성이
+  본 릴리즈에서 처음으로 의미를 갖게 됨 (chrome 보호 rule + scope 가이드 hook).
+
 ## [0.1.0-alpha.5] — 2026-05-09
 
 ### Changed

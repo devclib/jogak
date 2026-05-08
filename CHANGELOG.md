@@ -5,6 +5,43 @@ All notable changes to Jogak packages are documented here. The repository follow
 
 Version numbers apply to all packages in the workspace (synchronized release).
 
+## [0.1.0-alpha.6] — 2026-05-09
+
+### Added
+
+- **`@jogak/core` `JogakPluginOptions.globalCss`** — 사용자 globalCss(예: shadcn
+  `src/index.css`의 디자인 토큰 + Tailwind directives)를 jogak SPA에 import할 수 있는
+  opt-in 옵션. 알파.4~5에서 입증된 `prefix=jogak` 격리 위에 사용자 css를 추가.
+  타입: `boolean | string | readonly string[]`. default `false`(opt-in 보존,
+  기존 사용자 환경 영향 zero).
+  - `true` — 자동 감지 (`src/index.css` → `src/main.css` → `src/styles/index.css` →
+    `src/styles/main.css` → `src/app/globals.css` (Next App Router) →
+    `src/styles/globals.css` (Next Pages) → `src/global.css` → `src/app.css` 우선순위로
+    순회, 첫 발견 1개 import).
+  - `string` / `string[]` — user root 기준 상대 경로 (배열은 순서대로 import).
+- **가상 모듈 `virtual:jogak/global-css`** — `@jogak/core`의 Vite 플러그인이
+  옵션 분석 후 emit. `@jogak/ui`의 SPA entry(`main.tsx`)가 항상 import (조건부
+  import 회피). default false 시 빈 모듈 emit이라 SPA 번들 영향 zero.
+- **`@jogak/ui` chrome 보호 rule** —
+  `[data-jogak-shell] :where(button, input, select, textarea):not([data-jogak-content] *)`
+  rule이 jogak.css `@layer base`에 추가됨. `:where()` specificity 0 + `revert-layer`로
+  사용자 `@layer base { * { border-color: ... } }` 같은 reset이 jogak chrome의 form
+  element를 침범하는 것을 차단. preview 안 사용자 컴포넌트(`[data-jogak-content] *`)는
+  사용자 css 그대로 적용.
+
+### Notes
+
+- 사용자가 `*` selector나 `body { font-family: ... }` 같은 강한 selector를 쓰면
+  jogak chrome에 영향 가능. 권장 패턴: `[data-jogak-content] *` 또는
+  `[data-jogak-content]` 안에서 적용. 자세한 가이드는 `packages/ui/README.md`의
+  "사용자 globalCss 적용 (alpha.6)" 섹션 참조.
+- 자동 감지는 dev 시작 시점에 고정. 사용자가 새 후보 css 파일을 추가하면 dev 재시작
+  필요. 명시 경로(`string`/`string[]`)는 Vite 표준 missing file watcher로 정상
+  hot reload.
+- `*.module.css`는 자동 감지에서 제외 (scoped css 의도). 명시 경로로는 OK.
+- preview 영역만 격리하는 `previewIsolation: 'shadow' | 'iframe'` 옵션은
+  알파.7+ 검토.
+
 ## [0.1.0-alpha.5] — 2026-05-09
 
 ### Changed
