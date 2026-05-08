@@ -5,6 +5,44 @@ All notable changes to Jogak packages are documented here. The repository follow
 
 Version numbers apply to all packages in the workspace (synchronized release).
 
+## [0.1.0-alpha.7.1] — 2026-05-09
+
+### Fixed
+
+- **알파.7 `previewIsolation` 옵션 결함 정정** — 알파.7은 사용자 globalCss를
+  `main.tsx`에서 isolation 모드와 무관하게 outer document에 무조건 inject해서
+  jogak chrome utility(`jogak:border-r` 등)를 사용자 reset/Tailwind preflight가
+  무력화하던 결정적 결함이 있었음. 알파.7.1에서 다음 정정:
+  - `@jogak/ui` `main.tsx`: `_jogakPreviewIsolation === 'none'`일 때만 사용자
+    globalCss를 outer document에 dynamic import. `'shadow'`/`'iframe'` 모드에서는
+    outer document에 사용자 css가 inject되지 않음 → chrome 침범 zero.
+  - `@jogak/ui` `ShadowMount`: 알파.7의 `adoptedStyleSheets` 흡수 + MutationObserver
+    HMR sync 로직 제거. ShadowMount는 양방향 격리만 책임 (사용자 globalCss는 shadow
+    scope에 inject되지 않음 — 사용자 컴포넌트 styling 통로는 알파.8 사이클).
+- **React 18 concurrent unmount race(`Attempted to synchronously unmount a root
+  while React was already rendering`)** — `NoneAdapterContent` /
+  `ShadowAdapterContent` / `IframeMount`의 cleanup을 `queueMicrotask`로 defer해
+  fiber commit 종료 직후로 미룸.
+
+### Changed (의도된 default 변경)
+
+- **`@jogak/core` `JogakPluginOptions.previewIsolation` default `'none'` → `'shadow'`** —
+  양방향 격리(jogak chrome ↔ 사용자 영역)를 default로 활성. back-compat이 필요한
+  경우 명시적으로 `previewIsolation: 'none'` 지정. `@jogak/cli`의
+  `--preview-isolation` 미지정 시 default도 동일.
+- **`@jogak/ui` `JogakApp` / `Preview` `previewIsolation` prop default `'none'` → `'shadow'`** —
+  plugin emit이 항상 source of truth지만 unit test 등 plugin을 거치지 않는 경로에서도
+  default 일관성 유지.
+
+### Notes
+
+- 사용자 환경 zero(jogak-test-app만 알파.7 실측)로 실제 회귀 0건. 알파.7
+  `previewIsolation: 'shadow' | 'iframe'`을 명시한 사용자는 알파.7.1에서
+  자동으로 chrome 침범 결함이 해소됨.
+- `'shadow'` default에서 사용자 컴포넌트는 shadow scope 안에서 사용자 css 미적용
+  (raw HTML 형태). 사용자 컴포넌트의 디자인 토큰/Tailwind utility 적용 통로는
+  알파.8에서 사용자 vite 통합으로 별도 도입 예정.
+
 ## [0.1.0-alpha.7] — 2026-05-09
 
 ### Added

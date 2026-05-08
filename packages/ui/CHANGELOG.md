@@ -5,6 +5,36 @@ All notable changes to Jogak packages are documented here. The repository follow
 
 Version numbers apply to all packages in the workspace (synchronized release).
 
+## [0.1.0-alpha.7.1] — 2026-05-09
+
+### Fixed
+
+- **`previewIsolation` 격리 통로 정정** — 알파.7은 `main.tsx`가 isolation 모드와
+  무관하게 사용자 globalCss를 outer document에 무조건 inject해서 jogak chrome
+  utility를 사용자 reset/preflight가 무력화하던 결함이 있었음. 알파.7.1:
+  - `main.tsx`: `_jogakPreviewIsolation === 'none'`일 때만 사용자 globalCss를
+    dynamic import. 다른 모드에서는 outer document inject 차단 → chrome 침범 zero.
+  - `ShadowMount`: `adoptedStyleSheets` 흡수 + MutationObserver HMR sync 로직 제거.
+    ShadowMount는 양방향 격리만 책임 (사용자 globalCss는 shadow scope에 inject 안 됨).
+  - 사용자 컴포넌트 styling 통로(사용자 디자인 토큰/Tailwind utility 적용)는 알파.8
+    사이클에서 사용자 vite 통합으로 별도 도입 예정.
+- **`Preview` cleanup race condition** — `NoneAdapterContent` / `ShadowAdapterContent`
+  / `IframeMount`의 unmount race(`Attempted to synchronously unmount...`)를
+  `queueMicrotask`로 defer해 회피.
+
+### Changed (의도된 default 변경)
+
+- **`JogakHostOptionsBase.previewIsolation` default `'none'` → `'shadow'`** —
+  양방향 격리가 default. back-compat은 `previewIsolation: 'none'` 명시.
+- **`JogakApp` / `Preview` `previewIsolation` prop default `'none'` → `'shadow'`**.
+
+### README 업데이트
+
+- "previewIsolation 사용 가이드" 섹션 재작성 — 3 모드 비교표 + `'shadow'` default
+  동작/한계 + `'iframe'` 주의 + `'none'` back-compat 사용법.
+- "격리 보장" 섹션 — default 표시 갱신 (`'none'` → `'shadow'`).
+- 로드맵 표 — alpha.7.1 entry 추가.
+
 ## [0.1.0-alpha.7] — 2026-05-09
 
 ### Added
