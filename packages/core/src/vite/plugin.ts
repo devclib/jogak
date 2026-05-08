@@ -69,10 +69,11 @@ export function jogak(options: JogakPluginOptions = {}): Plugin {
   const userResolveAlias = options.resolveAlias
   // 알파.6: globalCss opt-in. default false → 빈 모듈 emit (사용자 환경 영향 zero).
   const globalCssOption = options.globalCss
-  // 알파.7: previewIsolation opt-in. default 'none' (= 알파.6 동작 그대로).
+  // 알파.7.1: previewIsolation default 'shadow' (양방향 격리 default).
   // 인덱스 가상 모듈에 `_jogakPreviewIsolation` literal로 emit → ui main.tsx가 import.
+  // 'none'은 사용자가 명시적으로 사용자 css의 chrome 침범을 허용하는 back-compat opt-in.
   const previewIsolation: 'none' | 'shadow' | 'iframe' =
-    options.previewIsolation ?? 'none'
+    options.previewIsolation ?? 'shadow'
 
   let devServer: ViteDevServer | undefined
   let extractor: PropsExtractor | undefined
