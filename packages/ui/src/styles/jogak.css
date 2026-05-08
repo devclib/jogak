@@ -1,0 +1,88 @@
+/*
+ * jogak SPA 전용 스타일.
+ *
+ * 본 파일은 `packages/ui/src/app/main.tsx`에서만 import된다.
+ * lib mode build entry(`src/index.ts`, `src/host/index.ts`)에는 import되지 않으므로
+ * publish되는 `dist/index.{mjs,js}` / `dist/host/index.{mjs,js}` 산출물에 css 흔적이
+ * 들어가지 않는다 (사용자 번들 영향 zero — api-contracts §2.4, §7).
+ *
+ * Tailwind v4: preflight를 의도적으로 import하지 않고 `theme.css` + `utilities.css`만
+ * 분리 import한다. preflight의 globals(`*`, `html`, `body`)는 사용자 css와 prefix
+ * 무관하게 충돌 가능 — jogak SPA는 `index.html`의 inline reset(`box-sizing`,
+ * `body margin:0`)으로 충분하다 (api-contracts §6.2).
+ *
+ * `prefix(jogak)` — 모든 utility/variant/theme variable에 `jogak:` prefix가 적용된다.
+ * 사용자가 v4(no prefix)나 v3(`tw-` prefix)를 써도 selector 충돌 zero.
+ */
+
+@import "tailwindcss/theme.css" layer(theme) prefix(jogak);
+@import "tailwindcss/utilities.css" layer(utilities) prefix(jogak);
+
+/*
+ * jogak 디자인 토큰 (`--jogak-*`).
+ *
+ * 정의 위치는 `:root` — preview 내부의 사용자 컴포넌트도 var() 참조 가능 (원하면).
+ * `--jogak-*` prefix가 충분한 namespace를 제공하므로 사용자 globalCss(알파.6 예정)
+ * 와 충돌 zero.
+ *
+ * 알파.4에서는 변수만 정의하고 컴포넌트는 inline style을 그대로 둔다.
+ * 알파.5에서 `style={{ color: '#374151' }}` → `className="jogak:text-[var(--jogak-color-fg)]"`
+ * 형태로 마이그레이션한다 (api-contracts §4.4).
+ */
+@layer base {
+  :root {
+    /* color */
+    --jogak-color-bg:           #ffffff;
+    --jogak-color-fg:           #374151;
+    --jogak-color-fg-muted:     #6b7280;
+    --jogak-color-fg-subtle:    #9ca3af;
+    --jogak-color-fg-strong:    #111827;
+    --jogak-color-bg-subtle:    #f9fafb;
+    --jogak-color-bg-elevated:  #ffffff;
+    --jogak-color-bg-error:     #fef2f2;
+
+    --jogak-color-accent:       #2563eb;
+    --jogak-color-accent-bg:    #eff6ff;
+    --jogak-color-accent-fg:    #1d4ed8;
+    --jogak-color-accent-bg-soft: #dbeafe;
+
+    --jogak-color-violet:       #7c3aed;
+    --jogak-color-violet-bg:    #f5f3ff;
+    --jogak-color-violet-border:#ddd6fe;
+
+    --jogak-color-error:        #ef4444;
+    --jogak-color-error-fg:     #b91c1c;
+    --jogak-color-error-border: #fecaca;
+
+    --jogak-color-border:       #e5e7eb;
+    --jogak-color-border-muted: #f3f4f6;
+    --jogak-color-border-strong:#d1d5db;
+    --jogak-color-checker:      #e2e8f0;
+
+    /* spacing */
+    --jogak-space-1: 4px;
+    --jogak-space-2: 8px;
+    --jogak-space-3: 12px;
+    --jogak-space-4: 16px;
+    --jogak-space-5: 20px;
+    --jogak-space-6: 24px;
+
+    /* radius */
+    --jogak-radius-sm: 3px;
+    --jogak-radius-md: 4px;
+    --jogak-radius-lg: 6px;
+    --jogak-radius-xl: 8px;
+
+    /* typography */
+    --jogak-font-sans: system-ui, sans-serif;
+    --jogak-font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+    --jogak-text-xs: 10px;
+    --jogak-text-sm: 11px;
+    --jogak-text-base: 12px;
+    --jogak-text-md: 13px;
+    --jogak-text-lg: 14px;
+
+    /* layout 상수 */
+    --jogak-sidebar-width: 260px;
+  }
+}
