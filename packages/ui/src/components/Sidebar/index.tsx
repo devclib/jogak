@@ -122,6 +122,7 @@ function TreeView({
   return (
     <ul
       className="jogak:list-none jogak:m-0 jogak:pr-0 jogak:py-0 jogak:pl-[var(--jogak-tree-pl)]"
+      // eslint-disable-next-line no-restricted-syntax -- jogak: CSS var inject (--jogak-tree-pl)
       style={{ '--jogak-tree-pl': `${depth * 12}px` } as CSSVarStyle}
     >
       {Object.entries(node).map(([key, child]) => (
@@ -240,6 +241,7 @@ function EntryGroup({
             ? 'jogak:bg-[var(--jogak-color-accent-bg)] jogak:text-[var(--jogak-color-accent)] jogak:font-medium'
             : 'jogak:bg-transparent jogak:text-[var(--jogak-color-fg)] jogak:font-normal',
         )}
+        // eslint-disable-next-line no-restricted-syntax -- jogak: CSS var inject (--jogak-entry-pl)
         style={{ '--jogak-entry-pl': `${paddingLeft}px` } as CSSVarStyle}
         aria-expanded={open}
       >
@@ -267,6 +269,7 @@ function EntryGroup({
                       ? 'jogak:bg-[var(--jogak-color-accent-bg-soft)] jogak:text-[var(--jogak-color-accent-fg)] jogak:font-medium'
                       : 'jogak:bg-transparent jogak:text-[var(--jogak-color-fg-muted)] jogak:font-normal',
                   )}
+                  // eslint-disable-next-line no-restricted-syntax -- jogak: CSS var inject (--jogak-jogak-pl)
                   style={{ '--jogak-jogak-pl': `${paddingLeft + 18}px` } as CSSVarStyle}
                   aria-current={isSelected ? 'true' : undefined}
                 >

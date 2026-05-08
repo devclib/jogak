@@ -218,10 +218,12 @@ function LoadingFrame({
       />
       <div
         className={`jogak:flex-1 jogak:overflow-auto jogak:min-h-[320px] ${CANVAS_BG_CLASS}`}
+        // eslint-disable-next-line no-restricted-syntax -- jogak: BG_VARS object inject
         style={BG_VARS[bgMode]}
       >
         <div
           className="jogak:mx-auto jogak:p-6 jogak:max-w-[var(--jogak-canvas-mw)]"
+          // eslint-disable-next-line no-restricted-syntax -- jogak: canvas-mw CSS var
           style={
             {
               '--jogak-canvas-mw': maxWidth === 'none' ? '100%' : `${maxWidth}px`,
@@ -229,27 +231,17 @@ function LoadingFrame({
           }
         >
           {/*
-           * skeleton box — §4.3 P8 화이트리스트 예외:
-           * gradient + keyframe animation 은 v4 arbitrary value 로 표현하면 escape 복잡 +
-           * jogak.css 수정 금지(§1.3) 정책으로 본 PR 잔존 (PR 4 정리 예정).
-           * 정적 부분(border / radius / padding / flex / color / fontSize / minHeight)만 className 으로 이전.
+           * skeleton box — 알파.5 PR 4 마이그레이션: gradient + keyframe animation 을
+           * jogak.css `@layer components` 의 `.jogak-skeleton-shimmer` class 로 이동
+           * (api-contracts §6). inline `style={{...}}` 객체 + inline `<style>` 태그
+           * 동시 제거. 정적 부분(border / radius / padding / flex / color / fontSize /
+           * minHeight)은 jogak: utility 그대로 유지.
            */}
-          <div
-            className="jogak:border jogak:border-dashed jogak:border-[var(--jogak-color-border)] jogak:rounded-[var(--jogak-radius-xl)] jogak:p-4 jogak:flex jogak:items-center jogak:justify-center jogak:text-[var(--jogak-color-fg-subtle)] jogak:text-[13px] jogak:min-h-[256px]"
-            style={{
-              background:
-                'linear-gradient(90deg, rgba(229,231,235,0) 0%, rgba(229,231,235,0.45) 50%, rgba(229,231,235,0) 100%)',
-              backgroundSize: '200% 100%',
-              animation: 'jogakSkeleton 1.4s ease-in-out infinite',
-            }}
-          >
+          <div className="jogak-skeleton-shimmer jogak:border jogak:border-dashed jogak:border-[var(--jogak-color-border)] jogak:rounded-[var(--jogak-radius-xl)] jogak:p-4 jogak:flex jogak:items-center jogak:justify-center jogak:text-[var(--jogak-color-fg-subtle)] jogak:text-[13px] jogak:min-h-[256px]">
             Loading {meta.title}…
           </div>
         </div>
       </div>
-      <style>
-        {`@keyframes jogakSkeleton { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }`}
-      </style>
     </div>
   )
 }
@@ -338,11 +330,13 @@ function ReadyFrame({
       {/* ── 캔버스 ───────────────────────────────────────── */}
       <div
         className={`jogak:flex-1 jogak:overflow-auto jogak:min-h-[320px] ${CANVAS_BG_CLASS}`}
+        // eslint-disable-next-line no-restricted-syntax -- jogak: BG_VARS object inject
         style={BG_VARS[bgMode]}
       >
         <div
           data-jogak-content
           className="jogak:mx-auto jogak:p-6 jogak:max-w-[var(--jogak-canvas-mw)]"
+          // eslint-disable-next-line no-restricted-syntax -- jogak: canvas-mw CSS var
           style={
             {
               '--jogak-canvas-mw': maxWidth === 'none' ? '100%' : `${maxWidth}px`,
@@ -477,6 +471,7 @@ function Toolbar({
                 ? 'jogak:border-[var(--jogak-color-accent)]'
                 : 'jogak:border-[var(--jogak-color-border-strong)]',
             )}
+            // eslint-disable-next-line no-restricted-syntax -- jogak: BG_VARS object inject (3 mini buttons)
             style={BG_VARS[bg]}
           />
         ))}
@@ -574,6 +569,7 @@ function SourceViewer({ source, theme }: SourceViewerProps): ReactElement {
     return (
       <div
         className="jogak:h-full jogak:flex jogak:items-center jogak:justify-center jogak:bg-[var(--jogak-source-bg)] jogak:text-[#94a3b8] jogak:text-[13px]"
+        // eslint-disable-next-line no-restricted-syntax -- jogak: source-bg CSS var (prism theme)
         style={{ '--jogak-source-bg': bgColor } as CSSVarStyle}
       >
         Source not available
@@ -602,6 +598,7 @@ function SourceViewer({ source, theme }: SourceViewerProps): ReactElement {
         {({ style, tokens, getLineProps, getTokenProps }) => (
           <pre
             className="jogak:m-0 jogak:py-3 jogak:px-0 jogak:text-[12.5px] jogak:leading-[1.7] jogak:font-[family-name:var(--jogak-font-mono)] jogak:h-full jogak:box-border jogak:overflow-auto"
+            // eslint-disable-next-line no-restricted-syntax -- jogak: prism-react-renderer external interface (pre)
             style={style}
           >
             {tokens.map((line, i) => (
@@ -609,6 +606,7 @@ function SourceViewer({ source, theme }: SourceViewerProps): ReactElement {
                 key={i}
                 {...getLineProps({ line })}
                 className="jogak:flex jogak:pr-6"
+                // eslint-disable-next-line no-restricted-syntax -- jogak: prism-react-renderer external interface (line)
                 style={getLineProps({ line }).style}
               >
                 <span className="jogak:select-none jogak:min-w-10 jogak:pl-[14px] jogak:pr-[14px] jogak:text-right jogak:text-[rgba(148,163,184,0.45)] jogak:shrink-0 jogak:leading-[1.7]">

@@ -76,13 +76,33 @@
     /* typography */
     --jogak-font-sans: system-ui, sans-serif;
     --jogak-font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
-    --jogak-text-xs: 10px;
-    --jogak-text-sm: 11px;
-    --jogak-text-base: 12px;
-    --jogak-text-md: 13px;
-    --jogak-text-lg: 14px;
+    /*
+     * NOTE 알파.5 PR 4: --jogak-text-{xs,sm,base,md,lg} 5개 변수 + --jogak-sidebar-width
+     * 1개 삭제. 사용처 zero (PR 1/3에서 픽셀 literal 채택). v4 함정 1 (font-size 페어링)
+     * 회귀 자체 차단 + 알파.6 사용자 globalCss 충돌 가능성 zero.
+     */
+  }
+}
 
-    /* layout 상수 */
-    --jogak-sidebar-width: 260px;
+@layer components {
+  /*
+   * 알파.5 PR 4: skeleton 애니메이션을 inline <style>(Preview L250-252)에서 jogak.css로
+   * 이동. inline style forbid rule (no-restricted-syntax) 위반 1건 + inline <style> 1건
+   * 동시 제거. VR 영향 zero (선택자/타이밍/그라디언트 픽셀 동일).
+   */
+  @keyframes jogakSkeleton {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  .jogak-skeleton-shimmer {
+    background: linear-gradient(
+      90deg,
+      rgba(229, 231, 235, 0) 0%,
+      rgba(229, 231, 235, 0.45) 50%,
+      rgba(229, 231, 235, 0) 100%
+    );
+    background-size: 200% 100%;
+    animation: jogakSkeleton 1.4s ease-in-out infinite;
   }
 }
