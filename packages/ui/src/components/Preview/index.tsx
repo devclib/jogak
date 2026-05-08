@@ -355,6 +355,7 @@ function ReadyFrame({
 
       {/* ── 컨트롤/액션 패널 ──────────────────────────────── */}
       <div
+        data-testid="bottom-panel"
         style={{
           height: 260,
           flexShrink: 0,
