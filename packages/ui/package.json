@@ -45,6 +45,7 @@
     "src/app",
     "src/components",
     "src/hooks",
+    "src/styles",
     "src/index.ts",
     "src/vite-env.d.ts",
     "README.md",
@@ -69,7 +70,9 @@
   "dependencies": {
     "@jogak/core": "workspace:*",
     "@jogak/react": "workspace:*",
-    "prism-react-renderer": "^2.4.1"
+    "prism-react-renderer": "^2.4.1",
+    "tailwindcss": "^4.0.0",
+    "@tailwindcss/vite": "^4.0.0"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",

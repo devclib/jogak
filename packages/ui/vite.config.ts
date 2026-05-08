@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
 import dts from 'vite-plugin-dts'
 import { jogak } from '@jogak/core/vite'
 import { fileURLToPath } from 'node:url'
@@ -22,6 +23,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 export default defineConfig({
   plugins: [
     react(),
+    tailwindcss(),
     jogak({ patterns: ['src/**/*.jogak.ts', 'src/**/*.jogak.tsx'], codeTheme: 'vsDark' }),
     dts({
       include: ['src/**/*.ts', 'src/**/*.tsx'],
@@ -31,6 +33,7 @@ export default defineConfig({
         'src/test/**',
         'src/app/main.tsx',
         'src/examples/**',
+        'src/styles/**',
         'src/vite-env.d.ts',
       ],
       entryRoot: 'src',
@@ -65,6 +68,8 @@ export default defineConfig({
         'prism-react-renderer',
         'vite',
         '@vitejs/plugin-react',
+        '@tailwindcss/vite',
+        'tailwindcss',
         /^node:/u,
       ],
     },

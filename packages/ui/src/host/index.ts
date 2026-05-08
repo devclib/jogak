@@ -110,9 +110,11 @@ export async function runHost(
   const vite = await import('vite')
   const reactPluginMod = await import('@vitejs/plugin-react')
   const coreViteMod = await import('@jogak/core/vite')
+  const tailwindMod = await import('@tailwindcss/vite')
 
   const { createServer, build: viteBuild } = vite
   const reactPlugin = reactPluginMod.default
+  const tailwindPlugin = tailwindMod.default
   const { jogak } = coreViteMod
 
   const codeTheme = opts.codeTheme ?? 'vsDark'
@@ -140,7 +142,7 @@ export async function runHost(
   const baseConfig: import('vite').InlineConfig = {
     root: UI_PKG_ROOT,
     configFile: false, // ui/vite.config.ts 무시
-    plugins: [reactPlugin(), jogak(jogakOptions), ...extraPlugins],
+    plugins: [reactPlugin(), tailwindPlugin(), jogak(jogakOptions), ...extraPlugins],
     optimizeDeps: {
       include: ['react', 'react-dom/client', '@jogak/core', '@jogak/react'],
     },
