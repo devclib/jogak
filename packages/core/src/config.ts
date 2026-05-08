@@ -1,4 +1,4 @@
-import type { JogakPluginOptions } from './types.js'
+import type { JogakPluginOptions, UserViteOptions } from './types.js'
 
 /**
  * `jogak.config.{ts,mts,mjs,js,json}`의 default export 타입.
@@ -31,6 +31,21 @@ export interface JogakConfig extends JogakPluginOptions {
   readonly minify?: boolean | 'esbuild' | 'terser'
   /** 빌드 소스맵. 기본 false. CLI `--sourcemap`로 override. */
   readonly sourcemap?: boolean
+
+  // ── 사용자 Vite 통합 (알파.8) ──────────────────────────────
+  /**
+   * 사용자 vite 인스턴스 spawn 옵션 (알파.8). 미지정 시 cwd의 `vite.config.{ts,mts,js,mjs,cjs}`를
+   * 자동 탐지해 별도 vite dev server를 띄워 iframe src로 사용한다.
+   *
+   * `previewIsolation: 'iframe'` (default)에서만 사용된다.
+   *
+   * @example 사용자 vite 명시 비활성화 (알파.7.1 동등 fallback)
+   * defineJogakConfig({ userVite: { disabled: true } })
+   *
+   * @example 사용자 vite 포트 명시
+   * defineJogakConfig({ userVite: { port: 5174 } })
+   */
+  readonly userVite?: UserViteOptions
 }
 
 /**

@@ -8,6 +8,7 @@ export type {
   CategoryMetaTree,
   JogakAdapter,
   JogakPluginOptions,
+  UserViteOptions,
 } from './types.js'
 
 export { ComponentRegistry, defaultRegistry, UnknownEntryError } from './registry.js'

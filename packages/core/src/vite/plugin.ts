@@ -69,11 +69,16 @@ export function jogak(options: JogakPluginOptions = {}): Plugin {
   const userResolveAlias = options.resolveAlias
   // 알파.6: globalCss opt-in. default false → 빈 모듈 emit (사용자 환경 영향 zero).
   const globalCssOption = options.globalCss
-  // 알파.7.1: previewIsolation default 'shadow' (양방향 격리 default).
+  // 알파.8: previewIsolation default 'iframe' (사용자 vite scope에서 정상 시각).
   // 인덱스 가상 모듈에 `_jogakPreviewIsolation` literal로 emit → ui main.tsx가 import.
-  // 'none'은 사용자가 명시적으로 사용자 css의 chrome 침범을 허용하는 back-compat opt-in.
+  // 'shadow'/'none'은 deprecated.
   const previewIsolation: 'none' | 'shadow' | 'iframe' =
-    options.previewIsolation ?? 'shadow'
+    options.previewIsolation ?? 'iframe'
+  // 알파.8: jogak() plugin이 사용자 vite scope의 preview-frame entry용으로 동작하는지.
+  // CLI의 spawnUserVite가 사용자 vite에 jogak()을 mergeConfig로 inject할 때 true 설정.
+  const previewFrame = options.previewFrame === true
+  // 알파.8: 사용자 vite spawn URL. CLI에서 옵션으로 전달. iframe src로 사용.
+  const userViteUrl = options.userViteUrl ?? ''
 
   let devServer: ViteDevServer | undefined
   let extractor: PropsExtractor | undefined
@@ -276,6 +281,19 @@ export function jogak(options: JogakPluginOptions = {}): Plugin {
         const fileEntries = await collectMetas()
         const metas = fileEntries.map((fe) => fe.meta)
 
+        // 알파.8: previewFrame 모드 (사용자 vite scope에서 동작)에서는 chrome 가상 모듈
+        // (`_jogakCodeTheme` 등)을 emit하지 않는다. preview-frame entry는 entry loader +
+        // metas registration만 필요. 사용자 vite의 다른 모듈에서 chrome 모듈을 import하면
+        // 빈 export로 안전하게 fallback.
+        const chromeExports = previewFrame
+          ? ''
+          : `
+export const _jogakCodeTheme = ${JSON.stringify(codeTheme)}
+export const _jogakPreviewIsolation = ${JSON.stringify(previewIsolation)}
+export const _jogakUserViteUrl = ${JSON.stringify(userViteUrl)}
+export const _jogakMetas = _metas
+`
+
         // user 모듈 import 0개 — module graph는 인덱스 + 코어만.
         // entry loader는 dynamic import로 entry 가상모듈만 로드한다.
         //
@@ -297,11 +315,7 @@ defaultRegistry.setEntryLoader((id) => {
 const _metas = ${JSON.stringify(metas)}
 
 for (const m of _metas) defaultRegistry.registerMeta(m)
-
-export const _jogakCodeTheme = ${JSON.stringify(codeTheme)}
-export const _jogakPreviewIsolation = ${JSON.stringify(previewIsolation)}
-export const _jogakMetas = _metas
-`
+${chromeExports}`
       }
 
       // ── Entry 모듈 ────────────────────────────────────────────
@@ -479,3 +493,10 @@ function idToSlugCode(): string {
     return btoa(bin).replace(/\\+/g, '-').replace(/\\//g, '_').replace(/=+$/, '')
   }`
 }
+
+// 알파.8: 사용자 vite scope의 preview-frame entry용 plugin re-export.
+// CLI의 spawnUserVite가 사용자 vite.config.ts에 mergeConfig로 자동 inject.
+export {
+  jogakPreviewFramePlugin,
+  type JogakPreviewFramePluginOptions,
+} from './preview-frame-plugin.js'

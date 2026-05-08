@@ -22,6 +22,22 @@ export const RESOLVED_VIRTUAL_ENTRY_PREFIX = '\0' + VIRTUAL_ENTRY_PREFIX
 export const VIRTUAL_GLOBAL_CSS_ID = 'virtual:jogak/global-css'
 export const RESOLVED_VIRTUAL_GLOBAL_CSS_ID = '\0' + VIRTUAL_GLOBAL_CSS_ID
 
+/**
+ * Preview frame entry (알파.8) — 사용자 vite scope의 iframe entry.
+ * jogakPreviewFramePlugin이 emit. 사용자 vite의 module graph에 포함되어
+ * 사용자 plugins(@tailwindcss/vite 등)가 정상 처리.
+ */
+export const VIRTUAL_PREVIEW_ENTRY_ID = 'virtual:jogak/preview-entry'
+export const RESOLVED_VIRTUAL_PREVIEW_ENTRY_ID = '\0' + VIRTUAL_PREVIEW_ENTRY_ID
+
+/**
+ * Preview-scope의 사용자 globalCss (알파.8) — 알파.6의 `virtual:jogak/global-css`는
+ * jogak SPA scope. 본 모듈은 사용자 vite scope의 preview-frame entry용.
+ * jogakPreviewFramePlugin이 emit.
+ */
+export const VIRTUAL_PREVIEW_GLOBAL_CSS_ID = 'virtual:jogak/preview-global-css'
+export const RESOLVED_VIRTUAL_PREVIEW_GLOBAL_CSS_ID = '\0' + VIRTUAL_PREVIEW_GLOBAL_CSS_ID
+
 export function idToSlug(id: string): string {
   return Buffer.from(id, 'utf8').toString('base64url')
 }

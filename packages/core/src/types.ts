@@ -221,38 +221,84 @@ export interface JogakPluginOptions {
    */
   readonly globalCss?: boolean | string | readonly string[]
   /**
-   * Preview 영역의 격리 모드 (알파.7 도입, 알파.7.1에서 default 변경).
+   * Preview 영역의 격리 모드 (알파.7 도입, 알파.8에서 default `'iframe'`로 변경).
    *
-   * 사용자 globalCss와 jogak chrome의 양방향 격리를 제공한다. 알파.7까지는
-   * 사용자 globalCss를 outer document에 inject하면서 jogak chrome utility를
-   * 무력화하는 결함이 있었으나 알파.7.1에서 main.tsx + ShadowMount가 모드별
-   * scope을 분리하도록 정정됨.
+   * 알파.8의 default `'iframe'`은 사용자 vite 인스턴스를 spawn하여 그 vite의 정상 client에
+   * iframe document를 마운트한다. 사용자 plugins(@tailwindcss/vite 등)이 그대로 작동하므로
+   * **사용자 컴포넌트가 사용자 디자인 시스템 그대로 보인다**. 동시에 outer document의
+   * jogak chrome은 iframe 외부라 사용자 css 영향 zero (양방향 격리).
    *
    * 모드:
-   * - `'shadow'` (default, 알파.7.1): Preview의 `[data-jogak-content]` 영역만
-   *   ShadowRoot에 마운트하고 사용자 globalCss를 ShadowRoot scope에만 inject.
-   *   outer document의 jogak chrome은 사용자 reset/preflight 침범을 받지 않는다.
-   *   **한계**: Radix UI(shadcn dialog/popover/tooltip 등)는 default Portal target이
-   *   `document.body` (shadow 외부) — portal 내용은 사용자 css 미적용. 회피:
-   *   사용자가 명시적으로 `<Portal container={shadowRootEl}>` 전달.
-   * - `'iframe'`: Preview를 별도 `<iframe>`에 로드. 완벽 격리. **한계**: jogak의
-   *   "single Vite, no iframe" 차별점과 상충하므로 명시적 opt-in 한정. HMR은
-   *   iframe도 Vite dev server module이라 작동하지만, args/이벤트 전달이
-   *   `contentWindow` 직접 접근 한 단계 추가됨.
-   * - `'none'` (back-compat opt-in): Preview는 jogak SPA와 동일 document에 마운트하고
-   *   사용자 globalCss를 outer document에 inject. 사용자 reset/preflight가 jogak
-   *   chrome에 침범 가능. 사용자가 침범을 의도적으로 허용하는 경우만 사용.
+   * - `'iframe'` (default, 알파.8): Preview를 사용자 vite의 정상 client(iframe)에 마운트.
+   *   사용자 utility 정상 컴파일 + 사용자 globalCss 적용 + Radix Portal 정상 (iframe document.body).
+   *   chrome 침범 zero. cross-origin postMessage로 entry/args 전달.
+   *   `userVite` 옵션으로 spawn 동작 제어.
+   * - `'shadow'` (deprecated, 알파.9 부활 검토): Preview를 ShadowRoot에 마운트. 알파.8 v1에서는
+   *   사용자 vite 산출물을 shadow에 inject하는 통로가 미구현 — 사용자 utility 미적용 한계.
+   *   chrome 침범은 zero지만 사용자 컴포넌트 시각이 raw에 가까움.
+   * - `'none'` (deprecated, 알파.10 제거 검토): 사용자 globalCss를 outer document에 inject.
+   *   jogak chrome이 사용자 reset/preflight 영향을 받음 (back-compat).
    *
-   * @default 'shadow'
+   * @default 'iframe'
    *
-   * @example 양방향 격리 (default — 미지정 시 적용)
-   * jogak({ globalCss: true })  // previewIsolation 'shadow' 자동 적용
+   * @example 사용자 vite 자동 spawn + iframe 모드 (default — 미지정 시 적용)
+   * jogak({ globalCss: true })  // previewIsolation 'iframe', 사용자 vite 자동 탐지
    *
-   * @example 사용자 reset이 chrome에도 영향을 주길 원하는 경우
+   * @example 사용자 vite 스폰 비활성 + 사용자 reset이 chrome에도 영향 (back-compat)
    * jogak({ globalCss: true, previewIsolation: 'none' })
-   *
-   * @example Radix portal까지 완벽 격리
-   * jogak({ globalCss: true, previewIsolation: 'iframe' })
    */
   readonly previewIsolation?: 'none' | 'shadow' | 'iframe'
+  /**
+   * 알파.8 internal: 본 jogak() plugin이 사용자 vite scope의 preview-frame entry용으로
+   * 동작하는지. CLI의 spawnUserVite가 사용자 vite에 jogak()을 mergeConfig로 inject할 때
+   * `previewFrame: true`를 함께 설정한다.
+   *
+   * `previewFrame: true`일 때:
+   * - jogak SPA chrome 가상 모듈(`_jogakCodeTheme`/`_jogakPreviewIsolation`/`_jogakUserViteUrl`/
+   *   `_jogakMetas`) emit 비활성화
+   * - entry 가상 모듈(`virtual:jogak/entry/<slug>`)은 그대로 emit (preview-entry가 사용)
+   * - 사용자 측 vite plugins(@tailwindcss/vite 등)와 공존
+   *
+   * 사용자가 직접 설정하는 옵션이 아니다.
+   */
+  readonly previewFrame?: boolean
+  /**
+   * 알파.8 internal: jogak SPA가 iframe src로 사용할 사용자 vite의 base URL
+   * (예: `http://localhost:5174`). CLI가 spawnUserVite 결과를 `runHost` 통해
+   * jogak() plugin에 전달한다.
+   *
+   * 빈 문자열 또는 미지정 시 기존 fallback (jogak SPA Vite scope의 preview-frame.tsx).
+   *
+   * 사용자가 직접 설정하는 옵션이 아니다.
+   */
+  readonly userViteUrl?: string
+}
+
+/**
+ * 알파.8: 사용자 vite 인스턴스 spawn 옵션.
+ *
+ * jogak CLI는 사용자 cwd의 `vite.config.{ts,mts,js,mjs,cjs}`를 자동 탐지해 별도
+ * vite dev server를 spawn한다. iframe 모드의 src로 사용되어 사용자 컴포넌트가
+ * 사용자 vite plugins(@tailwindcss/vite, custom alias 등)의 정상 client에서
+ * 평가된다.
+ */
+export interface UserViteOptions {
+  /**
+   * 사용자 vite.config.ts 절대/상대 경로. 미지정 시 cwd에서 자동 탐지
+   * (`vite.config.ts` > `vite.config.mts` > `vite.config.js` > `vite.config.mjs` > `vite.config.cjs`).
+   */
+  readonly configFile?: string
+  /**
+   * 사용자 vite dev server 포트. 미지정 시 0(free port).
+   */
+  readonly port?: number
+  /**
+   * 사용자 vite dev server host. 미지정 시 'localhost'.
+   */
+  readonly host?: string | boolean
+  /**
+   * 사용자 vite spawn을 비활성화. 알파.7.1 동등 fallback 동작
+   * (사용자 utility 미컴파일).
+   */
+  readonly disabled?: boolean
 }
