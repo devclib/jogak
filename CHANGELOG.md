@@ -5,6 +5,59 @@ All notable changes to Jogak packages are documented here. The repository follow
 
 Version numbers apply to all packages in the workspace (synchronized release).
 
+## [0.1.0-alpha.5] — 2026-05-09
+
+### Changed
+
+- **`@jogak/ui` 컴포넌트 4개 + App shell** — Sidebar / Preview / Controls / Actions / JogakApp의
+  inline style을 `jogak:` prefix Tailwind class로 마이그레이션 완료. 4 PR 시리즈 (Sidebar /
+  Preview+Controls / Actions+App / 마무리)로 점진 적용. 시각 출력은 Playwright VR 9 시나리오
+  multi-run으로 픽셀 단위 동등성 입증 — alpha.4 대비 baseline 8/9 unchanged. dist 사이즈는
+  오히려 감소(mjs gzip 8.36 → 7.64 KB).
+- **`@jogak/core` registry** — `getAll` / `getTree` / `getAllMeta` / `getMetaTree` 결과가
+  insertion 순서 비결정성에 영향받지 않도록 결정적 ordering 보장 (`title` alphabetical +
+  tie-break `id`, locale-independent natural sort). dev 모드 `import.meta.glob`의 HMR 캐시
+  순서가 sidebar 트리 렌더에 영향을 주던 문제 해결. public API signature 무변경.
+- **잔존 inline style 11건** — 모두 화이트리스트 (CSS variable 주입 + prism-react-renderer
+  external interface). 각 라인에 `eslint-disable-next-line + 사유` 주석으로 1:1 매핑.
+
+### Added
+
+- **`scripts/lint-traps.mjs`** — Tailwind v4 함정 6종 + deprecated 변수 사용처 zero를
+  grep으로 자동 검증. 발견된 함정: ① `text-[var(--jogak-text-*)]` line-height 페어링 회피,
+  ② `font-[var(...)]` family-name hint 누락 시 font-weight 오인, ④ flex 부모 안 padding
+  보유 button의 `leading-none` 회피, ⑤ `border-none + border-{n}` 조합 금지, ⑥ form
+  element `appearance-none` 미적용 (UA 보존).
+- **ESLint v9 flat config + typescript-eslint v8** (devDependencies) — `no-restricted-syntax`
+  + JSXAttribute selector로 inline style forbid rule 도입.
+- **CI Visual Regression workflow** (`.github/workflows/visual-regression.yml`) — Playwright
+  9 시나리오 + Docker `mcr.microsoft.com/playwright:v1.59.1-jammy` 환경 + 14일 diff artifact
+  + `pnpm lint` step 통합.
+- **`@jogak/ui` 신규 dependency**: `clsx@^2.1.1` (boolean variant 결합용, ~1.2KB minified).
+
+### Fixed
+
+- **`@jogak/ui`** Preview source toggle / prism `<pre>` / Controls action span 등 5곳에서
+  `font-[var(--jogak-font-mono)]`가 v4에서 `font-weight: var(...)`로 잘못 컴파일되던 문제.
+  `font-[family-name:var(--jogak-font-mono)]` hint 적용으로 차단.
+- **`@jogak/ui`** Preview viewport toggle / bottom-panel tab button의 `leading-none` 적용
+  시 flex 부모 높이가 1~2px 단축되던 문제. 단일 문자 span에만 leading 적용, padding 보유
+  button에는 미적용으로 baseline 정합.
+
+### Removed
+
+- **`@jogak/ui` jogak.css** — `--jogak-text-{xs,sm,base,md,lg}` 5개 CSS variable + `--jogak-sidebar-width`
+  1개 삭제. font-size 픽셀 literal 채택 + App grid 픽셀 literal 채택 후 사용처 zero 입증.
+  알파.6 사용자 globalCss 도입 시 충돌 가능성 사전 차단.
+
+### Notes
+
+- 사용자 프로젝트의 globalCss는 **현재도 jogak SPA에 적용되지 않습니다** (의도된 한계).
+  알파.6에서 `JogakPluginOptions.globalCss` opt-in으로 지원 예정. jogak UI 자체가 prefix=jogak으로
+  격리됐으므로 사용자 Tailwind/shadcn과 utility 충돌 zero가 본 릴리즈에서 입증됨.
+- `@jogak/ui` jogak SPA에 inline `<style>` 태그(skeleton 애니메이션) 잔존 zero — `jogak.css`
+  `@layer components`로 이동.
+
 ## [0.1.0-alpha.4] — 2026-05-08
 
 ### Internal

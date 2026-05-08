@@ -5,6 +5,39 @@ All notable changes to Jogak packages are documented here. The repository follow
 
 Version numbers apply to all packages in the workspace (synchronized release).
 
+## [0.1.0-alpha.5] — 2026-05-09
+
+### Changed
+
+- **컴포넌트 4개 + App shell 전면 마이그레이션** — Sidebar / Preview / Controls / Actions /
+  JogakApp의 inline style을 `jogak:` prefix Tailwind class로 변경 완료. Playwright VR 9
+  시나리오 multi-run 결정성으로 픽셀 동등 입증. alpha.4 baseline 대비 8/9 unchanged.
+- **잔존 inline style 11건** — 모두 화이트리스트 (CSS variable 주입 + prism external interface).
+  각 라인 `eslint-disable-next-line no-restricted-syntax -- jogak: <카테고리>` 주석.
+- **dist 사이즈 감소** — mjs raw 35.3 → 33.9 KB / gzip 8.36 → 7.64 KB (skeleton inline
+  객체 + `<style>` 태그 제거 효과).
+
+### Added
+
+- 신규 dependency: `clsx@^2.1.1` (boolean variant 결합용).
+- `--jogak-radius-sm` CSS variable 첫 사용 (Clear 버튼).
+- `.jogak-skeleton-shimmer` class + `@keyframes jogakSkeleton` (jogak.css `@layer components`).
+
+### Removed
+
+- `--jogak-text-{xs,sm,base,md,lg}` 5개 CSS variable — 사용처 zero. font-size 픽셀 literal
+  채택 후 의미 상실. v4 `text-[var(--my-text-var)]` arbitrary value의 line-height 페어링
+  부수효과 회피 위해 픽셀 literal 정책 채택 (PR 1에서 발견).
+- `--jogak-sidebar-width` CSS variable — App grid 픽셀 literal 채택 후 사용처 zero.
+
+### Fixed
+
+- Preview source toggle / prism `<pre>` / Controls action span / json code / td name cell
+  등 5곳에서 `font-[var(--jogak-font-mono)]`가 v4에서 `font-weight: var(...)`로 잘못 컴파일되던
+  문제. `font-[family-name:var(--jogak-font-mono)]` hint로 차단.
+- Preview viewport toggle / bottom-panel tab button에 `leading-none` 적용 시 flex 부모
+  높이가 1~2px 단축되던 문제. padding 보유 button에는 leading 미적용으로 baseline 정합.
+
 ## [0.1.0-alpha.4] — 2026-05-08
 
 ### Internal
