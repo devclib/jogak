@@ -1,0 +1,68 @@
+name: Visual Regression
+
+on:
+  pull_request:
+    paths:
+      - 'packages/ui/**'
+      - 'packages/core/**'
+      - 'packages/react/**'
+      - 'e2e/visual/**'
+      - 'playwright.config.ts'
+      - 'Dockerfile.playwright'
+      - '.github/workflows/visual-regression.yml'
+      - 'pnpm-lock.yaml'
+  push:
+    branches: [main]
+    paths:
+      - 'packages/ui/**'
+      - 'packages/core/**'
+      - 'packages/react/**'
+      - 'e2e/visual/**'
+      - 'playwright.config.ts'
+      - 'Dockerfile.playwright'
+      - '.github/workflows/visual-regression.yml'
+      - 'pnpm-lock.yaml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  visual:
+    name: Visual snapshots (chromium / linux)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    container:
+      # browsers 사전 설치 image. 컨테이너 안에서 Node 20 + Playwright 바이너리 모두 사용 가능.
+      # 본 repo @playwright/test 와 마이너 일치 — 미스매치 시 즉시 실패하므로 dev 단계에서 검출.
+      image: mcr.microsoft.com/playwright:v1.59.1-jammy
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Enable corepack + setup pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@10 --activate
+          pnpm --version
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build core (vite plugin이 SPA dev에서 필요)
+        # @jogak/ui dev 가 @jogak/core / @jogak/react 를 워크스페이스 dependency 로 import 하므로
+        # 사전 빌드 없으면 dev 서버 부팅 시 모듈 해석 실패.
+        run: pnpm --filter @jogak/core --filter @jogak/react build
+
+      - name: Run visual regression
+        run: pnpm test:e2e:visual
+
+      - name: Upload diff artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vr-failure-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            test-results/**
+            playwright-report/**
+          retention-days: 14
+          if-no-files-found: ignore

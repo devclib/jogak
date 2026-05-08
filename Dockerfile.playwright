@@ -1,0 +1,18 @@
+# Dockerfile.playwright
+# 용도: 로컬 VR 실행 환경 통일. CI는 image를 직접 사용하므로 본 파일은 옵션(Optional).
+#
+# 사용 예:
+#   docker build -f Dockerfile.playwright -t jogak-vr .
+#   docker run --rm --ipc=host -v "$PWD:/work" -w /work jogak-vr pnpm test:e2e:visual
+#
+# 일반적으로 package.json 의 `test:e2e:visual:docker` 스크립트가 image 를 직접 사용하므로
+# 본 Dockerfile 빌드 없이도 VR 실행 가능. 팀 공통 환경 캐시가 필요할 때만 build.
+FROM mcr.microsoft.com/playwright:v1.59.1-jammy
+
+# corepack는 base image의 Node에 동봉되어 있으나 명시적으로 활성화
+RUN corepack enable && corepack prepare pnpm@10 --activate
+
+WORKDIR /work
+
+# 의존성 설치는 마운트된 PWD 에서 매 실행 시 — 본 Dockerfile 은 환경만 제공
+CMD ["pnpm", "test:e2e:visual"]
