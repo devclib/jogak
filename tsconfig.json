@@ -5,6 +5,10 @@
     { "path": "./packages/react" },
     { "path": "./packages/next" },
     { "path": "./packages/web-components" },
-    { "path": "./packages/ui" }
+    { "path": "./packages/ui" },
+    { "path": "./packages/vite-adapter" },
+    { "path": "./packages/standalone-adapter" },
+    { "path": "./packages/next-adapter" },
+    { "path": "./packages/webpack-adapter" }
   ]
 }

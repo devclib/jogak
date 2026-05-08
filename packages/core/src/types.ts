@@ -263,15 +263,27 @@ export interface JogakPluginOptions {
    */
   readonly previewFrame?: boolean
   /**
-   * 알파.8 internal: jogak SPA가 iframe src로 사용할 사용자 vite의 base URL
-   * (예: `http://localhost:5174`). CLI가 spawnUserVite 결과를 `runHost` 통해
-   * jogak() plugin에 전달한다.
+   * @deprecated 알파.10 제거 예정. `userPreviewUrl` 사용.
    *
-   * 빈 문자열 또는 미지정 시 기존 fallback (jogak SPA Vite scope의 preview-frame.tsx).
+   * 알파.8 internal: jogak SPA가 iframe src로 사용할 사용자 vite의 base URL.
+   */
+  readonly userViteUrl?: string
+  /**
+   * 알파.9 internal: jogak SPA가 iframe src로 사용할 어댑터 dev URL
+   * (예: `http://localhost:5174`). CLI의 어댑터 dispatch 결과가 host 통해 plugin에 전달.
+   *
+   * 빈 문자열 시 fallback (jogak SPA Vite scope의 preview-frame).
    *
    * 사용자가 직접 설정하는 옵션이 아니다.
    */
-  readonly userViteUrl?: string
+  readonly userPreviewUrl?: string
+  /**
+   * 알파.9 internal: iframe src의 path (예: `/__jogak_preview__/index.html`).
+   * `BuilderAdapter.previewEntryMeta.devEntryPath` 값. 어댑터별 routing.
+   *
+   * 사용자가 직접 설정하는 옵션이 아니다.
+   */
+  readonly previewEntryPath?: string
 }
 
 /**

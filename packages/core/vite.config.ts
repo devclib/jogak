@@ -12,6 +12,8 @@ export default defineConfig({
         index: resolve(__dirname, 'src/index.ts'),
         'vite/index': resolve(__dirname, 'src/vite/plugin.ts'),
         'build/index': resolve(__dirname, 'src/build/index.ts'),
+        // 알파.9: server-only utilities (Node.js — fs/path 의존)
+        server: resolve(__dirname, 'src/server.ts'),
         // Props extractor child process entry — child_process.fork 대상.
         // 부모 프로세스(plugin/build)에 ts-morph가 같은 V8 isolate에 로드되지 않게
         // 별도 entry로 emit → dist/meta/extractor-child.mjs.
@@ -19,7 +21,7 @@ export default defineConfig({
       },
       formats: ['es', 'cjs'],
       fileName: (format, entryName) =>
-        `${entryName}.${format === 'es' ? 'mjs' : 'js'}`,
+        `${entryName}.${format === 'es' ? 'mjs' : 'cjs'}`,
     },
     rollupOptions: {
       external: ['vite', 'ts-morph', 'glob', /^node:/u],

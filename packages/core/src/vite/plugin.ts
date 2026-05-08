@@ -77,8 +77,10 @@ export function jogak(options: JogakPluginOptions = {}): Plugin {
   // 알파.8: jogak() plugin이 사용자 vite scope의 preview-frame entry용으로 동작하는지.
   // CLI의 spawnUserVite가 사용자 vite에 jogak()을 mergeConfig로 inject할 때 true 설정.
   const previewFrame = options.previewFrame === true
-  // 알파.8: 사용자 vite spawn URL. CLI에서 옵션으로 전달. iframe src로 사용.
-  const userViteUrl = options.userViteUrl ?? ''
+  // 알파.9: 어댑터 dispatch 결과의 dev URL + entry path. CLI에서 옵션으로 전달.
+  // alpha.8 호환: userViteUrl alias.
+  const userPreviewUrl = options.userPreviewUrl ?? options.userViteUrl ?? ''
+  const previewEntryPath = options.previewEntryPath ?? '/__jogak_preview__/index.html'
 
   let devServer: ViteDevServer | undefined
   let extractor: PropsExtractor | undefined
@@ -290,7 +292,9 @@ export function jogak(options: JogakPluginOptions = {}): Plugin {
           : `
 export const _jogakCodeTheme = ${JSON.stringify(codeTheme)}
 export const _jogakPreviewIsolation = ${JSON.stringify(previewIsolation)}
-export const _jogakUserViteUrl = ${JSON.stringify(userViteUrl)}
+export const _jogakUserPreviewUrl = ${JSON.stringify(userPreviewUrl)}
+export const _jogakPreviewEntryPath = ${JSON.stringify(previewEntryPath)}
+export const _jogakUserViteUrl = ${JSON.stringify(userPreviewUrl)}
 export const _jogakMetas = _metas
 `
 
