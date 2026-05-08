@@ -1,0 +1,39 @@
+{
+  "name": "jogak-webpack-test",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "build": "webpack --mode production",
+    "start": "webpack serve --mode development",
+    "jogak:dev": "jogak dev",
+    "jogak:build": "jogak build"
+  },
+  "dependencies": {
+    "@jogak/core": "workspace:*",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.24.0",
+    "@babel/preset-env": "^7.24.0",
+    "@babel/preset-react": "^7.24.0",
+    "@babel/preset-typescript": "^7.24.0",
+    "@jogak/cli": "workspace:*",
+    "@jogak/react": "workspace:*",
+    "@jogak/webpack-adapter": "workspace:*",
+    "@tailwindcss/postcss": "^4.2.4",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "babel-loader": "^9.1.0",
+    "css-loader": "^7.1.0",
+    "html-webpack-plugin": "^5.6.0",
+    "postcss-loader": "^8.1.0",
+    "style-loader": "^4.0.0",
+    "tailwindcss": "^4.2.4",
+    "typescript": "^5.5.0",
+    "webpack": "^5.94.0",
+    "webpack-cli": "^5.1.0",
+    "webpack-dev-server": "^5.1.0",
+    "webpack-merge": "^6.0.1"
+  }
+}

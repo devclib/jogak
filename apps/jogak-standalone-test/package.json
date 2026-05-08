@@ -1,0 +1,21 @@
+{
+  "name": "jogak-standalone-test",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "jogak:dev": "jogak dev"
+  },
+  "dependencies": {
+    "@jogak/core": "workspace:*",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@jogak/cli": "workspace:*",
+    "@jogak/react": "workspace:*",
+    "@jogak/standalone-adapter": "workspace:*",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5.5.0"
+  }
+}

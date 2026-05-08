@@ -1,0 +1,21 @@
+/* 사용자 사전 빌드 CSS — Tailwind 등 처리기 없이 hand-written.
+ * standalone 모드에서는 jogak이 추가 처리하지 않고 그대로 inject. */
+
+:root {
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+}
+
+[data-slot="badge"] {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  padding: 2px 8px;
+  font-size: 12px;
+  line-height: 1rem;
+  font-weight: 500;
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+}
