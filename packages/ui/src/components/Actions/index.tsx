@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { ReactElement } from 'react'
+import clsx from 'clsx'
 import { defaultActionChannel } from '@jogak/core'
 import type { ActionLog } from '@jogak/core'
 
@@ -41,75 +42,44 @@ export function Actions(): ReactElement {
     return defaultActionChannel.subscribe(setLogs)
   }, [])
 
+  const isEmpty = logs.length === 0
+
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <div
-        style={{
-          padding: '6px 20px',
-          fontSize: 11,
-          fontWeight: 700,
-          color: '#9ca3af',
-          textTransform: 'uppercase',
-          letterSpacing: '0.08em',
-          borderBottom: '1px solid #e5e7eb',
-          background: '#f9fafb',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexShrink: 0,
-        }}
-      >
+    <div className="jogak:h-full jogak:flex jogak:flex-col">
+      <div className="jogak:px-5 jogak:py-1.5 jogak:text-[11px] jogak:font-bold jogak:text-[var(--jogak-color-fg-subtle)] jogak:uppercase jogak:tracking-[0.08em] jogak:border-b jogak:border-[var(--jogak-color-border)] jogak:bg-[var(--jogak-color-bg-subtle)] jogak:flex jogak:items-center jogak:justify-between jogak:shrink-0">
         <span>Actions {logs.length > 0 && `(${logs.length.toString()})`}</span>
         <button
           type="button"
           onClick={() => { defaultActionChannel.clear() }}
-          disabled={logs.length === 0}
-          style={{
-            fontSize: 10,
-            fontWeight: 600,
-            padding: '2px 8px',
-            border: '1px solid #d1d5db',
-            borderRadius: 3,
-            background: '#fff',
-            color: logs.length === 0 ? '#9ca3af' : '#374151',
-            cursor: logs.length === 0 ? 'default' : 'pointer',
-            textTransform: 'none',
-            letterSpacing: 0,
-          }}
+          disabled={isEmpty}
+          className={clsx(
+            'jogak:text-[10px] jogak:font-semibold jogak:px-2 jogak:py-0.5 jogak:border jogak:border-[var(--jogak-color-border-strong)] jogak:rounded-[var(--jogak-radius-sm)] jogak:bg-[var(--jogak-color-bg)] jogak:normal-case jogak:tracking-normal',
+            isEmpty
+              ? 'jogak:text-[var(--jogak-color-fg-subtle)] jogak:cursor-default'
+              : 'jogak:text-[var(--jogak-color-fg)] jogak:cursor-pointer',
+          )}
         >
           Clear
         </button>
       </div>
 
-      <div style={{ flex: 1, overflow: 'auto' }}>
-        {logs.length === 0 ? (
-          <div
-            style={{
-              padding: '12px 20px',
-              color: '#9ca3af',
-              fontSize: 13,
-            }}
-          >
+      <div className="jogak:flex-1 jogak:overflow-auto">
+        {isEmpty ? (
+          <div className="jogak:px-5 jogak:py-3 jogak:text-[var(--jogak-color-fg-subtle)] jogak:text-[13px] jogak:leading-none">
             함수 prop이 호출되면 여기에 기록됩니다
           </div>
         ) : (
-          <ul style={{ listStyle: 'none', margin: 0, padding: 0, fontFamily: 'monospace', fontSize: 12 }}>
+          <ul className="jogak:list-none jogak:m-0 jogak:p-0 jogak:font-[family-name:var(--jogak-font-mono)] jogak:text-[12px]">
             {logs.map((log) => (
               <li
                 key={log.id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'baseline',
-                  gap: 10,
-                  padding: '6px 20px',
-                  borderBottom: '1px solid #f3f4f6',
-                }}
+                className="jogak:flex jogak:items-baseline jogak:gap-[10px] jogak:px-5 jogak:py-1.5 jogak:border-b jogak:border-[var(--jogak-color-border-muted)]"
               >
-                <span style={{ color: '#9ca3af', fontSize: 11, minWidth: 92 }}>
+                <span className="jogak:text-[var(--jogak-color-fg-subtle)] jogak:text-[11px] jogak:min-w-[92px]">
                   {formatTime(log.timestamp)}
                 </span>
-                <span style={{ color: '#7c3aed', fontWeight: 600 }}>{log.name}</span>
-                <span style={{ color: '#374151', wordBreak: 'break-all', flex: 1 }}>
+                <span className="jogak:text-[var(--jogak-color-violet)] jogak:font-semibold">{log.name}</span>
+                <span className="jogak:text-[var(--jogak-color-fg)] jogak:break-all jogak:flex-1">
                   ({formatArgs(log.args)})
                 </span>
               </li>

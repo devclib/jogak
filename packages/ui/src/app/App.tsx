@@ -127,19 +127,14 @@ export function JogakApp({
     <JogakProvider registry={registry}>
       <div
         data-jogak-shell
-        style={{
-          display: 'grid',
-          gridTemplateColumns: '260px 1fr',
-          height: '100dvh',
-          overflow: 'hidden',
-        }}
+        className="jogak:grid jogak:grid-cols-[260px_1fr] jogak:h-dvh jogak:overflow-hidden"
       >
         <Sidebar
           selectedEntryId={selectedEntryId}
           selectedJogakName={selectedJogakName}
           onSelect={handleSelect}
         />
-        <main style={{ overflow: 'hidden', minHeight: 0 }}>
+        <main className="jogak:overflow-hidden jogak:min-h-0">
           {selectedEntryId !== null ? (
             <Preview
               entryId={selectedEntryId}
@@ -151,15 +146,7 @@ export function JogakApp({
               onResolveJogak={handleResolveJogak}
             />
           ) : (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                height: '100%',
-                color: '#9ca3af',
-              }}
-            >
+            <div className="jogak:flex jogak:items-center jogak:justify-center jogak:h-full jogak:text-[var(--jogak-color-fg-subtle)]">
               Select a component from the sidebar
             </div>
           )}
