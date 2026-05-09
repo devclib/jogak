@@ -5,6 +5,14 @@ All notable changes to Jogak packages are documented here. The repository follow
 
 Version numbers apply to all packages in the workspace (synchronized release).
 
+## [0.1.0-alpha.10.2] — 2026-05-09
+
+### Fixed
+
+- **vitest.workspace.ts**: 알파.10에서 7개 패키지 디렉토리를 삭제했지만 `vitest.workspace.ts`가 여전히 `packages/react`, `packages/next`, `packages/web-components`를 참조해 `pnpm test` 시 startup error. core/ui/cli 3개로 정리.
+
+기타 패키지: source 변경 없음, synchronized release 유지를 위해 버전만 bump.
+
 ## [0.1.0-alpha.10.1] — 2026-05-09
 
 ### Fixed
