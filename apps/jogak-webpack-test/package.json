@@ -19,8 +19,6 @@
     "@babel/preset-react": "^7.24.0",
     "@babel/preset-typescript": "^7.24.0",
     "@jogak/cli": "workspace:*",
-    "@jogak/react": "workspace:*",
-    "@jogak/webpack-adapter": "workspace:*",
     "@tailwindcss/postcss": "^4.2.4",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",

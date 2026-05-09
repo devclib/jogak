@@ -15,7 +15,6 @@
   },
   "dependencies": {
     "@jogak/core": "workspace:*",
-    "@jogak/web-components": "workspace:*",
     "preact": "^10.23.0"
   },
   "devDependencies": {

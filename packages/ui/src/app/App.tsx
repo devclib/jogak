@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useMemo } from 'react'
 import { ComponentRegistry, defaultRegistry } from '@jogak/core'
 import type { RegistryEntry, RegistryEntryMeta } from '@jogak/core'
-import { JogakProvider } from '@jogak/react'
+import { JogakProvider } from '@jogak/core/renderers/react'
 import { Sidebar } from '../components/Sidebar/index.js'
 import { Preview } from '../components/Preview/index.js'
 import type { ReactElement } from 'react'

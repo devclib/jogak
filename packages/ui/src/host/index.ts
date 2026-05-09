@@ -6,7 +6,7 @@
  *
  * 주의:
  * - 이 파일은 Node.js 환경에서만 import되어야 한다.
- * - `vite`, `@vitejs/plugin-react`, `@jogak/core/vite`는 모두 dynamic import로
+ * - `vite`, `@vitejs/plugin-react`, `@jogak/core/vite-plugin`은 모두 dynamic import로
  *   로드한다 — `@jogak/ui` 메인 entry(브라우저 SPA)에서 우연히 host를 import
  *   하더라도 vite가 브라우저 번들에 포함되지 않게 하기 위함.
  */
@@ -146,7 +146,7 @@ export async function runHost(
   // Dynamic import — host를 브라우저가 import해도 vite가 번들에 포함되지 않게.
   const vite = await import('vite')
   const reactPluginMod = await import('@vitejs/plugin-react')
-  const coreViteMod = await import('@jogak/core/vite')
+  const coreViteMod = await import('@jogak/core/vite-plugin')
   const tailwindMod = await import('@tailwindcss/vite')
 
   const { createServer, build: viteBuild } = vite
@@ -204,7 +204,7 @@ export async function runHost(
     configFile: false, // ui/vite.config.ts 무시
     plugins: [reactPlugin(), tailwindPlugin(), jogak(jogakOptions), ...extraPlugins],
     optimizeDeps: {
-      include: ['react', 'react-dom/client', '@jogak/core', '@jogak/react'],
+      include: ['react', 'react-dom/client', '@jogak/core', '@jogak/core/renderers/react'],
     },
   }
 

@@ -17,8 +17,6 @@
   },
   "devDependencies": {
     "@jogak/cli": "workspace:*",
-    "@jogak/next-adapter": "workspace:*",
-    "@jogak/react": "workspace:*",
     "@tailwindcss/postcss": "^4.2.4",
     "@types/node": "^20.14.0",
     "@types/react": "^19.0.0",

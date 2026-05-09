@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import type { CSSProperties, ReactElement } from 'react'
 import clsx from 'clsx'
 import type { CategoryMetaTree, RegistryEntryMeta } from '@jogak/core'
-import { useRegistryMeta } from '@jogak/react'
+import { useRegistryMeta } from '@jogak/core/renderers/react'
 
 // CSS custom property를 React style prop에 주입하기 위한 헬퍼 타입.
 // React 18+는 string-keyed `--` prefix를 인식하나 TS는 명시적 cast 필요.

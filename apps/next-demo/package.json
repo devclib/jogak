@@ -15,7 +15,6 @@
   },
   "dependencies": {
     "@jogak/core": "workspace:*",
-    "@jogak/react": "workspace:*",
     "@jogak/ui": "workspace:*",
     "next": "^15.0.0",
     "react": "^19.0.0",

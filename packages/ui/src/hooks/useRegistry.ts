@@ -1,4 +1,4 @@
-import { useRegistry as useRegistryFromAdapter } from '@jogak/react'
+import { useRegistry as useRegistryFromAdapter } from '@jogak/core/renderers/react'
 import { useMemo } from 'react'
 import type { CategoryTree, RegistryEntry } from '@jogak/core'
 

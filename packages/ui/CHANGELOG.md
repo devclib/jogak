@@ -5,6 +5,42 @@ All notable changes to Jogak packages are documented here. The repository follow
 
 Version numbers apply to all packages in the workspace (synchronized release).
 
+## [0.1.0-alpha.10] — 2026-05-09
+
+### Architectural unification — 10 packages → 3 packages
+
+알파.9.x에서 분리됐던 4개 빌더 어댑터(`@jogak/vite-adapter`, `@jogak/next-adapter`, `@jogak/webpack-adapter`, `@jogak/standalone-adapter`)와 3개 프레임워크 렌더러(`@jogak/react`, `@jogak/next`, `@jogak/web-components`)를 모두 `@jogak/core`로 통합. 이들의 본질은 build-tool / runtime 통합 코드이며 별도 패키지로 격리할 만한 런타임 substance가 없다는 판단.
+
+이제 publish되는 패키지는 `@jogak/core`, `@jogak/ui`, `@jogak/cli` 3개로 축소. 기능은 모두 유지되며 사용자 install도 단순화 (vite/next/webpack peer deps는 모두 `peerDependenciesMeta.optional` 처리 — 사용자가 실제로 쓰는 빌더만 install).
+
+### Added
+
+- **`@jogak/core/adapters/{vite,next,webpack,standalone}`**: 4개 builder adapter subpath. `@jogak/${name}-adapter` 패키지를 흡수.
+- **`@jogak/core/renderers/{react,next,web-components}`**: 3개 framework renderer subpath. 동명 별도 패키지를 흡수.
+- **`@jogak/core/vite-plugin`**: 알파.9.x의 `@jogak/core/vite`를 정식 명명. 기존 `@jogak/core/vite`는 backward-compat alias로 유지.
+- **CLI `loadAdapter`**: 사용자 cwd의 `@jogak/core` exports를 직접 lookup해서 adapter dynamic import. 별도 어댑터 패키지 install 불필요.
+
+### Changed
+
+- **import 경로 마이그레이션** (사용자 영향):
+  - `import ... from '@jogak/react'` → `import ... from '@jogak/core/renderers/react'`
+  - `import ... from '@jogak/next'` → `import ... from '@jogak/core/renderers/next'`
+  - `import ... from '@jogak/web-components'` → `import ... from '@jogak/core/renderers/web-components'`
+  - `import { jogak } from '@jogak/core/vite'` → `import { jogak } from '@jogak/core/vite-plugin'` (구 경로도 동작하지만 deprecated)
+- **`@jogak/core` peer deps 확장**: react/react-dom/next/webpack/webpack-dev-server/webpack-merge/html-webpack-plugin 추가 (모두 optional). 사용자가 쓰는 빌더만 설치.
+- **iframe scaffold 코드** (next-adapter, webpack-adapter): 생성되는 page.tsx/preview-entry.tsx가 `@jogak/core/renderers/react`를 import (이전 `@jogak/react`).
+
+### Removed
+
+- 7개 패키지 디렉토리 + npm registry deprecate notice:
+  - `@jogak/react`, `@jogak/next`, `@jogak/web-components`
+  - `@jogak/vite-adapter`, `@jogak/next-adapter`, `@jogak/webpack-adapter`, `@jogak/standalone-adapter`
+- 알파.9.x 사용자는 `npm view @jogak/<pkg> deprecated` 메시지로 마이그레이션 안내 받음.
+
+### CI
+
+- `release.yml`: pack/publish 목록을 `core/ui/cli` 3개로 축소. Trusted Publisher 신규 등록 zero (3개 모두 알파.9 시점 등록 완료).
+
 ## [0.1.0-alpha.9.2] — 2026-05-09
 
 ### Fixed

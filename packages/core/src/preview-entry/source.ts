@@ -14,7 +14,7 @@
  */
 
 const TEMPLATE = `
-import { reactAdapter } from '@jogak/react'
+import { reactAdapter } from '@jogak/core/renderers/react'
 import { defaultRegistry } from '@jogak/core'
 __EXTRA_IMPORTS__
 

@@ -17,4 +17,4 @@ export {
 export {
   detectUserGlobalCss,
   resolveGlobalCssPaths,
-} from './vite/detect-global-css.js'
+} from './vite-plugin/detect-global-css.js'

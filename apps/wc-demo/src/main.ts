@@ -1,4 +1,4 @@
-import { defineJogakElement } from '@jogak/web-components'
+import { defineJogakElement } from '@jogak/core/renderers/web-components'
 import { entries } from '../.jogak/registry.js'
 
 for (const entry of entries) {

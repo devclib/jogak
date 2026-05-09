@@ -4,51 +4,45 @@ import { pathToFileURL } from 'node:url'
 import type { BuilderAdapter, BuilderName } from '@jogak/core'
 
 /**
- * 알파.9: 빌더 이름으로 어댑터 dynamic import.
+ * 알파.10: 빌더 이름으로 어댑터 dynamic import.
  *
- * `@jogak/${name}-adapter` 패키지를 사용자 cwd의 node_modules에서 찾아 dynamic import.
- * core가 어떤 adapter도 hard dep로 가지지 않게 하는 패턴. 사용자는 본인 빌더에 맞는
- * adapter만 install.
+ * 어댑터는 모두 `@jogak/core/adapters/${name}` subpath로 통합됐다 (알파.9의 별도
+ * `@jogak/${name}-adapter` 패키지는 deprecate). 사용자 cwd의 `@jogak/core` 패키지를
+ * 찾아 `exports['./adapters/${name}'].import` 경로를 직접 import.
  *
- * resolution 전략 (수동):
- * 1. `<cwd>/node_modules/@jogak/${name}-adapter/package.json` 읽음
- * 2. `exports['.'].import` 또는 `exports['.'].default`로 ESM entry 찾음
- * 3. 그 path를 file URL로 변환해 dynamic import
- *
- * import.meta.resolve의 parentURL 인자가 Node 22 이전에서 unstable이라 수동 lookup.
+ * `import.meta.resolve`의 parentURL 인자가 Node 22 이전에서 unstable이고, 또한 cli/dist
+ * 기준으로 해석되어 사용자 cwd가 아닌 곳을 가리키므로 수동 lookup.
  */
 export async function loadAdapter(
   name: Exclude<BuilderName, 'custom'>,
   cwd: string,
 ): Promise<BuilderAdapter> {
-  const pkg = `@jogak/${name}-adapter`
-  const pkgRoot = resolve(cwd, 'node_modules', pkg)
-  const pkgJsonPath = resolve(pkgRoot, 'package.json')
+  const corePkgRoot = resolve(cwd, 'node_modules', '@jogak', 'core')
+  const corePkgJsonPath = resolve(corePkgRoot, 'package.json')
 
-  if (!existsSync(pkgJsonPath)) {
+  if (!existsSync(corePkgJsonPath)) {
     throw new Error(
-      `[jogak] adapter '${pkg}' not found in '${cwd}'.\n` +
-        `install it: pnpm add -D ${pkg}`,
+      `[jogak] @jogak/core not found in '${cwd}'. install it first.`,
     )
   }
 
-  let manifest: AdapterPackageManifest
+  let manifest: CorePackageManifest
   try {
-    manifest = JSON.parse(readFileSync(pkgJsonPath, 'utf-8')) as AdapterPackageManifest
+    manifest = JSON.parse(readFileSync(corePkgJsonPath, 'utf-8')) as CorePackageManifest
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
-    throw new Error(
-      `[jogak] adapter '${pkg}' package.json read failed.\n` + `original: ${message}`,
-    )
+    throw new Error(`[jogak] @jogak/core package.json read failed: ${message}`)
   }
 
-  const entryRel = resolveEsmEntry(manifest)
+  const subpath = `./adapters/${name}`
+  const entryRel = resolveEsmEntry(manifest, subpath)
   if (entryRel === undefined) {
     throw new Error(
-      `[jogak] adapter '${pkg}' has no ESM entry (exports['.'].import or module field).`,
+      `[jogak] @jogak/core has no ESM entry for '${subpath}'. ` +
+        `expected exports['${subpath}'].import in @jogak/core@>=0.1.0-alpha.10.`,
     )
   }
-  const entryAbs = resolve(pkgRoot, entryRel)
+  const entryAbs = resolve(corePkgRoot, entryRel)
   const entryUrl = pathToFileURL(entryAbs).toString()
 
   try {
@@ -57,12 +51,12 @@ export async function loadAdapter(
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     throw new Error(
-      `[jogak] adapter '${pkg}' import failed.\n` + `original: ${message}`,
+      `[jogak] adapter '${subpath}' import failed.\n` + `original: ${message}`,
     )
   }
 }
 
-interface AdapterPackageManifest {
+interface CorePackageManifest {
   readonly module?: string
   readonly main?: string
   readonly exports?: Readonly<
@@ -73,17 +67,18 @@ interface AdapterPackageManifest {
   >
 }
 
-function resolveEsmEntry(manifest: AdapterPackageManifest): string | undefined {
+function resolveEsmEntry(
+  manifest: CorePackageManifest,
+  subpath: string,
+): string | undefined {
   const exportsField = manifest.exports
   if (exportsField !== undefined) {
-    const dot = exportsField['.']
-    if (typeof dot === 'string') return dot
-    if (dot !== undefined) {
-      if (dot.import !== undefined) return dot.import
-      if (dot.default !== undefined) return dot.default
+    const entry = exportsField[subpath]
+    if (typeof entry === 'string') return entry
+    if (entry !== undefined) {
+      if (entry.import !== undefined) return entry.import
+      if (entry.default !== undefined) return entry.default
     }
   }
-  if (manifest.module !== undefined) return manifest.module
-  if (manifest.main !== undefined) return manifest.main
   return undefined
 }

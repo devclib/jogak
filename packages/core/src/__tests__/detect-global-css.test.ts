@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import {
   detectUserGlobalCss,
   resolveGlobalCssPaths,
-} from '../vite/detect-global-css.js'
+} from '../vite-plugin/detect-global-css.js'
 
 /**
  * 알파.6 globalCss opt-in 단위 테스트.

@@ -8,7 +8,7 @@
  * jogak host vite scope에서 동작하므로 `virtual:jogak` (registry metas + entry loader)와
  * `virtual:jogak/global-css` (사용자 globalCss) 가상 모듈을 그대로 사용한다.
  */
-import { reactAdapter } from '@jogak/react'
+import { reactAdapter } from '@jogak/core/renderers/react'
 import { defaultRegistry } from '@jogak/core'
 import 'virtual:jogak'
 import 'virtual:jogak/global-css'

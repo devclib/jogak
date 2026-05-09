@@ -2,7 +2,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import dts from 'vite-plugin-dts'
-import { jogak } from '@jogak/core/vite'
+import { jogak } from '@jogak/core/vite-plugin'
 import { fileURLToPath } from 'node:url'
 import { dirname, resolve } from 'node:path'
 
@@ -63,9 +63,17 @@ export default defineConfig({
         'react-dom',
         'react-dom/client',
         '@jogak/core',
-        '@jogak/core/vite',
+        '@jogak/core/server',
         '@jogak/core/build',
-        '@jogak/react',
+        '@jogak/core/vite',
+        '@jogak/core/vite-plugin',
+        '@jogak/core/renderers/react',
+        '@jogak/core/renderers/next',
+        '@jogak/core/renderers/web-components',
+        '@jogak/core/adapters/vite',
+        '@jogak/core/adapters/next',
+        '@jogak/core/adapters/webpack',
+        '@jogak/core/adapters/standalone',
         'prism-react-renderer',
         'vite',
         '@vitejs/plugin-react',

@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  transpilePackages: ['@jogak/core', '@jogak/react', '@jogak/ui'],
+  transpilePackages: ['@jogak/core', '@jogak/ui'],
   reactStrictMode: true,
   webpack(config) {
     config.resolve.extensionAlias = {

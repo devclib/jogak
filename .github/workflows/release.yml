@@ -72,7 +72,7 @@ jobs:
         # 이후 npm publish에 tarball을 직접 넘기면 npm CLI(11+)의 OIDC 인증 흐름을 정확히 탄다.
         run: |
           mkdir -p /tmp/jogak-tgz
-          for pkg in core react ui web-components next cli vite-adapter next-adapter webpack-adapter standalone-adapter; do
+          for pkg in core ui cli; do
             (cd packages/$pkg && pnpm pack --pack-destination /tmp/jogak-tgz)
           done
           ls -la /tmp/jogak-tgz
@@ -100,7 +100,7 @@ jobs:
         run: |
           cd /tmp/jogak-tgz
           VERSION=${{ steps.dist-tag.outputs.version }}
-          for pkg in core react ui web-components next cli vite-adapter next-adapter webpack-adapter standalone-adapter; do
+          for pkg in core ui cli; do
             echo "=== dry-run: @jogak/$pkg ==="
             npm publish "jogak-${pkg}-${VERSION}.tgz" --access public --provenance --tag '${{ steps.dist-tag.outputs.tag }}' --dry-run
           done
@@ -110,10 +110,9 @@ jobs:
         run: |
           cd /tmp/jogak-tgz
           VERSION=${{ steps.dist-tag.outputs.version }}
-          # 의존성 순서: core → react → ui → web-components → next → cli → 4 adapters
-          # 정확한 filename 사용 — 'jogak-next-*.tgz' 같은 glob은 'next-adapter'와 다중 매치되어
-          # npm publish EUSAGE 발생 (알파.9.1 사고).
-          for pkg in core react ui web-components next cli vite-adapter next-adapter webpack-adapter standalone-adapter; do
+          # 알파.10: 의존성 순서 core → ui → cli (3개 패키지)
+          # 알파.9.x의 7개 어댑터/렌더러 패키지는 모두 @jogak/core subpath로 통합.
+          for pkg in core ui cli; do
             echo "=== publishing @jogak/$pkg with --tag ${{ steps.dist-tag.outputs.tag }} ==="
             npm publish "jogak-${pkg}-${VERSION}.tgz" --access public --provenance --tag '${{ steps.dist-tag.outputs.tag }}'
           done
