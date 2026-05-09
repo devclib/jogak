@@ -5,6 +5,14 @@ All notable changes to Jogak packages are documented here. The repository follow
 
 Version numbers apply to all packages in the workspace (synchronized release).
 
+## [0.1.0-alpha.10.1] — 2026-05-09
+
+### Fixed
+
+- **CI typecheck**: 알파.10에서 root `tsconfig.json` references에 `packages/cli`를 추가했으나, `tsc -b`가 cli typecheck 시점에 ui의 `dist/host/index.d.ts` (실제 파일은 없음 — ui는 `noEmit: true`)를 찾으려 해 `Cannot find module '@jogak/ui/host'` 에러 발생. 알파.9 이전처럼 cli는 root references에서 제외 — cli는 자기 `pnpm build` 단계의 `tsc -p tsconfig.json`에서 typecheck됨 (그 시점엔 ui dist가 이미 빌드돼 있음).
+
+기타 패키지: source 변경 없음, synchronized release 유지를 위해 버전만 bump.
+
 ## [0.1.0-alpha.10] — 2026-05-09
 
 ### Architectural unification — 10 packages → 3 packages
