@@ -85,8 +85,7 @@ export default defineConfig({
     emptyOutDir: true,
   },
   test: {
-    environment: 'jsdom',
-    setupFiles: ['./src/test/setup.ts'],
+    environment: 'happy-dom',
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json'],

@@ -10,6 +10,7 @@ import { Controls } from '../Controls/index.js'
 import { Actions } from '../Actions/index.js'
 import { ShadowMount } from './ShadowMount.js'
 import { IframeMount } from './IframeMount.js'
+import { formatUsageCode } from './format-usage.js'
 
 export interface PreviewProps {
   readonly entryId: string
@@ -378,7 +379,6 @@ function ReadyFrame({
             key={`${entry.id}/${jogak.name}`}
             entry={entry}
             args={mergedArgs}
-            source={entry.source}
             theme={prismTheme}
             previewIsolation={previewIsolation}
             userPreviewUrl={userPreviewUrl}
@@ -530,7 +530,6 @@ function Toolbar({
 interface JogakRendererProps {
   readonly entry: RegistryEntry
   readonly args: Readonly<Record<string, unknown>>
-  readonly source: string | undefined
   readonly theme: PrismTheme
   readonly previewIsolation: 'none' | 'shadow' | 'iframe'
   readonly userPreviewUrl: string
@@ -544,8 +543,10 @@ interface JogakRendererProps {
  * - `'shadow'` (deprecated) — `<ShadowMount>` 안에 마운트.
  * - `'none'` (deprecated) — 같은 document에 직접 마운트.
  */
-function JogakRenderer({ entry, args, source, theme, previewIsolation, userPreviewUrl, previewEntryPath }: JogakRendererProps): ReactElement {
+function JogakRenderer({ entry, args, theme, previewIsolation, userPreviewUrl, previewEntryPath }: JogakRendererProps): ReactElement {
   const [showCode, setShowCode] = useState(false)
+  // 알파.10.3: 코드 패널은 jogak 메타 파일이 아니라 현재 args 기반 사용 코드를 노출.
+  const usageCode = formatUsageCode(entry, args)
 
   const previewBody = (
     <div className="jogak:relative">
@@ -580,7 +581,7 @@ function JogakRenderer({ entry, args, source, theme, previewIsolation, userPrevi
       {/* 코드 패널 — preview-content 하단으로 펼쳐짐 */}
       {showCode && (
         <div className="jogak:mt-2 jogak:rounded-[var(--jogak-radius-xl)] jogak:overflow-hidden jogak:h-[320px] jogak:shadow-[0_0_0_1px_rgba(0,0,0,0.08),_0_4px_16px_rgba(0,0,0,0.12)]">
-          <SourceViewer source={source} theme={theme} />
+          <SourceViewer source={usageCode} theme={theme} />
         </div>
       )}
     </div>

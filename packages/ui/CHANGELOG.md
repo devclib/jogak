@@ -5,6 +5,35 @@ All notable changes to Jogak packages are documented here. The repository follow
 
 Version numbers apply to all packages in the workspace (synchronized release).
 
+## [0.1.0-alpha.10.3] — 2026-05-11
+
+### Fixed
+
+- **`@jogak/ui` 코드 패널**: 알파.10.2까지 syntax-highlight 영역에 `.jogak.tsx` 파일 전체(meta/argTypes/exports 포함)를 노출했다. 의도된 동작은 **현재 args 기반 컴포넌트 사용 코드** 표시 — 사용자가 Controls 패널에서 args를 변경하면 코드도 즉시 갱신. `formatUsageCode(entry, args)` 추가, JogakRenderer에서 `entry.source`(파일 전체) 대신 사용 스니펫을 SourceViewer에 전달.
+
+  변경 전:
+  ```tsx
+  import type { JogakMeta, Jogak } from '@jogak/core'
+  import { Badge } from './badge'
+
+  const meta = { title: 'UI/Badge', component: Badge, ... } satisfies JogakMeta
+  export default meta
+  export const Default: Jogak = { ... }
+  ```
+
+  변경 후:
+  ```tsx
+  <Badge variant="default">New</Badge>
+  ```
+
+- **포매터 규칙**: children은 태그 본문에, props는 attribute로. `boolean true → key`, `false → key={false}`, `string → key="value"`(escape), `number → key={n}`, `function → key={fn}`, 객체/배열 `→ key={JSON}`. 한 줄이 60자 초과 시 multi-line 자동 wrapping. 단위 테스트 11개 추가.
+
+### Added
+
+- `e2e/code-panel-check.mjs` — 코드 패널이 사용 코드를 보여주는지 visual 검증 (jogak meta keyword 부재 + 컴포넌트 태그 존재).
+
+기타: source 변경 외 패키지는 synchronized release 유지를 위해 버전만 bump.
+
 ## [0.1.0-alpha.10.2] — 2026-05-09
 
 ### Fixed
