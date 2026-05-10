@@ -85,6 +85,9 @@ export function jogak(options: JogakPluginOptions = {}): Plugin {
   let devServer: ViteDevServer | undefined
   let extractor: PropsExtractor | undefined
   let resolvedCwd: string | undefined
+  // 알파.11: command가 'build'면 chrome SPA 인덱스 모듈에 entry를 static dynamic import로 emit.
+  // 'serve'면 기존 dev 경로(`/@id/__x00__virtual:jogak/entry/...`) 유지.
+  let viteCommand: 'serve' | 'build' = 'serve'
 
   // id → filePath, filePath → id. 인덱스 load 시 채워지고 entry load 시 조회된다.
   const idToFile = new Map<string, string>()
@@ -200,6 +203,8 @@ export function jogak(options: JogakPluginOptions = {}): Plugin {
     },
 
     async configResolved(config) {
+      // 알파.11: build/serve 분기.
+      viteCommand = config.command
       // glob의 cwd: 옵션 우선, 미지정 시 Vite config.root (기존 동작 유지).
       resolvedCwd = optionCwd ?? config.root
 
@@ -301,16 +306,36 @@ export const _jogakMetas = _metas
         // user 모듈 import 0개 — module graph는 인덱스 + 코어만.
         // entry loader는 dynamic import로 entry 가상모듈만 로드한다.
         //
-        // 브라우저 ESM에서 'virtual:...' specifier는 base URL과 결합되어
-        // `http://host/virtual:jogak/entry/<slug>`로 fetch되는데, Vite가
-        // 이 URL을 매칭 못 해 SPA fallback(index.html)이 돌아오고 모듈 평가가
-        // 실패한다. 절대 경로 `/@id/__x00__virtual:jogak/entry/<slug>`로 emit하면
-        // Vite의 가상모듈 resolver가 정확히 매칭한다 (__x00__는 null byte의
-        // URL-safe 표현 — `\0` resolved id의 prefix와 동일).
+        // dev (serve): `/@id/__x00__virtual:jogak/entry/<slug>` URL 패턴을 dynamic import.
+        //   브라우저 ESM에서 'virtual:...' specifier는 base URL과 결합되어
+        //   `http://host/virtual:jogak/entry/<slug>`로 fetch되는데, Vite가
+        //   이 URL을 매칭 못 해 SPA fallback(index.html)이 돌아오고 모듈 평가가
+        //   실패한다. 절대 경로 `/@id/__x00__virtual:jogak/entry/<slug>`로 emit하면
+        //   Vite의 가상모듈 resolver가 정확히 매칭한다.
+        //
+        // build: `/@id/...` URL은 production HTML에 존재하지 않아 404. 대신
+        //   `virtual:jogak/entry/<slug>`를 static dynamic import로 emit해 rollup이
+        //   각 entry를 별도 chunk로 split하게 한다 (vite resolveId가 \0로 prefix해
+        //   chunk 그래프에 포함됨).
+        const slugs = fileEntries.map((fe) => idToSlug(fe.id))
+        const entryLoaderCode =
+          viteCommand === 'build'
+            ? `const _staticEntryLoaders = {
+${slugs
+  .map((s) => `  ${JSON.stringify(s)}: () => import(${JSON.stringify(`virtual:jogak/entry/${s}`)})`)
+  .join(',\n')}
+}
+const _entryLoader = (slug) => {
+  const fn = _staticEntryLoaders[slug]
+  if (fn === undefined) return Promise.reject(new Error('[jogak] unknown entry slug: ' + slug))
+  return fn()
+}`
+            : `const _entryLoader = (slug) =>
+  import(/* @vite-ignore */ '/@id/__x00__virtual:jogak/entry/' + slug)`
+
         return `import { defaultRegistry } from '@jogak/core'
 
-const _entryLoader = (slug) =>
-  import(/* @vite-ignore */ '/@id/__x00__virtual:jogak/entry/' + slug)
+${entryLoaderCode}
 defaultRegistry.setEntryLoader((id) => {
   const slug = ${idToSlugCode()}
   return _entryLoader(slug(id))

@@ -13,8 +13,9 @@
  * - RSC 사용자 컴포넌트는 page.tsx의 'use client'에서 import — `dynamic({ ssr: false })` 권장.
  */
 
-import type { BuilderAdapter, BuildOptions, BuildResult, PreviewEntryMeta } from '../../index.js'
+import type { BuilderAdapter, PreviewEntryMeta } from '../../index.js'
 import { spawnNextDev } from './spawn-dev.js'
+import { buildNext } from './build.js'
 
 const PREVIEW_ENTRY_META: PreviewEntryMeta = {
   devEntryPath: '/jogak-preview',
@@ -25,12 +26,7 @@ const PREVIEW_ENTRY_META: PreviewEntryMeta = {
 const nextAdapter: BuilderAdapter = {
   name: 'next',
   spawnDev: spawnNextDev,
-  async build(opts: BuildOptions): Promise<BuildResult> {
-    void opts
-    throw new Error(
-      '[jogak/next-adapter] build is not implemented yet (alpha.9 v1). Use `jogak dev` for now.',
-    )
-  },
+  build: buildNext,
   previewEntryMeta: PREVIEW_ENTRY_META,
 }
 

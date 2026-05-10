@@ -10,8 +10,9 @@
  * - craco 사용자: craco.config 자체를 webpack.config로 인식 → 정상 작동.
  */
 
-import type { BuilderAdapter, BuildOptions, BuildResult, PreviewEntryMeta } from '../../index.js'
+import type { BuilderAdapter, PreviewEntryMeta } from '../../index.js'
 import { spawnWebpackDev } from './spawn-dev.js'
+import { buildWebpack } from './build.js'
 
 const PREVIEW_ENTRY_META: PreviewEntryMeta = {
   devEntryPath: '/__jogak_preview__/index.html',
@@ -22,12 +23,7 @@ const PREVIEW_ENTRY_META: PreviewEntryMeta = {
 const webpackAdapter: BuilderAdapter = {
   name: 'webpack',
   spawnDev: spawnWebpackDev,
-  async build(opts: BuildOptions): Promise<BuildResult> {
-    void opts
-    throw new Error(
-      '[jogak/webpack-adapter] build is not implemented yet (alpha.9 v1). Use `jogak dev` for now.',
-    )
-  },
+  build: buildWebpack,
   previewEntryMeta: PREVIEW_ENTRY_META,
 }
 
