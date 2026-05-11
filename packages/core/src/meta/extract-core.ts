@@ -5,6 +5,7 @@
 import {
   Node,
   Project,
+  type BindingElement,
   type ObjectLiteralExpression,
   type PropertyAssignment,
   type SourceFile,
@@ -103,6 +104,9 @@ export function extractFromSourceFile(sourceFile: SourceFile): Record<string, Ar
   const propsType = resolvePropsType(componentType, declaration)
   if (propsType === undefined) return {}
 
+  // 알파.12: 컴포넌트 함수 매개변수의 destructure default 수집 (@default 태그가 없을 때 fallback).
+  const destructureDefaults = collectDestructureDefaults(componentType, declaration)
+
   const result: Record<string, ArgType> = {}
   for (const propSymbol of propsType.getProperties()) {
     const propName = propSymbol.getName()
@@ -111,16 +115,137 @@ export function extractFromSourceFile(sourceFile: SourceFile): Record<string, Ar
     if (mapped === null) continue
 
     const required = !isOptionalSymbol(propSymbol)
+    // 알파.12: JSDoc description + defaultValue 추출.
+    const description = readDescription(propSymbol)
+    const jsDocDefault = readJsDocDefault(propSymbol)
+    const defaultValue = jsDocDefault ?? destructureDefaults[propName]
+
     const argType: ArgType = {
       type: mapped.type,
       required,
       ...(mapped.control !== undefined ? { control: mapped.control } : {}),
       ...(mapped.options !== undefined ? { options: mapped.options } : {}),
       ...(mapped.action === true ? { action: true } : {}),
+      ...(description !== undefined ? { description } : {}),
+      ...(defaultValue !== undefined ? { defaultValue } : {}),
     }
     result[propName] = argType
   }
   return result
+}
+
+/**
+ * 알파.12: ts-morph Symbol의 JSDoc 본문을 합산해 description 문자열을 반환.
+ * 본문이 비어있으면 undefined.
+ */
+function readDescription(symbol: MorphSymbol): string | undefined {
+  const parts = symbol.compilerSymbol.getDocumentationComment(undefined)
+  if (parts.length === 0) return undefined
+  const joined = parts
+    .map((p) => p.text)
+    .join('')
+    .trim()
+  return joined === '' ? undefined : joined
+}
+
+/**
+ * 알파.12: JSDoc `@default` 태그 값을 파싱해 가능하면 JSON literal로,
+ * 그렇지 않으면 트림된 문자열로 반환. 태그가 없으면 undefined.
+ *
+ * Storybook 컨벤션과 호환: `@default 'primary'` 또는 `@default 42` 등.
+ */
+function readJsDocDefault(symbol: MorphSymbol): unknown {
+  const tags = symbol.compilerSymbol.getJsDocTags(undefined)
+  for (const tag of tags) {
+    if (tag.name !== 'default') continue
+    const raw = (tag.text ?? []).map((p) => p.text).join('').trim()
+    if (raw === '') return undefined
+    return parseLiteralOrString(raw)
+  }
+  return undefined
+}
+
+/**
+ * 컴포넌트 함수의 첫 매개변수가 object destructuring일 때, 각 BindingElement의
+ * default initializer를 prop name → value 맵으로 수집.
+ *
+ * 예: `function Badge({ variant = 'default', size = 'md' }: Props) { ... }`
+ *   → { variant: 'default', size: 'md' }
+ *
+ * literal이 아니면 string 텍스트로 보존 (예: `variant = getDefaultVariant()`
+ *   → `'getDefaultVariant()'`은 의미 없는 노이즈라 string 보존 대신 무시).
+ */
+function collectDestructureDefaults(
+  componentType: Type,
+  location: Node,
+): Record<string, unknown> {
+  const callSignatures = componentType.getCallSignatures()
+  const result: Record<string, unknown> = {}
+  for (const sig of callSignatures) {
+    const param = sig.getParameters()[0]
+    if (param === undefined) continue
+    const valueDecl = param.getValueDeclaration() ?? location
+    if (!Node.isParameterDeclaration(valueDecl)) continue
+    const binding = valueDecl.getNameNode()
+    if (!Node.isObjectBindingPattern(binding)) continue
+    for (const el of binding.getElements()) {
+      const propName = readBindingElementPropName(el)
+      if (propName === undefined) continue
+      const init = el.getInitializer()
+      if (init === undefined) continue
+      const parsed = readJsonValue(init)
+      if (parsed !== undefined) result[propName] = parsed
+    }
+  }
+  return result
+}
+
+function readBindingElementPropName(el: BindingElement): string | undefined {
+  // `propertyName as alias = default` 형식이면 propertyName이 별도로 지정됨.
+  const propertyNameNode = el.getPropertyNameNode()
+  if (propertyNameNode !== undefined) {
+    if (Node.isIdentifier(propertyNameNode)) return propertyNameNode.getText()
+    if (
+      Node.isStringLiteral(propertyNameNode) ||
+      Node.isNoSubstitutionTemplateLiteral(propertyNameNode)
+    ) {
+      return propertyNameNode.getLiteralText()
+    }
+    return undefined
+  }
+  const nameNode = el.getNameNode()
+  if (Node.isIdentifier(nameNode)) return nameNode.getText()
+  return undefined
+}
+
+/**
+ * JSDoc `@default` 태그 값을 파싱. JSON literal로 해석 가능하면 그 값,
+ * 아니면 원본 트림 문자열을 그대로 반환.
+ *
+ * 처리 형식:
+ * - `'foo'` / `"foo"` → 문자열 `foo`
+ * - `42` / `-1` / `3.14` → number
+ * - `true` / `false` → boolean
+ * - `null` → null
+ * - `{ ... }` / `[ ... ]` → JSON.parse 시도
+ * - 그 외 → 원본 문자열 (예: `() => void` 같은 표현)
+ */
+function parseLiteralOrString(raw: string): unknown {
+  // 따옴표 문자열
+  const m = /^'([^']*)'$|^"([^"]*)"$/u.exec(raw)
+  if (m !== null) return m[1] ?? m[2] ?? ''
+  if (raw === 'true') return true
+  if (raw === 'false') return false
+  if (raw === 'null') return null
+  if (/^-?\d+(?:\.\d+)?$/u.test(raw)) return Number(raw)
+  if (raw.startsWith('{') || raw.startsWith('[')) {
+    try {
+      return JSON.parse(raw)
+    } catch {
+      return raw
+    }
+  }
+  return raw
 }
 
 function resolvePropsType(componentType: Type, location: Node): Type | undefined {

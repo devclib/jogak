@@ -137,6 +137,12 @@ export function Controls({ args, argTypes, onArgChange }: ControlsProps): ReactE
   const keys = Array.from(new Set([...Object.keys(args), ...Object.keys(argTypes)]))
   const entries = keys.map((k) => [k, args[k]] as const)
 
+  // 알파.12: defaultValue를 가진 prop이 하나라도 있으면 Default 컬럼 노출.
+  // 모두 비어 있으면 컬럼 자체를 숨겨 테이블 가독성을 유지.
+  const hasAnyDefault = entries.some(
+    ([key]) => argTypes[key]?.defaultValue !== undefined,
+  )
+
   return (
     <div className="jogak:border-t-2 jogak:border-[var(--jogak-color-border)]">
       <div className="jogak:px-5 jogak:py-1.5 jogak:text-[11px] jogak:font-bold jogak:text-[var(--jogak-color-fg-subtle)] jogak:uppercase jogak:tracking-[0.08em] jogak:border-b jogak:border-[var(--jogak-color-border)] jogak:bg-[var(--jogak-color-bg-subtle)]">
@@ -152,6 +158,7 @@ export function Controls({ args, argTypes, onArgChange }: ControlsProps): ReactE
             <tr>
               <th className={thClass}>Name</th>
               <th className={thClass}>Control</th>
+              {hasAnyDefault && <th className={thClass}>Default</th>}
               <th className={thClass}>Description</th>
             </tr>
           </thead>
@@ -176,6 +183,18 @@ export function Controls({ args, argTypes, onArgChange }: ControlsProps): ReactE
                       onArgChange={onArgChange}
                     />
                   </td>
+                  {hasAnyDefault && (
+                    <td
+                      className={clsx(
+                        tdClass,
+                        'jogak:font-[family-name:var(--jogak-font-mono)] jogak:text-[12px] jogak:text-[var(--jogak-color-fg-muted)] jogak:whitespace-nowrap',
+                      )}
+                    >
+                      {argType?.defaultValue !== undefined
+                        ? formatDefaultValue(argType.defaultValue)
+                        : ''}
+                    </td>
+                  )}
                   <td className={clsx(tdClass, 'jogak:text-[var(--jogak-color-fg-subtle)]')}>
                     {argType?.description ?? ''}
                   </td>
@@ -187,4 +206,21 @@ export function Controls({ args, argTypes, onArgChange }: ControlsProps): ReactE
       )}
     </div>
   )
+}
+
+/**
+ * 알파.12: defaultValue를 Controls 패널에 표시할 때 사용. JSON-safe 값은 작은
+ * 인용부호로 string, 그 외 literal은 그대로 직렬화. 의도: 사용자가 코드에 쓸 수
+ * 있는 형태로 보여주기.
+ */
+function formatDefaultValue(v: unknown): string {
+  if (typeof v === 'string') return `'${v}'`
+  if (typeof v === 'number' || typeof v === 'boolean' || v === null) {
+    return String(v)
+  }
+  try {
+    return JSON.stringify(v)
+  } catch {
+    return String(v)
+  }
 }
