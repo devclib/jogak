@@ -45,6 +45,7 @@ function makeMeta(overrides: Partial<RegistryEntryMeta> = {}): RegistryEntryMeta
     id: overrides.id ?? 'Form/Button',
     title: overrides.title ?? 'Form/Button',
     jogakNames: overrides.jogakNames ?? ['Default'],
+    jogakDefaultArgs: overrides.jogakDefaultArgs ?? {},
     autoArgTypes: overrides.autoArgTypes ?? {},
     userArgTypes: overrides.userArgTypes ?? {},
     source: overrides.source ?? '// jogak source',
