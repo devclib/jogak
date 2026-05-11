@@ -42,6 +42,8 @@ export interface BuildCliArgs {
   readonly previewIsolation: 'none' | 'shadow' | 'iframe'
   /** 알파.11: 빌더 명시 (자동 감지가 default). */
   readonly builder?: BuilderName | undefined
+  /** 알파.13: 어댑터별 추가 옵션 (next: { rsc?: boolean } 등). adapter.build의 extra로 전달. */
+  readonly builderOptions?: Readonly<Record<string, unknown>>
 }
 
 export async function runBuildCommand(args: BuildCliArgs): Promise<void> {
@@ -130,6 +132,7 @@ export async function runBuildCommand(args: BuildCliArgs): Promise<void> {
         cwd: args.cwd,
         previewOutDir: previewOutDirAbs,
         ...(args.globalCss !== undefined ? { globalCss: args.globalCss } : {}),
+        ...(args.builderOptions !== undefined ? { extra: args.builderOptions } : {}),
       })
       process.stdout.write(
         `[jogak] preview build done — ${adapterStats.outDir} (${adapterStats.assetCount.toString()} files, ${adapterStats.elapsedMs.toString()}ms)\n`,

@@ -1,14 +1,14 @@
 /**
- * 알파.9: next-adapter — `<userRoot>/app/jogak-preview/page.tsx` scaffold.
+ * 알파.9: next-adapter — `<userRoot>/{app,pages}/jogak-preview` scaffold.
  *
- * Next.js webpack은 vite처럼 가상 모듈을 지원하지 않으므로 사용자 cwd의 app 디렉토리에
- * 직접 page.tsx를 generate한다. `.gitignore`에 자동 추가하고 shutdown 시 cleanup.
+ * Next.js webpack은 vite처럼 가상 모듈을 지원하지 않으므로 사용자 cwd의 router 디렉토리에
+ * 직접 파일을 generate한다. `.gitignore`에 자동 추가하고 shutdown 시 cleanup.
  *
- * App Router 우선:
- * - `<cwd>/src/app/` 우선 (사용자가 src/ 사용 시)
- * - 없으면 `<cwd>/app/`
+ * 라우터 우선순위:
+ * 1. `<cwd>/{src/,}app/` — App Router (Next.js 13+)
+ * 2. `<cwd>/{src/,}pages/` — Pages Router (Next.js 12 이하/하위호환)
  *
- * Pages Router는 알파.10 검토.
+ * 알파.13: App Router에 추가로 Pages Router 지원. App Router 우선 (둘 다 있으면 App).
  */
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync, rmSync } from 'node:fs'
@@ -18,51 +18,103 @@ import { resolveGlobalCssPaths } from '../../server.js'
 export interface ScaffoldOptions {
   readonly cwd: string
   readonly globalCss?: boolean | string | readonly string[]
+  /**
+   * 알파.13: Server Component 사용자 컴포넌트를 jogak preview에서 SSR로 렌더한다.
+   * `true`일 때 App Router scaffold가 server-component page + JogakIframeBridge
+   * client wrapper로 생성된다. props 변경 시 router.replace로 URL navigate되어
+   * server component가 재실행된다.
+   *
+   * Pages Router는 RSC 미지원 (Next.js 정책). pages 모드에서는 무시된다.
+   */
+  readonly rsc?: boolean
 }
 
 export interface ScaffoldHandle {
-  /** Cleanup — shutdown 시 호출. scaffolded 디렉토리 제거. */
+  /** Cleanup — shutdown 시 호출. scaffolded 파일/디렉토리 제거. */
   cleanup(): void
   /** scaffolded preview path (route, e.g. `/jogak-preview`). */
   readonly route: string
+  /** 어느 router 모드로 scaffolded됐는지 (`app` | `pages`). */
+  readonly router: 'app' | 'pages'
 }
 
-const PREVIEW_ROUTE_DIR = 'jogak-preview'
-const ROUTE = `/${PREVIEW_ROUTE_DIR}`
+const PREVIEW_ROUTE_NAME = 'jogak-preview'
+const ROUTE = `/${PREVIEW_ROUTE_NAME}`
 
 export function scaffoldPreviewPage(opts: ScaffoldOptions): ScaffoldHandle {
-  const appDir = detectAppDir(opts.cwd)
-  if (appDir === undefined) {
+  const detected = detectRouter(opts.cwd)
+  if (detected === undefined) {
     throw new Error(
-      `[jogak/next-adapter] App Router 디렉토리를 찾지 못했습니다 (${opts.cwd}/app 또는 ${opts.cwd}/src/app).\n` +
-        'Pages Router는 알파.10에서 지원 예정. 임시 우회: `app/` 디렉토리 생성 후 재시도.',
+      `[jogak/next-adapter] App Router 또는 Pages Router 디렉토리를 찾지 못했습니다.\n` +
+        `검색 경로: ${opts.cwd}/{src/,}app, ${opts.cwd}/{src/,}pages\n` +
+        '둘 중 하나의 디렉토리 생성 후 재시도하세요.',
     )
   }
-
-  const targetDir = resolve(appDir, PREVIEW_ROUTE_DIR)
-  mkdirSync(targetDir, { recursive: true })
 
   const cssImports = resolveGlobalCssPaths(opts.globalCss, opts.cwd)
     .map((p) => `import ${JSON.stringify(p)}`)
     .join('\n')
 
+  if (detected.router === 'app') {
+    return scaffoldAppRouter(opts.cwd, detected.routerDir, cssImports, opts.rsc === true)
+  }
+  // Pages Router에서 rsc 옵션을 명시했더라도 RSC는 App Router 전용 — 무시.
+  return scaffoldPagesRouter(opts.cwd, detected.routerDir, cssImports)
+}
+
+interface DetectedRouter {
+  readonly router: 'app' | 'pages'
+  readonly routerDir: string
+}
+
+function detectRouter(cwd: string): DetectedRouter | undefined {
+  // App Router 우선
+  const srcApp = resolve(cwd, 'src/app')
+  if (existsSync(srcApp)) return { router: 'app', routerDir: srcApp }
+  const app = resolve(cwd, 'app')
+  if (existsSync(app)) return { router: 'app', routerDir: app }
+  // Pages Router
+  const srcPages = resolve(cwd, 'src/pages')
+  if (existsSync(srcPages)) return { router: 'pages', routerDir: srcPages }
+  const pages = resolve(cwd, 'pages')
+  if (existsSync(pages)) return { router: 'pages', routerDir: pages }
+  return undefined
+}
+
+function scaffoldAppRouter(
+  cwd: string,
+  appDir: string,
+  cssImports: string,
+  rsc: boolean,
+): ScaffoldHandle {
+  const targetDir = resolve(appDir, PREVIEW_ROUTE_NAME)
+  mkdirSync(targetDir, { recursive: true })
+
   // CLI가 사전 생성한 .jogak/registry.ts에서 entries import.
-  // page.tsx 위치 → registry 파일까지의 상대 경로를 컴파일 타임에 계산.
-  const registryAbsPath = resolve(opts.cwd, '.jogak/registry')
+  const registryAbsPath = resolve(cwd, '.jogak/registry')
   const registryRel = toPosix(relative(targetDir, registryAbsPath))
   const registryImport = registryRel.startsWith('.') ? registryRel : `./${registryRel}`
 
   writeFileSync(
     resolve(targetDir, 'page.tsx'),
-    renderPagePageSource(cssImports, registryImport),
+    rsc
+      ? renderAppRouterRscPageSource(cssImports, registryImport)
+      : renderAppRouterPageSource(cssImports, registryImport),
     'utf8',
   )
-  writeFileSync(resolve(targetDir, 'layout.tsx'), renderLayoutSource(), 'utf8')
+  writeFileSync(resolve(targetDir, 'layout.tsx'), renderAppRouterLayoutSource(), 'utf8')
 
-  // .gitignore 자동 추가
-  ensureGitignore(opts.cwd, `${PREVIEW_ROUTE_DIR}/`)
+  // 알파.13: RSC 모드에서는 'use client' 디렉티브가 사용자 cwd 파일 첫 줄에 명시되어야
+  // Next.js webpack이 client boundary로 인식한다. core dist 안의 'use client'는 vite lib
+  // build가 module top에 보존하지 않으므로, bridge 컴포넌트를 사용자 cwd로 inline emit.
+  if (rsc) {
+    writeFileSync(resolve(targetDir, '_bridge.tsx'), renderRscBridgeSource(), 'utf8')
+  }
+
+  ensureGitignore(cwd, `${PREVIEW_ROUTE_NAME}/`)
 
   return {
+    router: 'app',
     route: ROUTE,
     cleanup: () => {
       try {
@@ -74,12 +126,35 @@ export function scaffoldPreviewPage(opts: ScaffoldOptions): ScaffoldHandle {
   }
 }
 
-function detectAppDir(cwd: string): string | undefined {
-  const srcApp = resolve(cwd, 'src/app')
-  if (existsSync(srcApp)) return srcApp
-  const app = resolve(cwd, 'app')
-  if (existsSync(app)) return app
-  return undefined
+function scaffoldPagesRouter(cwd: string, pagesDir: string, cssImports: string): ScaffoldHandle {
+  // Pages Router는 단일 파일 라우트 — pages/jogak-preview.tsx
+  const targetFile = resolve(pagesDir, `${PREVIEW_ROUTE_NAME}.tsx`)
+
+  const registryAbsPath = resolve(cwd, '.jogak/registry')
+  const registryRel = toPosix(relative(pagesDir, registryAbsPath))
+  const registryImport = registryRel.startsWith('.') ? registryRel : `./${registryRel}`
+
+  // Pages Router는 글로벌 CSS를 `_app.tsx`에서만 import 가능 (Next.js 제약).
+  // jogak이 사용자 `_app.tsx`를 침범하지 않으므로 글로벌 CSS는 사용자 _app.tsx 책임.
+  // jogak-preview.tsx 자체에는 cssImports를 emit하지 않는다.
+  void cssImports
+
+  writeFileSync(targetFile, renderPagesRouterSource('', registryImport), 'utf8')
+
+  // pages/jogak-preview.tsx 자체를 gitignore에 추가.
+  ensureGitignore(cwd, `${PREVIEW_ROUTE_NAME}.tsx`)
+
+  return {
+    router: 'pages',
+    route: ROUTE,
+    cleanup: () => {
+      try {
+        rmSync(targetFile, { force: true })
+      } catch {
+        // best-effort
+      }
+    },
+  }
 }
 
 function ensureGitignore(cwd: string, entry: string): void {
@@ -92,7 +167,6 @@ function ensureGitignore(cwd: string, entry: string): void {
       return
     }
   }
-  // 사용자 컴포넌트 디렉토리 안의 jogak-preview/ — relative pattern.
   const pattern = `**/${entry}`
   const lines = content.split('\n')
   if (lines.some((line) => line.trim() === pattern)) return
@@ -109,7 +183,7 @@ function ensureGitignore(cwd: string, entry: string): void {
   }
 }
 
-function renderLayoutSource(): string {
+function renderAppRouterLayoutSource(): string {
   return `import type { ReactNode } from 'react'
 
 // jogak preview layout — RootLayout이 사용자 globalCss를 import하므로 여기서 추가 import 불필요.
@@ -123,9 +197,131 @@ function toPosix(p: string): string {
   return p.split(/[\\/]/u).join('/')
 }
 
-function renderPagePageSource(cssImports: string, registryImport: string): string {
+/**
+ * App Router용 page.tsx — Client Component로 동작 (`'use client'`).
+ * Pages Router와 동일한 message-protocol mount 로직.
+ */
+function renderAppRouterPageSource(cssImports: string, registryImport: string): string {
   return `'use client'
-import { useEffect, useRef } from 'react'
+${renderClientMountSource(cssImports, registryImport, 'JogakPreviewPage')}`
+}
+
+/**
+ * 알파.13: App Router RSC 모드 page.tsx — Server Component.
+ * URL searchParams로 entryId/args를 받아 user component를 server-side render하고,
+ * `JogakIframeBridge` client wrapper가 부모 SPA의 postMessage를 받아 router.replace로
+ * URL을 갱신해 server component를 재실행시킨다.
+ *
+ * 사용자가 'use client' 디렉티브 없이 작성한 Server Component도 jogak preview에서
+ * 정상 동작한다.
+ */
+function renderAppRouterRscPageSource(cssImports: string, registryImport: string): string {
+  return `import type { ComponentType } from 'react'
+import { JogakIframeBridge } from './_bridge'
+import { entries as _jogakEntries } from ${JSON.stringify(registryImport)}
+${cssImports}
+
+interface PageProps {
+  searchParams?: Promise<{ entryId?: string; args?: string }>
+}
+
+function safeParseArgs(raw: string | undefined): Record<string, unknown> {
+  if (raw === undefined || raw === '') return {}
+  try {
+    const parsed = JSON.parse(raw) as unknown
+    if (parsed !== null && typeof parsed === 'object') return parsed as Record<string, unknown>
+  } catch {
+    // ignore — parse 실패 시 빈 args.
+  }
+  return {}
+}
+
+export default async function JogakPreviewPage({ searchParams }: PageProps) {
+  const sp = (await searchParams) ?? {}
+  const entryId = sp.entryId
+  const args = safeParseArgs(sp.args)
+
+  const entry =
+    entryId !== undefined
+      ? _jogakEntries.find((e) => e.id === entryId)
+      : undefined
+  const Component = entry?.meta.component as ComponentType<Record<string, unknown>> | undefined
+
+  return (
+    <>
+      <JogakIframeBridge />
+      <div id="jogak-preview-root">
+        {Component !== undefined ? <Component {...args} /> : null}
+      </div>
+    </>
+  )
+}
+`
+}
+
+/**
+ * Pages Router용 jogak-preview.tsx — Pages Router에서 `'use client'`는 불필요.
+ * Pages Router 컴포넌트는 default가 client/SSR 둘 다 동작.
+ */
+function renderPagesRouterSource(cssImports: string, registryImport: string): string {
+  return renderClientMountSource(cssImports, registryImport, 'JogakPreviewPage')
+}
+
+/**
+ * 알파.13: RSC scaffold용 client bridge 컴포넌트 (사용자 cwd로 emit).
+ * 'use client' 디렉티브가 첫 줄에 명시되어 Next webpack이 client boundary로 인식한다.
+ */
+function renderRscBridgeSource(): string {
+  return `'use client'
+import { useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+
+export function JogakIframeBridge() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+
+  useEffect(() => {
+    const handler = (event: MessageEvent) => {
+      const data = event.data
+      if (data == null || typeof data !== 'object') return
+      if (data.type === 'jogak:setProps') {
+        const entryId = String(data.entryId ?? '')
+        if (entryId === '') return
+        const args =
+          data.args !== undefined && data.args !== null
+            ? JSON.stringify(data.args)
+            : '{}'
+        const params = new URLSearchParams()
+        params.set('entryId', entryId)
+        params.set('args', args)
+        router.replace('?' + params.toString(), { scroll: false })
+      } else if (data.type === 'jogak:unmount') {
+        router.replace('?', { scroll: false })
+      }
+    }
+    window.addEventListener('message', handler)
+    window.parent.postMessage({ type: 'jogak:ready' }, '*')
+    return () => { window.removeEventListener('message', handler) }
+  }, [router])
+
+  useEffect(() => {
+    const entryId = searchParams.get('entryId')
+    if (entryId !== null && entryId !== '') {
+      window.parent.postMessage({ type: 'jogak:rendered', entryId }, '*')
+    }
+  }, [searchParams])
+
+  return null
+}
+`
+}
+
+function renderClientMountSource(
+  cssImports: string,
+  registryImport: string,
+  componentName: string,
+): string {
+  return `import { useEffect, useRef } from 'react'
 import { reactAdapter } from '@jogak/core/renderers/react'
 import { defaultRegistry } from '@jogak/core'
 import { entries as _jogakEntries } from ${JSON.stringify(registryImport)}
@@ -138,7 +334,7 @@ for (const entry of _jogakEntries) {
   }
 }
 
-export default function JogakPreviewPage() {
+export default function ${componentName}() {
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {

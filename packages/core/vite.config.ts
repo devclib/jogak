@@ -26,6 +26,9 @@ export default defineConfig({
         // 알파.10: 3개 framework renderer (브라우저, react/next는 SSR/RSC 포함)
         'renderers/react/index': resolve(__dirname, 'src/renderers/react/index.ts'),
         'renderers/next/index': resolve(__dirname, 'src/renderers/next/index.ts'),
+        // 알파.13: next renderer의 client/server subpath entries — RSC scaffold에서 import.
+        'renderers/next/client/index': resolve(__dirname, 'src/renderers/next/client/index.ts'),
+        'renderers/next/server/index': resolve(__dirname, 'src/renderers/next/server/index.ts'),
         'renderers/web-components/index': resolve(__dirname, 'src/renderers/web-components/index.ts'),
       },
       formats: ['es', 'cjs'],
@@ -45,6 +48,10 @@ export default defineConfig({
         'react/jsx-runtime',
         'react/jsx-dev-runtime',
         'next',
+        'next/navigation',
+        'next/router',
+        'next/link',
+        'next/head',
         'webpack',
         'webpack-dev-server',
         'webpack-merge',

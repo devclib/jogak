@@ -13,6 +13,11 @@ import { scaffoldPreviewPage } from './scaffold.js'
 
 interface NextAdapterExtra {
   readonly cmd?: string
+  /**
+   * 알파.13: jogak preview를 RSC (Server Component) 모드로 scaffold한다.
+   * `true`일 때 App Router에서 'use client' 없이 user component를 SSR 렌더한다.
+   */
+  readonly rsc?: boolean
 }
 
 export async function spawnNextDev(opts: SpawnDevOptions): Promise<DevHandle> {
@@ -22,6 +27,7 @@ export async function spawnNextDev(opts: SpawnDevOptions): Promise<DevHandle> {
   const scaffold = scaffoldPreviewPage({
     cwd: opts.cwd,
     ...(opts.globalCss !== undefined ? { globalCss: opts.globalCss } : {}),
+    ...(extra.rsc === true ? { rsc: true } : {}),
   })
 
   // 2. next dev spawn

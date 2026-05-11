@@ -353,6 +353,10 @@ function parseBuildArgs(parsed: ParsedArgs, fileConfig: JogakConfig): BuildCliAr
       parsed.flags['preview-isolation'],
       fileConfig.previewIsolation,
     ),
+    // 알파.13: builderOptions를 build adapter에 그대로 전달 (next: { rsc } 등).
+    ...(fileConfig.builderOptions !== undefined
+      ? { builderOptions: fileConfig.builderOptions }
+      : {}),
   }
 }
 

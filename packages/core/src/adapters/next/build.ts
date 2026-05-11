@@ -45,6 +45,16 @@ export async function buildNext(opts: BuildOptions): Promise<BuildResult> {
   // jogak이 wrapper config로 `output: 'export'`/`basePath`/`assetPrefix`를 강제 주입하므로
   // 사용자 next.config 측 설정 검증은 불필요.
 
+  const rsc = (opts.extra as { rsc?: boolean } | undefined)?.rsc === true
+  if (rsc) {
+    throw new Error(
+      `[jogak/next-adapter] RSC 모드는 정적 export(\`output: 'export'\`) 와 호환되지 않습니다.\n` +
+        `RSC scaffold는 server-side dynamic rendering(searchParams)을 사용하므로\n` +
+        `\`jogak build\`(정적 산출물)에서는 지원하지 않습니다. RSC는 \`jogak dev\` 전용입니다.\n` +
+        `정적 산출물을 원하면 \`builderOptions: { rsc: false }\` 또는 builderOptions 제거 후 재시도.`,
+    )
+  }
+
   // 1. scaffold
   const scaffold = scaffoldPreviewPage({
     cwd: opts.cwd,

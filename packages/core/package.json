@@ -1,6 +1,6 @@
 {
   "name": "@jogak/core",
-  "version": "0.1.0-alpha.12.1",
+  "version": "0.1.0-alpha.13",
   "description": "Core types, registry, and Vite plugin for Jogak — a lightweight Storybook alternative.",
   "keywords": [
     "jogak",
@@ -83,6 +83,16 @@
       "types": "./dist/renderers/next/index.d.ts",
       "import": "./dist/renderers/next/index.mjs",
       "require": "./dist/renderers/next/index.cjs"
+    },
+    "./renderers/next/client": {
+      "types": "./dist/renderers/next/client/index.d.ts",
+      "import": "./dist/renderers/next/client/index.mjs",
+      "require": "./dist/renderers/next/client/index.cjs"
+    },
+    "./renderers/next/server": {
+      "types": "./dist/renderers/next/server/index.d.ts",
+      "import": "./dist/renderers/next/server/index.mjs",
+      "require": "./dist/renderers/next/server/index.cjs"
     },
     "./renderers/web-components": {
       "types": "./dist/renderers/web-components/index.d.ts",
