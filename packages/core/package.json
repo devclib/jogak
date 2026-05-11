@@ -1,6 +1,6 @@
 {
   "name": "@jogak/core",
-  "version": "0.1.0-alpha.13",
+  "version": "0.1.0-alpha.14",
   "description": "Core types, registry, and Vite plugin for Jogak — a lightweight Storybook alternative.",
   "keywords": [
     "jogak",
@@ -98,6 +98,16 @@
       "types": "./dist/renderers/web-components/index.d.ts",
       "import": "./dist/renderers/web-components/index.mjs",
       "require": "./dist/renderers/web-components/index.cjs"
+    },
+    "./renderers/vue": {
+      "types": "./dist/renderers/vue/index.d.ts",
+      "import": "./dist/renderers/vue/index.mjs",
+      "require": "./dist/renderers/vue/index.cjs"
+    },
+    "./renderers/svelte": {
+      "types": "./dist/renderers/svelte/index.d.ts",
+      "import": "./dist/renderers/svelte/index.mjs",
+      "require": "./dist/renderers/svelte/index.cjs"
     }
   },
   "files": [
@@ -144,7 +154,9 @@
     "webpack-merge": "^6.0.0",
     "html-webpack-plugin": "^5.0.0",
     "@testing-library/react": "^16.3.2",
-    "happy-dom": "^20.9.0"
+    "happy-dom": "^20.9.0",
+    "vue": "^3.4.0",
+    "svelte": "^5.0.0"
   },
   "peerDependencies": {
     "vite": "^6.0.0 || ^7.0.0",
@@ -154,7 +166,9 @@
     "webpack": "^5.0.0",
     "webpack-dev-server": "^5.0.0",
     "webpack-merge": "^6.0.0",
-    "html-webpack-plugin": "^5.0.0"
+    "html-webpack-plugin": "^5.0.0",
+    "vue": "^3.4.0",
+    "svelte": "^5.0.0"
   },
   "peerDependenciesMeta": {
     "vite": { "optional": true },
@@ -164,6 +178,8 @@
     "webpack": { "optional": true },
     "webpack-dev-server": { "optional": true },
     "webpack-merge": { "optional": true },
-    "html-webpack-plugin": { "optional": true }
+    "html-webpack-plugin": { "optional": true },
+    "vue": { "optional": true },
+    "svelte": { "optional": true }
   }
 }

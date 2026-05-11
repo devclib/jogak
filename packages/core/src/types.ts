@@ -98,10 +98,10 @@ export interface CategoryMetaTree {
 }
 
 /**
- * 각 어댑터(React, Next.js, Web Components)가 구현해야 하는 공통 인터페이스
+ * 각 어댑터(React, Next.js, Web Components, Vue, Svelte)가 구현해야 하는 공통 인터페이스
  */
 export interface JogakAdapter {
-  readonly framework: 'react' | 'next' | 'web-components'
+  readonly framework: 'react' | 'next' | 'web-components' | 'vue' | 'svelte'
   render(
     entry: RegistryEntry,
     args: Readonly<Record<string, unknown>>,

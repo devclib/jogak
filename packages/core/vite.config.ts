@@ -30,6 +30,9 @@ export default defineConfig({
         'renderers/next/client/index': resolve(__dirname, 'src/renderers/next/client/index.ts'),
         'renderers/next/server/index': resolve(__dirname, 'src/renderers/next/server/index.ts'),
         'renderers/web-components/index': resolve(__dirname, 'src/renderers/web-components/index.ts'),
+        // 알파.14: Vue / Svelte renderer (둘 다 optional peer)
+        'renderers/vue/index': resolve(__dirname, 'src/renderers/vue/index.ts'),
+        'renderers/svelte/index': resolve(__dirname, 'src/renderers/svelte/index.ts'),
       },
       formats: ['es', 'cjs'],
       fileName: (format, entryName) =>
@@ -52,6 +55,9 @@ export default defineConfig({
         'next/router',
         'next/link',
         'next/head',
+        // 알파.14: vue / svelte optional peer
+        'vue',
+        'svelte',
         'webpack',
         'webpack-dev-server',
         'webpack-merge',
