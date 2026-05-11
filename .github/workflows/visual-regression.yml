@@ -5,7 +5,6 @@ on:
     paths:
       - 'packages/ui/**'
       - 'packages/core/**'
-      - 'packages/react/**'
       - 'e2e/visual/**'
       - 'playwright.config.ts'
       - 'Dockerfile.playwright'
@@ -19,7 +18,6 @@ on:
     paths:
       - 'packages/ui/**'
       - 'packages/core/**'
-      - 'packages/react/**'
       - 'e2e/visual/**'
       - 'playwright.config.ts'
       - 'Dockerfile.playwright'
@@ -55,9 +53,10 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build core (vite plugin이 SPA dev에서 필요)
-        # @jogak/ui dev 가 @jogak/core / @jogak/react 를 워크스페이스 dependency 로 import 하므로
+        # @jogak/ui dev 가 @jogak/core 워크스페이스 dependency 로 import 하므로
         # 사전 빌드 없으면 dev 서버 부팅 시 모듈 해석 실패.
-        run: pnpm --filter @jogak/core --filter @jogak/react build
+        # 알파.10에서 @jogak/react는 @jogak/core/renderers/react subpath로 통합 — core 빌드만 필요.
+        run: pnpm --filter @jogak/core build
 
       - name: Lint (eslint + alpha.5 trap grep)
         # 알파.5 PR 4 도입: inline style forbid + 함정 1/2/4/5/6 grep + deprecated var 사용처 zero.
