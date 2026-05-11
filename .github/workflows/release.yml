@@ -99,20 +99,40 @@ jobs:
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
         run: |
           cd /tmp/jogak-tgz
-          VERSION=${{ steps.dist-tag.outputs.version }}
+          DIST_TAG='${{ steps.dist-tag.outputs.tag }}'
           for pkg in core ui cli; do
-            echo "=== dry-run: @jogak/$pkg ==="
-            npm publish "jogak-${pkg}-${VERSION}.tgz" --access public --provenance --tag '${{ steps.dist-tag.outputs.tag }}' --dry-run
+            PKG_VER=$(node -p "require(\"$GITHUB_WORKSPACE/packages/$pkg/package.json\").version")
+            TGZ="jogak-${pkg}-${PKG_VER}.tgz"
+            EXISTS=$(npm view "@jogak/$pkg@$PKG_VER" version 2>/dev/null || true)
+            if [ -n "$EXISTS" ]; then
+              echo "=== dry-run skip @jogak/$pkg@$PKG_VER (already published) ==="
+              continue
+            fi
+            echo "=== dry-run: @jogak/$pkg@$PKG_VER ==="
+            npm publish "$TGZ" --access public --provenance --tag "$DIST_TAG" --dry-run
           done
 
       - name: Publish
         if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && !inputs.dry_run) }}
         run: |
           cd /tmp/jogak-tgz
-          VERSION=${{ steps.dist-tag.outputs.version }}
-          # 알파.10: 의존성 순서 core → ui → cli (3개 패키지)
-          # 알파.9.x의 7개 어댑터/렌더러 패키지는 모두 @jogak/core subpath로 통합.
+          # 알파.11.1: 각 패키지의 local version이 npm registry에 이미 존재하면 skip.
+          # 한 패키지(예: cli)만 patch bump했을 때 core/ui의 동일 버전을 재-publish하다
+          # E403으로 CI가 깨지는 회귀를 방지. 의존성 순서(core → ui → cli)는 유지.
+          DIST_TAG='${{ steps.dist-tag.outputs.tag }}'
           for pkg in core ui cli; do
-            echo "=== publishing @jogak/$pkg with --tag ${{ steps.dist-tag.outputs.tag }} ==="
-            npm publish "jogak-${pkg}-${VERSION}.tgz" --access public --provenance --tag '${{ steps.dist-tag.outputs.tag }}'
+            PKG_VER=$(node -p "require('/__w/jogak/jogak/packages/$pkg/package.json').version" 2>/dev/null \
+              || node -p "require(\"$GITHUB_WORKSPACE/packages/$pkg/package.json\").version")
+            TGZ="jogak-${pkg}-${PKG_VER}.tgz"
+            EXISTS=$(npm view "@jogak/$pkg@$PKG_VER" version 2>/dev/null || true)
+            if [ -n "$EXISTS" ]; then
+              echo "=== skip @jogak/$pkg@$PKG_VER (already published) ==="
+              continue
+            fi
+            if [ ! -f "$TGZ" ]; then
+              echo "::error::tarball missing: $TGZ"
+              exit 1
+            fi
+            echo "=== publishing @jogak/$pkg@$PKG_VER with --tag $DIST_TAG ==="
+            npm publish "$TGZ" --access public --provenance --tag "$DIST_TAG"
           done
