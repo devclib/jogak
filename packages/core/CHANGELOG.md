@@ -5,6 +5,12 @@ All notable changes to Jogak packages are documented here. The repository follow
 
 Version numbers apply to all packages in the workspace (synchronized release).
 
+## [0.1.0-alpha.14.2] — 2026-05-11
+
+### Changed
+
+- **버전 동기화 (no functional change)**: `@jogak/ui@0.1.0-alpha.14.2` 패치 publish에 맞춰 동기화. `@jogak/core` 소스/dist 변경 없음. 워크스페이스는 동일 prerelease 라인을 일괄 유지하므로 examples 환경에서 caret semver 매칭 혼선이 발생하지 않도록 함께 publish.
+
 ## [0.1.0-alpha.14.1] — 2026-05-11
 
 ### Added

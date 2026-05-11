@@ -5,6 +5,12 @@ All notable changes to Jogak packages are documented here. The repository follow
 
 Version numbers apply to all packages in the workspace (synchronized release).
 
+## [0.1.0-alpha.14.2] — 2026-05-11
+
+### Fixed
+
+- **`src/lib/adapter-for.ts` 누락 publish 결함**: 알파.14.1에서 `package.json` `files` 배열에 `src/lib/`이 빠져 있어, npm 설치 사용자 환경에서 `preview-frame.tsx`의 `import '../lib/adapter-for.js'` resolve가 실패하던 회귀를 수정. `src/lib/adapter-for.ts`를 명시적으로 publish 목록에 추가 (테스트 폴더 `__tests__/`는 의도적으로 제외). 외부 개발자가 `^0.1.0-alpha.14.1`로 설치해 `jogak build` 시 Rollup이 빈 모듈 에러를 던지던 케이스가 해소.
+
 ## [0.1.0-alpha.14.1] — 2026-05-11
 
 ### Added
