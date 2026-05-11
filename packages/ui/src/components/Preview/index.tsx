@@ -3,9 +3,10 @@ import type { ReactElement, CSSProperties } from 'react'
 import clsx from 'clsx'
 import { Highlight, themes } from 'prism-react-renderer'
 import type { PrismTheme } from 'prism-react-renderer'
-import { reactAdapter, useEntry } from '@jogak/core/renderers/react'
+import { useEntry } from '@jogak/core/renderers/react'
 import type { UseEntryState } from '@jogak/core/renderers/react'
-import type { RegistryEntry, RegistryEntryMeta, ArgType } from '@jogak/core'
+import type { JogakAdapter, RegistryEntry, RegistryEntryMeta, ArgType } from '@jogak/core'
+import { adapterFor } from '../../lib/adapter-for.js'
 import { Controls } from '../Controls/index.js'
 import { Actions } from '../Actions/index.js'
 import { ShadowMount } from './ShadowMount.js'
@@ -134,7 +135,11 @@ export function Preview({
   userPreviewUrl = '',
   previewEntryPath = '/__jogak_preview__/index.html',
 }: PreviewProps): ReactElement {
-  const state = useEntry(entryId)
+  // 알파.14.1: iframe isolation 모드에서는 chrome 측에 component 모듈을 import하지 않는다
+  // (chrome vite scope에 .vue/.svelte가 들어오면 plugin-vue/svelte 부재로 transform 실패).
+  // skipHydrate=true → useEntry가 synthetic entry(component=null)로 ready를 노출하고,
+  // 실제 마운트는 IframeMount가 사용자 vite scope의 iframe entry에 위임한다.
+  const state = useEntry(entryId, { skipHydrate: previewIsolation === 'iframe' })
   const [viewport, setViewport] = useState<ViewportKey>('desktop')
   const [bgMode, setBgMode] = useState<BgMode>('white')
   const [bottomTab, setBottomTab] = useState<'controls' | 'actions'>('controls')
@@ -636,23 +641,50 @@ function PreviewMount({ entry, args, previewIsolation, userPreviewUrl, previewEn
 
 function NoneAdapterContent({ entry, args }: { entry: RegistryEntry; args: Readonly<Record<string, unknown>> }): ReactElement {
   const containerRef = useRef<HTMLDivElement>(null)
+  const adapterRef = useRef<JogakAdapter | null>(null)
 
+  // 알파.14.1: entry.meta.framework로 dispatch. async 적응을 위해 effect 내에서
+  // await adapterFor → 캡처된 adapter로 render. unmount는 같은 adapter ref 사용.
   useEffect(() => {
     const container = containerRef.current
     if (container === null) return
-    reactAdapter.render(entry, args, container)
+    let cancelled = false
+
+    const framework = entry.meta.framework ?? 'react'
+    void adapterFor(framework).then((adapter) => {
+      if (cancelled) return
+      adapterRef.current = adapter
+      void adapter.render(entry, args, container)
+    })
+
     return () => {
+      cancelled = true
+      const adapter = adapterRef.current
+      if (adapter === null) return
       // 알파.7.1: React 18 concurrent unmount race(`Attempted to synchronously unmount...`)
       // 회피 — fiber commit 끝난 직후로 defer.
-      queueMicrotask(() => { reactAdapter.unmount(container) })
+      queueMicrotask(() => { adapter.unmount(container) })
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entry])
 
+  // args 갱신용 effect — adapter가 이미 캐시돼 있으면 동기 분기를 탄다.
   useEffect(() => {
     const container = containerRef.current
     if (container === null) return
-    reactAdapter.render(entry, args, container)
+    let cancelled = false
+    const adapter = adapterRef.current
+    if (adapter !== null) {
+      void adapter.render(entry, args, container)
+      return
+    }
+    const framework = entry.meta.framework ?? 'react'
+    void adapterFor(framework).then((resolved) => {
+      if (cancelled) return
+      adapterRef.current = resolved
+      void resolved.render(entry, args, container)
+    })
+    return () => { cancelled = true }
   }, [entry, args])
 
   return (
@@ -665,19 +697,31 @@ function NoneAdapterContent({ entry, args }: { entry: RegistryEntry; args: Reado
 }
 
 /**
- * Shadow 모드 — ShadowMount의 ShadowRoot 안에서 react-adapter.render를 호출하는
+ * Shadow 모드 — ShadowMount의 ShadowRoot 안에서 adapter.render를 호출하는
  * 작은 wrapper. ShadowMount 안 portal 내부에 위치하므로 useRef는 ShadowRoot scope.
  */
 function ShadowAdapterContent({ entry, args }: { entry: RegistryEntry; args: Readonly<Record<string, unknown>> }): ReactElement {
   const ref = useRef<HTMLDivElement>(null)
+  const adapterRef = useRef<JogakAdapter | null>(null)
 
   useEffect(() => {
     const c = ref.current
     if (c === null) return
-    reactAdapter.render(entry, args, c)
+    let cancelled = false
+
+    const framework = entry.meta.framework ?? 'react'
+    void adapterFor(framework).then((adapter) => {
+      if (cancelled) return
+      adapterRef.current = adapter
+      void adapter.render(entry, args, c)
+    })
+
     return () => {
+      cancelled = true
+      const adapter = adapterRef.current
+      if (adapter === null) return
       // 알파.7.1: unmount race 회피
-      queueMicrotask(() => { reactAdapter.unmount(c) })
+      queueMicrotask(() => { adapter.unmount(c) })
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entry])
@@ -685,7 +729,19 @@ function ShadowAdapterContent({ entry, args }: { entry: RegistryEntry; args: Rea
   useEffect(() => {
     const c = ref.current
     if (c === null) return
-    reactAdapter.render(entry, args, c)
+    let cancelled = false
+    const adapter = adapterRef.current
+    if (adapter !== null) {
+      void adapter.render(entry, args, c)
+      return
+    }
+    const framework = entry.meta.framework ?? 'react'
+    void adapterFor(framework).then((resolved) => {
+      if (cancelled) return
+      adapterRef.current = resolved
+      void resolved.render(entry, args, c)
+    })
+    return () => { cancelled = true }
   }, [entry, args])
 
   return <div ref={ref} data-testid="preview-content-shadow" />

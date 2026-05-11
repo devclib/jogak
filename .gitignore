@@ -40,6 +40,9 @@ benchmarks/baselines/storybook/src/generated/
 # Claude Code local settings (개인 권한 허용 목록 — 공유하지 않음)
 .claude/settings.local.json
 
+# Playwright MCP 임시 산출물 (스냅샷/콘솔 로그 — 디버깅용, 공유하지 않음)
+.playwright-mcp/
+
 # 하네스 작업 공간 (architect/test-qa 산출물 — 작업용)
 _workspace/
 _workspace_*/

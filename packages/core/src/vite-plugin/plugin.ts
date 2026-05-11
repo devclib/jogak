@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises'
 import type { Plugin, ViteDevServer } from 'vite'
 import type {
   ArgType,
+  JogakFramework,
   JogakPluginOptions,
   RegistryEntryMeta,
 } from '../types.js'
@@ -63,6 +64,8 @@ export function jogak(options: JogakPluginOptions = {}): Plugin {
     patterns = ['src/**/*.jogak.ts', 'src/**/*.jogak.tsx'],
     codeTheme = 'vsDark',
   } = options
+  // 알파.14.1: 전역 framework default. 파일별 meta.framework가 우선이고, 둘 다 없으면 'react'.
+  const globalFramework: JogakFramework | undefined = options.framework
   const optionCwd = options.cwd
   const optionTsConfigFilePath = options.tsConfigFilePath
   const disableCacheValidation = options.disableCacheValidation === true
@@ -148,15 +151,21 @@ export function jogak(options: JogakPluginOptions = {}): Plugin {
       idToFile.set(id, file)
       fileToId.set(file, id)
 
+      // 알파.14.1: framework 우선순위 = 파일 meta > 전역 옵션 > 'react' fallback.
+      const framework: JogakFramework =
+        metaPayload.framework ?? globalFramework ?? 'react'
+
       const meta: RegistryEntryMeta = {
         id,
         title: metaPayload.title,
         jogakNames: metaPayload.jogakNames,
+        jogakDefaultArgs: metaPayload.jogakDefaultArgs,
         autoArgTypes,
         userArgTypes: metaPayload.userArgTypes,
         source,
         filePath: file,
         metaExtras: metaPayload.metaExtras,
+        framework,
       }
       // F4: lastSig 채움 (HMR 시 비교 기준)
       lastSig.set(file, sigOf(meta))
@@ -364,6 +373,23 @@ ${chromeExports}`
           return `// [jogak] unknown entry id: ${JSON.stringify(entryId)}\nexport {}\n`
         }
 
+        // 알파.14.1: iframe isolation + chrome scope(!previewFrame)에서는 user
+        // .jogak.* 를 static import하면 chrome vite가 module graph walk로 user
+        // 컴포넌트(.vue/.svelte)까지 transform 시도 → chrome scope에 plugin-vue/
+        // svelte가 없어 fail.
+        //
+        // chrome scope의 entry virtual은 component 없이 stub만 emit한다. 실제
+        // component import + 렌더는 iframe scope (previewFrame=true)의 동일 entry
+        // virtual이 사용자 vite plugins로 처리한다.
+        if (previewIsolation === 'iframe' && !previewFrame) {
+          return `// [jogak] iframe isolation: chrome scope entry stub (component=null)
+import { defaultRegistry } from '@jogak/core'
+defaultRegistry.hydrateEntry(${JSON.stringify(entryId)}, [], null)
+if (import.meta.hot) { import.meta.hot.accept() }
+export {}
+`
+        }
+
         // self-accept: 이 entry 모듈 또는 의존(user .jogak.tsx) 변경 시 Vite가
         // 본 모듈을 자동 re-fetch + 재평가 → hydrateEntry 다시 호출 → registry
         // notify로 useEntry가 in-place 갱신. 만일 이게 없으면 ESM dynamic import
@@ -468,15 +494,20 @@ export {}
       // 새 RegistryEntryMeta 합성 후 클라이언트에 push.
       // entry id는 title 동일이 보장되므로 metaPayload.title을 그대로 써도 되지만,
       // fileToId 매핑을 신뢰원으로 사용한다.
+      const newFramework: JogakFramework =
+        newMeta.framework ?? globalFramework ?? 'react'
+
       const newRegMeta: RegistryEntryMeta = {
         id: entryId,
         title: newMeta.title,
         jogakNames: newMeta.jogakNames,
+        jogakDefaultArgs: newMeta.jogakDefaultArgs,
         autoArgTypes: newAutoArgTypes,
         userArgTypes: newMeta.userArgTypes,
         source: newSource,
         filePath: file,
         metaExtras: newMeta.metaExtras,
+        framework: newFramework,
       }
 
       // entry 모듈만 invalidate (다음 requestEntry에서 새 args/component 받도록).

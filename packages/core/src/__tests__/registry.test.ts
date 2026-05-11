@@ -16,6 +16,7 @@ function makeMeta(idAndTitle: string): RegistryEntryMeta {
     id: idAndTitle,
     title: idAndTitle,
     jogakNames: ['Default'],
+    jogakDefaultArgs: {},
     autoArgTypes: {},
     userArgTypes: {},
     source: '',

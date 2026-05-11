@@ -17,6 +17,15 @@ export interface ArgType {
 }
 
 /**
+ * 컴포넌트가 어떤 framework로 렌더링되어야 하는지 식별하는 union.
+ *
+ * 사이드바 entry의 dispatch 시 어떤 renderer adapter를 사용할지 결정한다.
+ * `JogakMeta.framework` (파일 단위 명시) > `JogakPluginOptions.framework` (전역)
+ * > `'react'` (기본) 순으로 결정된다.
+ */
+export type JogakFramework = 'react' | 'next' | 'web-components' | 'vue' | 'svelte'
+
+/**
  * *.jogak.(ts|tsx) 파일의 default export — 컴포넌트 수준 메타데이터
  */
 export interface JogakMeta {
@@ -25,6 +34,14 @@ export interface JogakMeta {
   readonly argTypes?: Readonly<Record<string, ArgType>>
   readonly tags?: readonly string[]
   readonly parameters?: Readonly<Record<string, unknown>>
+  /**
+   * 알파.14.1: 이 jogak 파일이 어떤 framework의 컴포넌트를 등록하는지 명시.
+   *
+   * 미지정 시 `JogakPluginOptions.framework` 전역값을 사용하며, 그것도 없으면
+   * `'react'` fallback. lazy 모드의 사이드바에서도 dispatch 가능하도록
+   * `RegistryEntryMeta.framework`로 그대로 전파된다.
+   */
+  readonly framework?: JogakFramework
 }
 
 /**
@@ -61,6 +78,17 @@ export interface RegistryEntryMeta {
   readonly title: string
   /** 이 entry의 jogak 객체 이름 목록 — 사이드바에서 sub-item 표시용. */
   readonly jogakNames: readonly string[]
+  /**
+   * 알파.14.1: 각 jogak variant의 default args.
+   *
+   * 동기: iframe isolation 모드에서는 chrome scope가 user .jogak.* 모듈을 평가하지
+   * 않으므로(skipHydrate), `export const Default: Jogak = { args: { ... } }`의 args를
+   * 알 수 없다. parser가 정적으로 추출하여 chrome → iframe postMessage에 동봉한다.
+   *
+   * 키는 jogak.name, 값은 그 variant의 args(직렬화 가능 literal만; 함수/심볼은 제외).
+   * args 자체가 없는 variant는 키 자체가 없음 (빈 객체 대신).
+   */
+  readonly jogakDefaultArgs: Readonly<Record<string, Readonly<Record<string, unknown>>>>
   /** ts-morph로 추출한 자동 argTypes (소스 변경 없으면 정적). */
   readonly autoArgTypes: Readonly<Record<string, ArgType>>
   /** *.jogak 파일에서 사용자가 직접 작성한 argTypes (meta.argTypes). */
@@ -77,6 +105,16 @@ export interface RegistryEntryMeta {
     readonly tags?: readonly string[]
     readonly parameters?: Readonly<Record<string, unknown>>
   }
+  /**
+   * 알파.14.1: lazy 모드에서도 어떤 renderer adapter로 dispatch할지 결정 가능하도록
+   * 사이드바 메타에 framework를 그대로 전파.
+   *
+   * 결정 우선순위:
+   * 1. 파일의 `meta.framework`
+   * 2. `JogakPluginOptions.framework` 전역
+   * 3. `'react'` fallback (이미 registry parser에서 적용됨)
+   */
+  readonly framework?: JogakFramework
 }
 
 /**
@@ -101,7 +139,7 @@ export interface CategoryMetaTree {
  * 각 어댑터(React, Next.js, Web Components, Vue, Svelte)가 구현해야 하는 공통 인터페이스
  */
 export interface JogakAdapter {
-  readonly framework: 'react' | 'next' | 'web-components' | 'vue' | 'svelte'
+  readonly framework: JogakFramework
   render(
     entry: RegistryEntry,
     args: Readonly<Record<string, unknown>>,
@@ -115,7 +153,15 @@ export interface JogakAdapter {
  */
 export interface JogakPluginOptions {
   readonly patterns?: readonly string[]
-  readonly framework?: 'react' | 'next' | 'web-components'
+  /**
+   * 알파.14.1: 사용자 프로젝트 전역의 기본 framework. 각 jogak 파일에 `meta.framework`가
+   * 명시되지 않은 경우 이 값을 사용한다. 둘 다 없으면 `'react'` fallback.
+   *
+   * 단일 framework 전용 프로젝트에서는 본 옵션을 한 번 설정해 모든 entry의 framework를
+   * 일괄 결정한다. 멀티 framework 환경(예: react + vue 혼합)에서는 `meta.framework`를
+   * 파일 단위로 명시한다.
+   */
+  readonly framework?: JogakFramework
   /**
    * prism-react-renderer 테마 이름.
    * 사용 가능한 값: dracula | duotoneDark | duotoneLight | github | jettwaveDark |

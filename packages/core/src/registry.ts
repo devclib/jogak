@@ -227,6 +227,7 @@ export class ComponentRegistry {
         id,
         title: id,
         jogakNames: jogaks.map((j) => j.name),
+        jogakDefaultArgs: {},
         autoArgTypes: {},
         userArgTypes: {},
         source: '',
@@ -497,10 +498,18 @@ function synthMetaFromEntry(entry: RegistryEntry): RegistryEntryMeta {
   const userArgTypes = (entry.meta.argTypes ?? {}) as Readonly<
     Record<string, RegistryEntryMeta['userArgTypes'][string]>
   >
+  // 알파.14.1: register(entry) 경로의 metaonly synth — entry.jogaks의 args를 그대로 보존.
+  const jogakDefaultArgs: Record<string, Record<string, unknown>> = {}
+  for (const j of entry.jogaks) {
+    if (j.args !== undefined) {
+      jogakDefaultArgs[j.name] = j.args as Record<string, unknown>
+    }
+  }
   return {
     id: entry.id,
     title: entry.title,
     jogakNames: entry.jogaks.map((j) => j.name),
+    jogakDefaultArgs,
     autoArgTypes: {},
     userArgTypes,
     source: entry.source ?? '',
@@ -531,6 +540,9 @@ function synthJogakMeta(meta: RegistryEntryMeta, component: unknown): JogakMeta 
     title: meta.title,
     component,
     argTypes: merged,
+    // 알파.14.1: framework 필드 전파 — iframe scope의 preview-entry가 entry.meta.framework로
+    // 어댑터 dispatch 결정. 누락되면 모든 framework가 'react' fallback으로 들어가 마운트 실패.
+    ...(meta.framework !== undefined ? { framework: meta.framework } : {}),
     ...(meta.metaExtras.tags !== undefined ? { tags: meta.metaExtras.tags } : {}),
     ...(meta.metaExtras.parameters !== undefined
       ? { parameters: meta.metaExtras.parameters }

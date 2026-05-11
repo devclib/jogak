@@ -60,10 +60,13 @@ export function formatUsageCode(
 }
 
 function resolveComponentName(entry: RegistryEntry): string {
+  // 알파.14.1: iframe isolation 모드는 chrome scope에 component를 import하지 않으므로
+  // entry.meta.component가 `null`. fallback (title 마지막 segment)으로 직행한다.
   const component = entry.meta.component as
     | { displayName?: unknown; name?: unknown }
+    | null
     | undefined
-  if (component !== undefined) {
+  if (component !== null && component !== undefined) {
     if (typeof component.displayName === 'string' && component.displayName.length > 0) {
       return component.displayName
     }

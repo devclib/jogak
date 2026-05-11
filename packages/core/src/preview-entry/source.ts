@@ -3,8 +3,13 @@
  *
  * 빌더에 무관하게 다음 책임:
  * 1. `defaultRegistry.requestEntry(entryId)`로 사용자 컴포넌트 dynamic import
- * 2. `reactAdapter.render`로 mount
+ * 2. `entry.meta.framework`에 따라 framework adapter dispatch (lazy import)
  * 3. postMessage 프로토콜 (`@jogak/core/preview-entry/protocol`)로 부모와 통신
+ *
+ * 알파.14.1: framework dispatch — iframe scope에 react/vue/svelte/web-components/next
+ * 어댑터를 lazy import. 사용자가 안 쓰는 framework 모듈은 로드 받지 않는다.
+ * 사용자측 컴포넌트는 사용자 vite scope에서 컴파일되므로 plugin-vue/svelte 등이
+ * 정상 작동 (`jogak ui` chrome 5173과 분리된 iframe scope 5174).
  *
  * 어댑터별 차이는 `extraImports` 배열뿐:
  * - vite-adapter: `['virtual:jogak/preview-global-css']`
@@ -14,28 +19,83 @@
  */
 
 const TEMPLATE = `
-import { reactAdapter } from '@jogak/core/renderers/react'
 import { defaultRegistry } from '@jogak/core'
 __EXTRA_IMPORTS__
+
+const adapterPromiseCache = new Map()
+
+function loadAdapter(framework) {
+  const key = framework ?? 'react'
+  const cached = adapterPromiseCache.get(key)
+  if (cached !== undefined) return cached
+  let promise
+  switch (key) {
+    case 'vue':
+      promise = import('@jogak/core/renderers/vue').then((m) => m.vueAdapter)
+      break
+    case 'svelte':
+      promise = import('@jogak/core/renderers/svelte').then((m) => m.svelteAdapter)
+      break
+    case 'web-components': {
+      promise = import('@jogak/core/renderers/web-components').then((m) => ({
+        framework: 'web-components',
+        render(entry, args, container) {
+          const tagName = m.defineJogakElement(entry.meta.component, entry.id)
+          const el = container.firstElementChild instanceof HTMLElement
+            ? container.firstElementChild
+            : (() => {
+                const created = document.createElement(tagName)
+                container.replaceChildren(created)
+                return created
+              })()
+          for (const [k, v] of Object.entries(args ?? {})) {
+            if (typeof v === 'function' || (v !== null && typeof v === 'object')) continue
+            el.setAttribute(k, String(v))
+          }
+        },
+        unmount(container) {
+          container.replaceChildren()
+        },
+      }))
+      break
+    }
+    case 'next':
+    case 'react':
+    default:
+      promise = import('@jogak/core/renderers/react').then((m) => m.reactAdapter)
+  }
+  adapterPromiseCache.set(key, promise)
+  return promise
+}
 
 const rootEl = document.getElementById('jogak-preview-root')
 if (rootEl === null) throw new Error('[jogak] #jogak-preview-root not found')
 
 let currentContainer = null
+let currentAdapter = null
 
 async function renderEntry(entryId, args) {
   const entry = await defaultRegistry.requestEntry(entryId)
+  const framework = entry?.meta?.framework ?? 'react'
+  const adapter = await loadAdapter(framework)
   if (currentContainer === null) {
     currentContainer = document.createElement('div')
     rootEl.replaceChildren(currentContainer)
+  } else if (currentAdapter !== null && currentAdapter !== adapter) {
+    // framework 전환 — 이전 adapter로 unmount 후 새 컨테이너로 교체.
+    try { currentAdapter.unmount(currentContainer) } catch {}
+    currentContainer = document.createElement('div')
+    rootEl.replaceChildren(currentContainer)
   }
-  reactAdapter.render(entry, args, currentContainer)
+  await adapter.render(entry, args, currentContainer)
+  currentAdapter = adapter
 }
 
 function unmount() {
-  if (currentContainer !== null) {
-    reactAdapter.unmount(currentContainer)
+  if (currentContainer !== null && currentAdapter !== null) {
+    try { currentAdapter.unmount(currentContainer) } catch {}
     currentContainer = null
+    currentAdapter = null
   }
 }
 
@@ -43,7 +103,7 @@ window.addEventListener('message', (event) => {
   const data = event.data
   if (data == null || typeof data !== 'object') return
   if (data.type === 'jogak:setProps') {
-    void renderEntry(data.entryId, data.args ?? {}).then(() => {
+    renderEntry(data.entryId, data.args ?? {}).then(() => {
       window.parent.postMessage({ type: 'jogak:rendered', entryId: data.entryId }, '*')
     }).catch((err) => {
       window.parent.postMessage({ type: 'jogak:error', message: String(err?.message ?? err) }, '*')

@@ -5,6 +5,37 @@ All notable changes to Jogak packages are documented here. The repository follow
 
 Version numbers apply to all packages in the workspace (synchronized release).
 
+## [0.1.0-alpha.14.1] — 2026-05-11
+
+### Added
+
+- **`@jogak/core` Vue 3 renderer reactive props**: 동일 component 재 render 시 unmount/remount 대신 `reactive` props mutate. `createApp(wrapper)` + `h(child, reactiveProps)` 패턴 + `nextTick` await로 호출자가 일관된 DOM을 보도록 보장. Vue adapter 단위 테스트 4→6 (mount / reactive update / component swap / undefined prop / unmount / function prop).
+- **`@jogak/core` Svelte 실 컴파일 fixture**: `@sveltejs/vite-plugin-svelte@^4.0.4` devDep + `vite.config.ts`에 svelte plugin + `resolve.conditions=['browser', ...]`. `__fixtures__/Hello.svelte`를 실제 vite-plugin-svelte로 컴파일해서 happy-dom 마운트 검증 (4 cases).
+- **`@jogak/core` Vue SFC + Svelte Props 자동 추출**: `@vue/compiler-sfc`(optional dynamic require)로 `<script setup lang="ts">` defineProps generic 분석, svelte는 정규식 + ts-morph로 `$props()` rune destructure + type annotation 추출. 미설치 사용자는 React-only path 영향 zero. 단위 테스트 +15 (vue 6 + svelte 9).
+- **`@jogak/core` framework 메타 전파**: `JogakMeta.framework?: 'react'|'next'|'web-components'|'vue'|'svelte'` 추가. parser가 default-export literal에서 framework 추출 → `RegistryEntryMeta.framework`로 lazy 사이드바까지 보존. `JogakPluginOptions.framework` 전역값으로 단일 framework 프로젝트 일괄 지정 가능 (jogak.config의 `framework: 'vue'`).
+- **`@jogak/core` jogak default args 전파**: `RegistryEntryMeta.jogakDefaultArgs`. parser가 named export(`Default: Jogak = { args: { ... } }`)의 args literal을 정적으로 추출. iframe isolation 모드에서 chrome scope가 user 메타를 평가하지 않고도 default args를 iframe으로 전달.
+- **`@jogak/core` framework-aware iframe preview entry**: `preview-entry/source.ts`의 TEMPLATE이 entry.meta.framework로 어댑터 lazy import — react/next/vue/svelte/web-components. framework 전환 시 이전 어댑터 unmount → 새 컨테이너 → 새 어댑터 mount.
+- **`@jogak/ui` adapterFor dispatch 라우터**: `packages/ui/src/lib/adapter-for.ts`. dynamic import + Map 캐시 + in-flight Promise 공유. 11개 `reactAdapter` hardcoded 호출(Preview/index, preview-frame)을 `adapterFor(entry.meta.framework ?? 'react')`로 교체. React-only 사용자는 vue/svelte 모듈을 로딩 받지 않음. 단위 테스트 14건.
+
+### Changed
+
+- **`@jogak/core` chrome scope entry virtual stub (iframe isolation)**: `previewIsolation === 'iframe' && !previewFrame`일 때 chrome 측 entry 가상 모듈은 component 없이 hydrate 호출만 emit. chrome vite의 module graph walk가 user `.vue/.svelte`를 transform 시도해 fail하던 결함 해소.
+- **`@jogak/core` `synthJogakMeta` framework 전파**: `RegistryEntryMeta.framework`가 `JogakMeta.framework`로 보존되어 iframe scope의 `entry.meta.framework`로 어댑터 dispatch 가능. 누락 시 모든 framework가 `'react'` fallback으로 들어가 마운트 실패하던 결함 수정.
+- **`@jogak/core` `useEntry` skipHydrate 옵션**: `useEntry(id, { skipHydrate: true })`로 chrome scope에서 component 모듈 import를 건너뛰고 synthetic `RegistryEntry`(component=null, jogaks[].args=메타의 default args)로 `status: 'ready'` 노출. chrome은 메타만 알고 component 마운트는 iframe에 위임.
+- **`@jogak/ui` Preview iframe-aware**: Preview/index.tsx가 `previewIsolation === 'iframe'`일 때 `useEntry` skipHydrate. format-usage가 `component=null` 도 처리하도록 title 기반 fallback 적용.
+
+### Fixed
+
+- **Vue 3 renderer rootProps reactivity**: `createApp(component, rootProps)`의 rootProps가 정적이라 mutate해도 child의 props에 반영되지 않던 문제. wrapper + `h(child, reactiveProps)`로 우회.
+- **vitest의 svelte 모듈 server-side resolve**: vitest happy-dom 환경에서 `svelte`가 server entry로 resolve되어 `mount(...)`가 `lifecycle_function_unavailable`로 fail하던 문제. `resolve.conditions=['browser', 'module', 'import', 'default']` 추가.
+
+### Fixtures
+
+- **`apps/jogak-vue-test` 신규**: Vue 3 전용 e2e fixture (`plugin-vue`만 등록, `jogak.config.framework: 'vue'`).
+- **`apps/jogak-svelte-test` 신규**: Svelte 5 전용 e2e fixture (`plugin-svelte`만 등록, `jogak.config.framework: 'svelte'`).
+
+  Vue와 Svelte는 mutually exclusive — 한 프로젝트에 동시 사용 가정 zero. React/Next/Web Components와 동일 패턴(각자 별 fixture).
+
 ## [0.1.0-alpha.10.3] — 2026-05-11
 
 ### Fixed

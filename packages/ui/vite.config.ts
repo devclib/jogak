@@ -70,6 +70,8 @@ export default defineConfig({
         '@jogak/core/renderers/react',
         '@jogak/core/renderers/next',
         '@jogak/core/renderers/web-components',
+        '@jogak/core/renderers/vue',
+        '@jogak/core/renderers/svelte',
         '@jogak/core/adapters/vite',
         '@jogak/core/adapters/next',
         '@jogak/core/adapters/webpack',

@@ -126,10 +126,19 @@ function _buildEntry(
 
 function _buildMeta(entry: RegistryEntry, autoArgTypes: Record<string, ArgType>): RegistryEntryMeta {
   const userArgTypes = (entry.meta.argTypes ?? {}) as Record<string, ArgType>
+  // 알파.14.1: eager build의 metaonly 사이드바도 jogakDefaultArgs를 가져야 한다.
+  // build 사이클은 hydrated entry로부터 직접 추출.
+  const jogakDefaultArgs: Record<string, Record<string, unknown>> = {}
+  for (const j of entry.jogaks) {
+    if (j.args !== undefined) {
+      jogakDefaultArgs[j.name] = j.args as Record<string, unknown>
+    }
+  }
   return {
     id: entry.id,
     title: entry.title,
     jogakNames: entry.jogaks.map((j) => j.name),
+    jogakDefaultArgs,
     autoArgTypes,
     userArgTypes,
     source: entry.source ?? '',
@@ -138,6 +147,9 @@ function _buildMeta(entry: RegistryEntry, autoArgTypes: Record<string, ArgType>)
       ...(entry.meta.tags !== undefined ? { tags: entry.meta.tags } : {}),
       ...(entry.meta.parameters !== undefined ? { parameters: entry.meta.parameters } : {}),
     },
+    // 알파.14.1: lazy 사이드바 dispatch용 framework 보존. eager build에서는
+    // 사용자 meta.framework가 있으면 그 값, 없으면 undefined (호스트 ui가 fallback 결정).
+    ...(entry.meta.framework !== undefined ? { framework: entry.meta.framework } : {}),
   }
 }
 

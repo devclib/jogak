@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import dts from 'vite-plugin-dts'
+import { svelte } from '@sveltejs/vite-plugin-svelte'
 import { fileURLToPath } from 'url'
 import { dirname, resolve } from 'path'
 
@@ -72,7 +73,15 @@ export default defineConfig({
       exclude: ['src/**/*.test.ts', 'src/**/*.test.tsx', 'src/**/__tests__/**'],
       entryRoot: 'src',
     }),
+    // 알파.14.1: vitest의 svelte renderer 테스트가 실제 .svelte 컴파일 결과를 마운트.
+    // build entries에는 .svelte가 없으므로 산출물 영향은 없음 — test 컴파일 통로만 제공.
+    svelte({ compilerOptions: { runes: true } }),
   ],
+  // 알파.14.1: svelte/vue를 vitest에서 browser entry로 resolve하도록 condition 추가.
+  // lib build의 외부 의존(svelte/vue)에는 영향 없음 — external 처리되므로 conditions 무관.
+  resolve: {
+    conditions: ['browser', 'module', 'import', 'default'],
+  },
   test: {
     environment: 'node',
     // 알파.10: renderers/* 테스트는 React/Preact 컴포넌트를 마운트하므로 happy-dom 필요.

@@ -1,8 +1,8 @@
 /**
  * 알파.14: Vue renderer adapter 단위 테스트.
  *
- * happy-dom 환경에서 실제 vue를 import해 mount/unmount/재마운트 동작을 검증한다.
- * action spy 주입은 jogak core의 injectActions가 책임 — 별도 테스트.
+ * happy-dom 환경에서 실제 vue를 import해 mount/unmount/재 render 동작을 검증한다.
+ * 알파.14.1: 동일 component 재 render는 unmount/remount 대신 reactive props mutate.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { vueAdapter } from './adapter.js'
@@ -40,15 +40,60 @@ describe('vueAdapter', () => {
     expect(el?.textContent).toBe('Hello jogak')
   })
 
-  it('동일 container에 재마운트하면 새 props가 반영된다', async () => {
+  it('동일 component 재 render는 unmount 없이 reactive props만 갱신한다', async () => {
     const Hello = {
       props: ['name'],
       template: '<div data-testid="hello">{{ name }}</div>',
     }
     await vueAdapter.render(makeEntry(Hello), { name: 'first' }, container)
-    expect(container.querySelector('[data-testid="hello"]')?.textContent).toBe('first')
+    const firstEl = container.querySelector('[data-testid="hello"]')
+    expect(firstEl?.textContent).toBe('first')
+
     await vueAdapter.render(makeEntry(Hello), { name: 'second' }, container)
-    expect(container.querySelector('[data-testid="hello"]')?.textContent).toBe('second')
+    const secondEl = container.querySelector('[data-testid="hello"]')
+    // 같은 DOM 노드가 갱신되어야 함 — unmount/remount였다면 새 노드.
+    expect(secondEl).toBe(firstEl)
+    expect(secondEl?.textContent).toBe('second')
+  })
+
+  it('component가 바뀌면 unmount 후 새 component를 마운트한다', async () => {
+    const Hello = {
+      props: ['name'],
+      template: '<div data-testid="hello">{{ name }}</div>',
+    }
+    const Bye = {
+      props: ['name'],
+      template: '<div data-testid="bye">{{ name }}</div>',
+    }
+    await vueAdapter.render(makeEntry(Hello), { name: 'a' }, container)
+    expect(container.querySelector('[data-testid="hello"]')).not.toBeNull()
+    await vueAdapter.render(makeEntry(Bye), { name: 'b' }, container)
+    expect(container.querySelector('[data-testid="hello"]')).toBeNull()
+    expect(container.querySelector('[data-testid="bye"]')?.textContent).toBe('b')
+  })
+
+  it('undefined로 설정된 prop은 control 토글 시 갱신된다', async () => {
+    const Hello = {
+      props: ['name', 'title'],
+      template: '<div data-testid="hello">{{ title ?? "(none)" }}-{{ name }}</div>',
+    }
+    await vueAdapter.render(
+      makeEntry(Hello),
+      { name: 'jogak', title: 'TITLE' },
+      container,
+    )
+    expect(container.querySelector('[data-testid="hello"]')?.textContent).toBe(
+      'TITLE-jogak',
+    )
+    // 사용자가 control에서 title을 비우면 args에서 undefined로 전달
+    await vueAdapter.render(
+      makeEntry(Hello),
+      { name: 'jogak', title: undefined },
+      container,
+    )
+    expect(container.querySelector('[data-testid="hello"]')?.textContent).toBe(
+      '(none)-jogak',
+    )
   })
 
   it('unmount 시 container가 비워진다', async () => {

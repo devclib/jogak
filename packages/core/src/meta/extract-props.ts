@@ -6,7 +6,7 @@
  * ts-morph를 import하지 않는다 — 그래야 vite plugin / build / index 진입점이
  * ts-morph를 부모 V8 isolate에 로드하지 않는다.
  */
-import type { ArgType } from '../types.js'
+import type { ArgType, JogakFramework } from '../types.js'
 
 export interface PropsExtractorOptions {
   readonly tsConfigFilePath?: string
@@ -19,11 +19,22 @@ export interface PropsExtractorOptions {
 export interface ExtractedMetaPayload {
   readonly title: string
   readonly jogakNames: readonly string[]
+  /**
+   * 알파.14.1: 각 jogak variant의 default args (정적 추출, 직렬화 가능 literal만).
+   * 키는 jogak.name. iframe isolation 모드에서 chrome scope가 user 메타를 평가하지
+   * 않고도 default args를 iframe으로 전달할 수 있게 한다.
+   */
+  readonly jogakDefaultArgs: Readonly<Record<string, Readonly<Record<string, unknown>>>>
   readonly userArgTypes: Readonly<Record<string, ArgType>>
   readonly metaExtras: {
     readonly tags?: readonly string[]
     readonly parameters?: Readonly<Record<string, unknown>>
   }
+  /**
+   * 알파.14.1: 파일 단위 framework 명시값 (`'react'|'next'|'web-components'|'vue'|'svelte'`).
+   * 추출 단계에서는 사용자가 명시한 raw 값만 전달 — 전역 fallback은 plugin 측에서 결정.
+   */
+  readonly framework?: JogakFramework
 }
 
 export interface PropsExtractor {

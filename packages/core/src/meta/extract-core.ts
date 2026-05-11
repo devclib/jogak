@@ -2,6 +2,7 @@
  * Pure ts-morph 기반 추출 로직 — 자식 프로세스 entry에서 사용한다.
  * 부모(client) / 부모가 import하는 plugin 측에는 ts-morph가 로드되지 않게 하는 게 핵심.
  */
+import { readFileSync } from 'node:fs'
 import {
   Node,
   Project,
@@ -12,7 +13,9 @@ import {
   type Symbol as MorphSymbol,
   type Type,
 } from 'ts-morph'
-import type { ArgType } from '../types.js'
+import type { ArgType, JogakFramework } from '../types.js'
+import { extractVuePropsFromSource } from './extract-vue.js'
+import { extractSveltePropsFromSource } from './extract-svelte.js'
 
 export interface ExtractCoreOptions {
   readonly tsConfigFilePath?: string
@@ -25,11 +28,23 @@ export interface ExtractCoreOptions {
 export interface ExtractedMeta {
   readonly title: string
   readonly jogakNames: readonly string[]
+  /**
+   * 알파.14.1: 각 jogak variant의 default args (정적 추출, JSON 직렬화 가능 literal만).
+   * `Jogak.args` 객체의 string/number/boolean/null/array/object literal 값들.
+   * 함수/심볼/식별자 참조 등은 skip.
+   */
+  readonly jogakDefaultArgs: Readonly<Record<string, Readonly<Record<string, unknown>>>>
   readonly userArgTypes: Readonly<Record<string, ArgType>>
   readonly metaExtras: {
     readonly tags?: readonly string[]
     readonly parameters?: Readonly<Record<string, unknown>>
   }
+  /**
+   * 알파.14.1: 사용자가 default export에 `framework: 'vue' | 'svelte' | ...`를
+   * 명시한 경우 그 값. 미지정 시 undefined → 호출자(plugin)가 전역 옵션/fallback
+   * 적용.
+   */
+  readonly framework?: JogakFramework
 }
 
 export interface InProcessExtractor {
@@ -73,11 +88,24 @@ export function createInProcessExtractor(options: ExtractCoreOptions = {}): InPr
 
   return {
     extract(filePath) {
+      // 알파.14.1: 확장자 기반 dispatch. .vue/.svelte는 별도 파이프라인.
+      // 둘 다 in-memory ts-morph project를 별도로 만들어 — 본 InProcessExtractor의
+      // main project(react .tsx용)와 분리되어 cross-talk zero.
+      if (filePath.endsWith('.vue')) {
+        return extractVuePropsFromFile(filePath)
+      }
+      if (filePath.endsWith('.svelte')) {
+        return extractSveltePropsFromFile(filePath)
+      }
       const sourceFile = loadOrRefresh(filePath)
       if (sourceFile === undefined) return {}
       return extractFromSourceFile(sourceFile)
     },
     extractMeta(filePath) {
+      // 알파.14.1: .vue/.svelte는 jogak meta(default-export object literal)를 가질 수 없으므로
+      // extractMeta 자체가 부적합. 호출자는 동반 `.jogak.(ts|tsx)`에서 메타를 가져온다.
+      // 그래도 falsy fallback으로 안전하게 undefined 반환.
+      if (filePath.endsWith('.vue') || filePath.endsWith('.svelte')) return undefined
       const sourceFile = loadOrRefresh(filePath)
       if (sourceFile === undefined) return undefined
       return extractMetaFromSourceFile(sourceFile)
@@ -85,6 +113,40 @@ export function createInProcessExtractor(options: ExtractCoreOptions = {}): InPr
     dispose() {
       project = undefined
     },
+  }
+}
+
+/**
+ * 알파.14.1: .vue 파일을 읽어 props 추출. compiler 미설치/IO 실패 시 빈 객체.
+ */
+function extractVuePropsFromFile(filePath: string): Record<string, ArgType> {
+  let source: string
+  try {
+    source = readFileSync(filePath, 'utf8')
+  } catch {
+    return {}
+  }
+  try {
+    return extractVuePropsFromSource({ source, virtualPath: filePath })
+  } catch {
+    return {}
+  }
+}
+
+/**
+ * 알파.14.1: .svelte 파일을 읽어 props 추출. IO/parse 실패 시 빈 객체.
+ */
+function extractSveltePropsFromFile(filePath: string): Record<string, ArgType> {
+  let source: string
+  try {
+    source = readFileSync(filePath, 'utf8')
+  } catch {
+    return {}
+  }
+  try {
+    return extractSveltePropsFromSource({ source, virtualPath: filePath })
+  } catch {
+    return {}
   }
 }
 
@@ -488,8 +550,11 @@ export function extractMetaFromSourceFile(sourceFile: SourceFile): ExtractedMeta
   const userArgTypes = readArgTypesProperty(defaultObj)
   const tags = readStringArrayProperty(defaultObj, 'tags')
   const parameters = readJsonObjectProperty(defaultObj, 'parameters')
+  // 알파.14.1: framework string literal 추출. 알려진 값만 통과.
+  const framework = readFrameworkProperty(defaultObj)
 
   const jogakNames = collectNamedExportJogakNames(sourceFile)
+  const jogakDefaultArgs = collectNamedExportJogakArgs(sourceFile)
 
   const metaExtras: ExtractedMeta['metaExtras'] = {
     ...(tags !== undefined ? { tags } : {}),
@@ -499,9 +564,25 @@ export function extractMetaFromSourceFile(sourceFile: SourceFile): ExtractedMeta
   return {
     title,
     jogakNames,
+    jogakDefaultArgs,
     userArgTypes,
     metaExtras,
+    ...(framework !== undefined ? { framework } : {}),
   }
+}
+
+const KNOWN_FRAMEWORKS: ReadonlySet<JogakFramework> = new Set<JogakFramework>([
+  'react',
+  'next',
+  'web-components',
+  'vue',
+  'svelte',
+])
+
+function readFrameworkProperty(obj: ObjectLiteralExpression): JogakFramework | undefined {
+  const value = readStringPropertyLiteral(obj, 'framework')
+  if (value === undefined) return undefined
+  return KNOWN_FRAMEWORKS.has(value as JogakFramework) ? (value as JogakFramework) : undefined
 }
 
 function findDefaultExportObjectLiteral(
@@ -732,4 +813,57 @@ function collectNamedExportJogakNames(sourceFile: SourceFile): readonly string[]
     }
   }
   return out
+}
+
+/**
+ * 알파.14.1: 각 jogak variant의 `args` 객체에서 정적 literal 값들을 추출한다.
+ * 키는 jogak.name, 값은 그 variant의 args 객체. 추출 가능한 값(string/number/
+ * boolean/null/array/object literal)만 보존하고 함수/식별자 참조는 skip.
+ */
+function collectNamedExportJogakArgs(
+  sourceFile: SourceFile,
+): Record<string, Record<string, unknown>> {
+  const out: Record<string, Record<string, unknown>> = {}
+  for (const stmt of sourceFile.getVariableStatements()) {
+    if (!stmt.isExported()) continue
+    if (stmt.hasDefaultKeyword()) continue
+    for (const decl of stmt.getDeclarations()) {
+      const init = decl.getInitializer()
+      if (init === undefined) continue
+      const objLit = unwrapToObjectLiteral(init)
+      if (objLit === undefined) continue
+      const jogakName = readStringPropertyLiteral(objLit, 'name')
+      if (jogakName === undefined) continue
+      const argsProp = objLit.getProperty('args')
+      if (argsProp === undefined || !Node.isPropertyAssignment(argsProp)) continue
+      const argsInit = argsProp.getInitializer()
+      if (argsInit === undefined) continue
+      const argsObj = unwrapToObjectLiteral(argsInit)
+      if (argsObj === undefined) continue
+      const argsRecord: Record<string, unknown> = {}
+      for (const prop of argsObj.getProperties()) {
+        if (!Node.isPropertyAssignment(prop)) continue
+        const key = readPropertyKey(prop)
+        if (key === undefined) continue
+        const propInit = prop.getInitializer()
+        if (propInit === undefined) continue
+        const value = readJsonValue(propInit)
+        // readJsonValue가 undefined를 반환하는 경우(함수/식별자 등)는 skip.
+        if (value !== undefined) argsRecord[key] = value
+      }
+      out[jogakName] = argsRecord
+    }
+  }
+  return out
+}
+
+function readPropertyKey(prop: PropertyAssignment): string | undefined {
+  const nameNode = prop.getNameNode()
+  if (Node.isIdentifier(nameNode) || Node.isStringLiteral(nameNode)) {
+    return nameNode.getText().replace(/^['"`]|['"`]$/g, '')
+  }
+  if (Node.isNoSubstitutionTemplateLiteral(nameNode)) {
+    return nameNode.getLiteralValue()
+  }
+  return undefined
 }

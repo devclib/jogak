@@ -5,6 +5,21 @@ All notable changes to Jogak packages are documented here. The repository follow
 
 Version numbers apply to all packages in the workspace (synchronized release).
 
+## [0.1.0-alpha.14.1] — 2026-05-11
+
+### Added
+
+- **`adapterFor()` dispatch 라우터** (`src/lib/adapter-for.ts`): framework별 어댑터를 dynamic import + Map 캐시로 lazy 로드. 단위 테스트 14건.
+
+### Changed
+
+- **Preview / preview-frame의 hardcoded `reactAdapter` 제거**: 11개 호출을 `adapterFor(entry.meta.framework ?? 'react')`로 교체. React-only 사용자는 vue/svelte 모듈을 받지 않음.
+- **Preview iframe-aware**: `previewIsolation === 'iframe'`일 때 `useEntry` skipHydrate로 chrome scope에서 component import를 건너뛰고 synthetic entry로 IframeMount에 위임.
+
+### Fixed
+
+- **`format-usage`의 `component=null` 처리**: iframe isolation 모드 synthetic entry는 component=null. `resolveComponentName`이 title 마지막 segment fallback으로 직행.
+
 ## [0.1.0-alpha.10.3] — 2026-05-11
 
 ### Fixed
