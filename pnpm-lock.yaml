@@ -351,10 +351,10 @@ importers:
   packages/cli:
     dependencies:
       '@jogak/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
       '@jogak/ui':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../ui
       '@vitejs/plugin-react':
         specifier: ^4.3.0
