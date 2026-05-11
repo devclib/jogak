@@ -10,8 +10,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { RegistryEntry } from '../../index.js'
 
 const mockInstance = Symbol('svelte-instance')
-const mountFn = vi.fn(() => mockInstance)
-const unmountFn = vi.fn()
+type MountArgs = [unknown, { target: HTMLElement; props?: Record<string, unknown> }]
+const mountFn = vi.fn<(...args: MountArgs) => unknown>(() => mockInstance)
+const unmountFn = vi.fn<(instance: unknown) => void>()
 
 vi.mock('svelte', () => ({
   mount: mountFn,

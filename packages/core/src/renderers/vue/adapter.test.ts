@@ -8,16 +8,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { vueAdapter } from './adapter.js'
 import type { RegistryEntry } from '../../index.js'
 
-function makeEntry(component: unknown, argTypes?: Record<string, unknown>): RegistryEntry {
+function makeEntry(component: unknown): RegistryEntry {
   return {
     id: 'X',
     title: 'X',
     jogaks: [],
-    meta: {
-      title: 'X',
-      component,
-      ...(argTypes !== undefined ? { argTypes: argTypes as RegistryEntry['meta']['argTypes'] } : {}),
-    },
+    meta: { title: 'X', component },
   }
 }
 
