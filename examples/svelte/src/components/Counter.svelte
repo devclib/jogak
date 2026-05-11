@@ -1,11 +1,16 @@
 <script lang="ts">
+  import { untrack } from 'svelte'
+
   let {
     initial = 0,
     step = 1,
     label = 'count',
   }: { initial?: number; step?: number; label?: string } = $props()
 
-  let value = $state(initial)
+  // initial 프롭은 최초 1회만 사용 — 이후 사용자 클릭으로 mutate.
+  // 직접 $state(initial)은 svelte5 state_referenced_locally 경고를 유발하므로
+  // untrack으로 의도를 명시한다.
+  let value = $state(untrack(() => initial))
 </script>
 
 <div
