@@ -45,25 +45,27 @@ export interface BuildCliArgs {
 }
 
 export async function runBuildCommand(args: BuildCliArgs): Promise<void> {
-  if (args.emitRegistry) {
-    const result = await generateRegistryFile(
-      args.tsConfigFilePath !== undefined
-        ? {
-            patterns: args.patterns,
-            cwd: args.cwd,
-            outFile: '.jogak/registry.ts',
-            tsConfigFilePath: args.tsConfigFilePath,
-          }
-        : {
-            patterns: args.patterns,
-            cwd: args.cwd,
-            outFile: '.jogak/registry.ts',
-          },
-    )
-    process.stdout.write(
-      `[jogak] registry regenerated (${result.fileCount.toString()} files)\n`,
-    )
-  }
+  // 알파.11: registry는 vite/webpack/next 어댑터 scaffold가 항상 import하는 필수 파일.
+  // CLI build 시 무조건 사전 생성한다 (`--emit-registry` 옵션은 deprecated, 이제 always-on).
+  // emitRegistry=false로 명시되어도 무시 — 어댑터가 깨지는 것을 방지.
+  void args.emitRegistry
+  const registryResult = await generateRegistryFile(
+    args.tsConfigFilePath !== undefined
+      ? {
+          patterns: args.patterns,
+          cwd: args.cwd,
+          outFile: '.jogak/registry.ts',
+          tsConfigFilePath: args.tsConfigFilePath,
+        }
+      : {
+          patterns: args.patterns,
+          cwd: args.cwd,
+          outFile: '.jogak/registry.ts',
+        },
+  )
+  process.stdout.write(
+    `[jogak] registry generated (${registryResult.fileCount.toString()} files)\n`,
+  )
 
   const builderName: Exclude<BuilderName, 'custom'> =
     args.builder !== undefined && args.builder !== 'custom'

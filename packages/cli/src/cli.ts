@@ -188,7 +188,7 @@ build OPTIONS
   --base <string>                  public path (기본: './')
   --minify <mode>                  true|false|esbuild|terser (기본: esbuild)
   --sourcemap                      소스맵 생성 (기본: false)
-  --emit-registry                  build 도중 .jogak/registry.ts도 생성 (기본: false)
+  --emit-registry                  (deprecated, 알파.11부터 항상 생성)
 `)
 }
 
