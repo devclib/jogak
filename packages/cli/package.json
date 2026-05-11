@@ -1,6 +1,6 @@
 {
   "name": "@jogak/cli",
-  "version": "0.1.0-alpha.13",
+  "version": "0.1.0-alpha.13.1",
   "description": "jogak dev / build / generate — CLI for the Jogak component showcase.",
   "keywords": [
     "jogak",
@@ -49,10 +49,12 @@
     "prepack": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@jogak/core": "workspace:*",
-    "@jogak/ui": "workspace:*",
     "vite": "^6.0.0",
     "@vitejs/plugin-react": "^4.3.0"
+  },
+  "peerDependencies": {
+    "@jogak/core": "workspace:^",
+    "@jogak/ui": "workspace:^"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",
