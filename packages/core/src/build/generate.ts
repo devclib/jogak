@@ -1,4 +1,5 @@
 import { glob } from 'glob'
+import { existsSync } from 'node:fs'
 import { mkdir, writeFile, readFile } from 'node:fs/promises'
 import { dirname, relative, resolve } from 'node:path'
 import { createPropsExtractor } from '../meta/extract-props.js'
@@ -34,9 +35,18 @@ export async function generateRegistryFile(options: GenerateOptions): Promise<Ge
 
   const files = (await glob(options.patterns as string[], { cwd, absolute: true })).sort()
 
+  // 알파.12: tsConfig 자동 감지. 사용자가 명시하지 않아도 cwd/tsconfig.json이 있으면 사용 —
+  // 그래야 ts-morph가 cross-file declaration(예: badge.jogak.tsx → badge.tsx)을 해석해
+  // JSDoc description/@default가 정확히 추출된다.
+  const resolvedTsConfig =
+    options.tsConfigFilePath ??
+    (existsSync(resolve(cwd, 'tsconfig.json'))
+      ? resolve(cwd, 'tsconfig.json')
+      : undefined)
+
   const extractor =
-    options.tsConfigFilePath !== undefined
-      ? createPropsExtractor({ tsConfigFilePath: options.tsConfigFilePath })
+    resolvedTsConfig !== undefined
+      ? createPropsExtractor({ tsConfigFilePath: resolvedTsConfig })
       : createPropsExtractor()
 
   const sources: string[] = []

@@ -104,8 +104,23 @@ export function extractFromSourceFile(sourceFile: SourceFile): Record<string, Ar
   const propsType = resolvePropsType(componentType, declaration)
   if (propsType === undefined) return {}
 
+  // 알파.12: TypeScript compiler API의 getDocumentationComment/getJsDocTags는 typeChecker
+  // 인자가 필수. ts-morph에서 명시적으로 가져와 cross-file resolution을 활성화한다.
+  const typeChecker = sourceFile.getProject().getTypeChecker().compilerObject
+
   // 알파.12: 컴포넌트 함수 매개변수의 destructure default 수집 (@default 태그가 없을 때 fallback).
   const destructureDefaults = collectDestructureDefaults(componentType, declaration)
+
+  // 알파.12: Props interface/type alias의 PropertySignature를 사전 수집해, 사용자 JSDoc을
+  // 정확히 잡는다. propsType.getProperties()는 함수 매개변수가 object binding pattern일 때
+  // BindingElement symbol(JSDoc 없음)을 반환할 수 있어 fallback 경로가 필요.
+  // 1차: propsType의 symbol 기반. 2차: 매개변수 type annotation의 참조 declaration 추적.
+  const propertySignatures = {
+    ...collectPropertySignaturesFromDeclaration(
+      findPropsTypeDeclaration(componentType, declaration),
+    ),
+    ...collectPropertySignatures(propsType),
+  }
 
   const result: Record<string, ArgType> = {}
   for (const propSymbol of propsType.getProperties()) {
@@ -116,8 +131,14 @@ export function extractFromSourceFile(sourceFile: SourceFile): Record<string, Ar
 
     const required = !isOptionalSymbol(propSymbol)
     // 알파.12: JSDoc description + defaultValue 추출.
-    const description = readDescription(propSymbol)
-    const jsDocDefault = readJsDocDefault(propSymbol)
+    // 1차: typeChecker 기반 (compilerSymbol.getDocumentationComment) — interface 멤버일 때 동작.
+    // 2차: PropertySignature 직접 — destructure inferred symbol일 때 fallback.
+    const description =
+      readDescription(propSymbol, typeChecker) ??
+      readDescriptionFromSignature(propertySignatures[propName])
+    const jsDocDefault =
+      readJsDocDefault(propSymbol, typeChecker) ??
+      readDefaultFromSignature(propertySignatures[propName])
     const defaultValue = jsDocDefault ?? destructureDefaults[propName]
 
     const argType: ArgType = {
@@ -136,10 +157,16 @@ export function extractFromSourceFile(sourceFile: SourceFile): Record<string, Ar
 
 /**
  * 알파.12: ts-morph Symbol의 JSDoc 본문을 합산해 description 문자열을 반환.
- * 본문이 비어있으면 undefined.
+ *
+ * TypeScript compiler API의 `Symbol.getDocumentationComment(typeChecker)`를 명시적
+ * typeChecker로 호출 — 이 인자 없으면 cross-file resolution에서 빈 결과 반환.
+ * declaration 기반 fallback은 typeChecker가 inferred symbol을 만든 경우 declaration이
+ * 비어있어 신뢰 불가.
  */
-function readDescription(symbol: MorphSymbol): string | undefined {
-  const parts = symbol.compilerSymbol.getDocumentationComment(undefined)
+function readDescription(symbol: MorphSymbol, typeChecker: unknown): string | undefined {
+  const parts = symbol.compilerSymbol.getDocumentationComment(
+    typeChecker as Parameters<typeof symbol.compilerSymbol.getDocumentationComment>[0],
+  )
   if (parts.length === 0) return undefined
   const joined = parts
     .map((p) => p.text)
@@ -149,13 +176,13 @@ function readDescription(symbol: MorphSymbol): string | undefined {
 }
 
 /**
- * 알파.12: JSDoc `@default` 태그 값을 파싱해 가능하면 JSON literal로,
- * 그렇지 않으면 트림된 문자열로 반환. 태그가 없으면 undefined.
- *
- * Storybook 컨벤션과 호환: `@default 'primary'` 또는 `@default 42` 등.
+ * 알파.12: JSDoc `@default` 태그를 typeChecker 컨텍스트로 안정적으로 읽는다.
+ * `'foo'` / `42` / `true` / `{}` 등 literal은 파싱, 나머지는 원본 문자열 그대로.
  */
-function readJsDocDefault(symbol: MorphSymbol): unknown {
-  const tags = symbol.compilerSymbol.getJsDocTags(undefined)
+function readJsDocDefault(symbol: MorphSymbol, typeChecker: unknown): unknown {
+  const tags = symbol.compilerSymbol.getJsDocTags(
+    typeChecker as Parameters<typeof symbol.compilerSymbol.getJsDocTags>[0],
+  )
   for (const tag of tags) {
     if (tag.name !== 'default') continue
     const raw = (tag.text ?? []).map((p) => p.text).join('').trim()
@@ -198,6 +225,87 @@ function collectDestructureDefaults(
     }
   }
   return result
+}
+
+/**
+ * 알파.12: Props type의 interface/type alias declaration에서 PropertySignature를
+ * 직접 수집한다. type alias가 intersection이면 모든 부분을 traverse.
+ *
+ * 반환: propName → JSDocable node (PropertySignature 또는 PropertyDeclaration).
+ */
+type JsDocableSignature = { getJsDocs(): ReadonlyArray<{
+  getDescription(): string
+  getTags(): ReadonlyArray<{ getTagName(): string; getCommentText(): string | undefined }>
+}> }
+
+function collectPropertySignaturesFromDeclaration(
+  decl: Node | undefined,
+): Record<string, JsDocableSignature> {
+  const result: Record<string, JsDocableSignature> = {}
+  if (decl === undefined) return result
+  if (Node.isInterfaceDeclaration(decl) || Node.isTypeLiteral(decl)) {
+    for (const member of decl.getProperties()) {
+      result[member.getName()] = member
+    }
+  } else if (Node.isTypeAliasDeclaration(decl)) {
+    const typeNode = decl.getTypeNode()
+    if (typeNode !== undefined && Node.isTypeLiteral(typeNode)) {
+      for (const member of typeNode.getProperties()) {
+        result[member.getName()] = member
+      }
+    }
+  }
+  return result
+}
+
+function collectPropertySignatures(propsType: Type): Record<string, JsDocableSignature> {
+  const result: Record<string, JsDocableSignature> = {}
+  const symbol = propsType.getSymbol() ?? propsType.getAliasSymbol()
+  if (symbol === undefined) return result
+  for (const decl of symbol.getDeclarations()) {
+    if (Node.isInterfaceDeclaration(decl)) {
+      for (const member of decl.getProperties()) {
+        result[member.getName()] = member
+      }
+    } else if (Node.isTypeLiteral(decl)) {
+      for (const member of decl.getProperties()) {
+        result[member.getName()] = member
+      }
+    } else if (Node.isTypeAliasDeclaration(decl)) {
+      // type alias가 intersection/union/literal인 경우 재귀 — 단순 type literal만 지원.
+      const typeNode = decl.getTypeNode()
+      if (typeNode !== undefined && Node.isTypeLiteral(typeNode)) {
+        for (const member of typeNode.getProperties()) {
+          result[member.getName()] = member
+        }
+      }
+    }
+  }
+  return result
+}
+
+function readDescriptionFromSignature(
+  sig: JsDocableSignature | undefined,
+): string | undefined {
+  if (sig === undefined) return undefined
+  for (const jsDoc of sig.getJsDocs()) {
+    const raw = jsDoc.getDescription().trim()
+    if (raw !== '') return raw
+  }
+  return undefined
+}
+
+function readDefaultFromSignature(sig: JsDocableSignature | undefined): unknown {
+  if (sig === undefined) return undefined
+  for (const jsDoc of sig.getJsDocs()) {
+    for (const tag of jsDoc.getTags()) {
+      if (tag.getTagName() !== 'default') continue
+      const raw = (tag.getCommentText() ?? '').trim()
+      if (raw === '') continue
+      return parseLiteralOrString(raw)
+    }
+  }
+  return undefined
 }
 
 function readBindingElementPropName(el: BindingElement): string | undefined {
@@ -257,6 +365,45 @@ function resolvePropsType(componentType: Type, location: Node): Type | undefined
   if (firstParam === undefined) return undefined
   const valueDecl = firstParam.getValueDeclaration() ?? location
   return firstParam.getTypeAtLocation(valueDecl)
+}
+
+/**
+ * 알파.12: 컴포넌트의 첫 매개변수 type annotation을 추적해, 사용자가 작성한
+ * interface/type alias declaration의 PropertySignature 목록을 가져온다.
+ *
+ * `type.getSymbol()`이 함수 매개변수가 destructure일 때 inferred symbol을 반환해
+ * 사용자 JSDoc을 잃는 문제를 우회한다.
+ */
+function findPropsTypeDeclaration(componentType: Type, location: Node): Node | undefined {
+  const callSignatures = componentType.getCallSignatures()
+  const firstSignature = callSignatures[0]
+  if (firstSignature === undefined) return undefined
+  const params = firstSignature.getParameters()
+  const firstParam = params[0]
+  if (firstParam === undefined) return undefined
+  const valueDecl = firstParam.getValueDeclaration() ?? location
+  if (!Node.isParameterDeclaration(valueDecl)) return undefined
+  const typeNode = valueDecl.getTypeNode()
+  if (typeNode === undefined) return undefined
+  // TypeReference → 참조된 type alias/interface declaration 추적
+  if (Node.isTypeReference(typeNode)) {
+    const typeName = typeNode.getTypeName()
+    const symbol = typeName.getSymbol()
+    if (symbol === undefined) return undefined
+    for (const decl of symbol.getDeclarations()) {
+      if (
+        Node.isInterfaceDeclaration(decl) ||
+        Node.isTypeAliasDeclaration(decl) ||
+        Node.isTypeLiteral(decl)
+      ) {
+        return decl
+      }
+    }
+    return undefined
+  }
+  // 인라인 type literal
+  if (Node.isTypeLiteral(typeNode)) return typeNode
+  return undefined
 }
 
 function isOptionalSymbol(symbol: MorphSymbol): boolean {
