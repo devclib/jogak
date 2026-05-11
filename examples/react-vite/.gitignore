@@ -1,0 +1,6 @@
+node_modules/
+dist/
+.jogak/
+*.tsbuildinfo
+.DS_Store
+*.log

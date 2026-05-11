@@ -1,5 +1,5 @@
 packages:
   - 'packages/*'
-  - 'examples/*'
   - 'apps/*'
   - 'benchmarks/baselines/*'
+# examples/*는 워크스페이스에서 제외 — 외부 개발자가 폴더만 복사해 npm install로 동작하도록.

@@ -1,0 +1,27 @@
+{
+  "name": "@jogak-example/nextjs",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "jogak:dev": "jogak dev",
+    "jogak:build": "jogak build"
+  },
+  "dependencies": {
+    "@jogak/core": "^0.1.0-alpha.14.2",
+    "next": "^15.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@jogak/cli": "^0.1.0-alpha.14.2",
+    "@tailwindcss/postcss": "^4.2.4",
+    "@types/node": "^20.14.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "tailwindcss": "^4.2.4",
+    "typescript": "^5.5.0"
+  }
+}

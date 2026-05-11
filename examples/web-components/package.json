@@ -1,0 +1,23 @@
+{
+  "name": "@jogak-example/web-components",
+  "private": true,
+  "type": "module",
+  "version": "0.0.0",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "jogak:dev": "jogak dev",
+    "jogak:build": "jogak build"
+  },
+  "dependencies": {
+    "@jogak/core": "^0.1.0-alpha.14.2",
+    "preact": "^10.23.0"
+  },
+  "devDependencies": {
+    "@jogak/cli": "^0.1.0-alpha.14.2",
+    "@preact/preset-vite": "^2.8.0",
+    "typescript": "^5.5.0",
+    "vite": "^6.0.0"
+  }
+}
