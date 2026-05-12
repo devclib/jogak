@@ -98,6 +98,26 @@ const meta = {
 } satisfies JogakMeta
 ```
 
+## 예제
+
+바로 실행 가능한 시작 템플릿이 [`examples/`](./examples/)에 있습니다. 각 디렉토리는 독립 npm 프로젝트로, 폴더만 복사해 가져가도 `pnpm install`이 그대로 동작합니다.
+
+| 디렉토리 | 프레임워크 | 시연 포인트 |
+|---------|----------|-----------|
+| [`react-vite/`](./examples/react-vite/) | React 19 + Vite 6 | Tailwind v4, Button/Card/Counter의 풍부한 `argTypes` |
+| [`nextjs/`](./examples/nextjs/) | Next.js 15 (App Router) | Server Component + Client Component 혼합 |
+| [`vue/`](./examples/vue/) | Vue 3 SFC | `defineProps` + reactive Props 컨트롤러 |
+| [`svelte/`](./examples/svelte/) | Svelte 5 runes | `$props()` + `$state()` |
+| [`web-components/`](./examples/web-components/) | Preact + Custom Elements | Shadow DOM 격리, 임의의 호스트 페이지에서 사용 가능 |
+
+```bash
+cd examples/react-vite        # 원하는 프레임워크 선택
+pnpm install                  # npm에서 @jogak/* 설치
+pnpm jogak:dev                # http://localhost:5173
+```
+
+> `examples/*`는 pnpm 워크스페이스에서 의도적으로 제외되어 있어, 각 예제가 publish된 `@jogak/*` 패키지를 외부 사용자와 동일한 방식으로 사용합니다. 라이브러리 자체를 개발하는 중에 실행하려면 예제 디렉토리에서 `pnpm install --ignore-workspace`를 사용하세요.
+
 ## CLI
 
 ```

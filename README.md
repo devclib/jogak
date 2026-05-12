@@ -98,6 +98,26 @@ const meta = {
 } satisfies JogakMeta
 ```
 
+## Examples
+
+Ready-to-run starter templates live in [`examples/`](./examples/). Each one is a self-contained npm project — copy a folder out of the repo and `pnpm install` works as-is.
+
+| Directory | Framework | Highlights |
+|-----------|-----------|------------|
+| [`react-vite/`](./examples/react-vite/) | React 19 + Vite 6 | Tailwind v4, Button/Card/Counter with rich `argTypes` |
+| [`nextjs/`](./examples/nextjs/) | Next.js 15 (App Router) | Server Component + Client Component side by side |
+| [`vue/`](./examples/vue/) | Vue 3 SFC | `defineProps` + reactive Props controller |
+| [`svelte/`](./examples/svelte/) | Svelte 5 runes | `$props()` + `$state()` |
+| [`web-components/`](./examples/web-components/) | Preact + Custom Elements | Shadow DOM isolation, usable in any host page |
+
+```bash
+cd examples/react-vite        # pick a framework
+pnpm install                  # installs @jogak/* from npm
+pnpm jogak:dev                # http://localhost:5173
+```
+
+> `examples/*` is intentionally excluded from the pnpm workspace, so each example exercises the published `@jogak/*` packages exactly as an external user would. To run them while developing the library itself, use `pnpm install --ignore-workspace` inside the example directory.
+
 ## CLI
 
 ```
