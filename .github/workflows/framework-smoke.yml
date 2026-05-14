@@ -1,0 +1,66 @@
+name: Framework Smoke
+
+# Vue / Svelte fixture에서 jogak dev 마운트 + iframe scope의 어댑터 dispatch가
+# 정상 동작하는지 확인하는 e2e smoke. React/Next은 visual-regression이 이미 보호.
+
+on:
+  pull_request:
+    paths:
+      - 'packages/core/**'
+      - 'packages/cli/**'
+      - 'packages/ui/**'
+      - 'apps/jogak-vue-test/**'
+      - 'apps/jogak-svelte-test/**'
+      - 'e2e/framework-smoke.mjs'
+      - '.github/workflows/framework-smoke.yml'
+      - 'pnpm-lock.yaml'
+      - 'package.json'
+  push:
+    branches: [main]
+    paths:
+      - 'packages/core/**'
+      - 'packages/cli/**'
+      - 'packages/ui/**'
+      - 'apps/jogak-vue-test/**'
+      - 'apps/jogak-svelte-test/**'
+      - 'e2e/framework-smoke.mjs'
+      - '.github/workflows/framework-smoke.yml'
+      - 'pnpm-lock.yaml'
+      - 'package.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    name: ${{ matrix.fixture }} iframe mount
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        fixture: [vue, svelte]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Build core / ui / cli
+        run: pnpm --filter @jogak/core --filter @jogak/ui --filter @jogak/cli build
+
+      - name: Install Playwright chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Smoke ${{ matrix.fixture }}
+        run: node e2e/framework-smoke.mjs --fixture=${{ matrix.fixture }}
