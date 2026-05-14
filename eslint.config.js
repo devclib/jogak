@@ -15,6 +15,7 @@ export default [
   // spec §3 외 추가 결정 (보고서 § "spec과 다른 결정"):
   //   - packages/ui/src/examples/**       — 쇼케이스 fixture(사용자 컴포넌트 시뮬레이션). jogak inline style forbid 검사 대상 밖.
   //   - apps/**                           — 사용자 데모 앱. jogak 라이브러리 코드가 아님.
+  //   - examples/**                       — 외부 공개용 starter (npm install 패턴). 사용자 환경 모방이므로 inline style 자유.
   //   - benchmarks/baselines/**           — 외부 도구(storybook 등) 빌드 산출물 비교용 baseline.
   //   - benchmarks/**/dist/**             — 벤치마크 빌드 산출물.
   //   - **/storybook-static/**            — storybook 빌드 산출물 (위 baselines 안에 위치).
@@ -30,6 +31,7 @@ export default [
       'benchmarks/baselines/**',
       'packages/ui/src/examples/**',
       'apps/**',
+      'examples/**',
     ],
   },
 
