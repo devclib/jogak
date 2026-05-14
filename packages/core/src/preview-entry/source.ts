@@ -37,26 +37,53 @@ function loadAdapter(framework) {
       promise = import('@jogak/core/renderers/svelte').then((m) => m.svelteAdapter)
       break
     case 'web-components': {
-      promise = import('@jogak/core/renderers/web-components').then((m) => ({
-        framework: 'web-components',
-        render(entry, args, container) {
-          const tagName = m.defineJogakElement(entry.meta.component, entry.id)
-          const el = container.firstElementChild instanceof HTMLElement
-            ? container.firstElementChild
-            : (() => {
-                const created = document.createElement(tagName)
-                container.replaceChildren(created)
-                return created
-              })()
-          for (const [k, v] of Object.entries(args ?? {})) {
-            if (typeof v === 'function' || (v !== null && typeof v === 'object')) continue
-            el.setAttribute(k, String(v))
-          }
-        },
-        unmount(container) {
-          container.replaceChildren()
-        },
-      }))
+      promise = import('@jogak/core/renderers/web-components').then((m) => {
+        const entryToTagName = (entryId) => {
+          const safe = entryId
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/gu, '-')
+            .replace(/^-+|-+$/gu, '')
+          return 'jogak-' + (safe || 'entry')
+        }
+        const serializeAttribute = (value) => {
+          if (value === undefined || value === null) return null
+          if (typeof value === 'string') return value
+          if (typeof value === 'number' || typeof value === 'boolean') return String(value)
+          if (typeof value === 'function' || typeof value === 'object') return null
+          return String(value)
+        }
+        const state = new WeakMap()
+        return {
+          framework: 'web-components',
+          render(entry, args, container) {
+            const tagName = entryToTagName(entry.id)
+            m.defineJogakElement(tagName, entry)
+            let s = state.get(container)
+            if (s === undefined || s.tagName !== tagName) {
+              if (s !== undefined) s.el.remove()
+              const el = document.createElement(tagName)
+              container.replaceChildren(el)
+              s = { el, tagName }
+              state.set(container, s)
+            }
+            for (const [k, v] of Object.entries(args ?? {})) {
+              const serialized = serializeAttribute(v)
+              if (serialized === null) {
+                s.el.removeAttribute(k)
+              } else {
+                s.el.setAttribute(k, serialized)
+              }
+            }
+          },
+          unmount(container) {
+            const s = state.get(container)
+            if (s !== undefined) {
+              s.el.remove()
+              state.delete(container)
+            }
+          },
+        }
+      })
       break
     }
     case 'next':

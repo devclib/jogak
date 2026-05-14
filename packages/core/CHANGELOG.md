@@ -5,6 +5,14 @@ All notable changes to Jogak packages are documented here. The repository follow
 
 Version numbers apply to all packages in the workspace (synchronized release).
 
+## [0.1.0-alpha.14.3] — 2026-05-15
+
+### Fixed
+
+- **web-components iframe 어댑터 시그니처 오용** (`src/preview-entry/source.ts`): 알파.14.1의 framework dispatch 도입 시 `m.defineJogakElement(entry.meta.component, entry.id)`로 잘못 호출 + `void` return을 `tagName`으로 받던 결함. `framework: 'web-components'` + iframe isolation(default) 사용자는 iframe scope에서 `document.createElement(undefined)`로 마운트가 실패했다. `entryToTagName(entry.id)` 인라인 헬퍼로 결정적 tagName 생성 + `defineJogakElement(tagName, entry)` 올바른 시그니처로 교체. `WeakMap<container, {el, tagName}>` state로 framework 전환 시 재마운트 안전성 확보 + `serializeAttribute()`로 function/object args에 대해 `removeAttribute` 처리(이전엔 `setAttribute(k, "[object Object]")`로 들어가던 부수 결함도 동시 해소). `preview-entry/source.test.ts` 회귀 가드 6건 신규 — 잘못된 호출 패턴(`defineJogakElement(entry.meta.component`, void return 수신) 차단 + 5개 framework dispatch + postMessage 프로토콜 emit 검증.
+
+- **codegen이 strict tsconfig 환경에서 typecheck fail** (`src/build/generate.ts`): emit된 `_buildEntry(_meta${i}, _named${i}, _sources[${i}], _autoArgTypes[${i}])`에서 `_sources[i]`/`_autoArgTypes[i]`가 `noUncheckedIndexedAccess: true` 환경에서 `string | undefined`로 추론되어 외부 사용자가 strict tsconfig를 쓰면 `jogak generate` 결과물이 typecheck error를 냈다. `?? ''` / `?? {}` fallback emit으로 해소(런타임 동작 동일). `build/generate.test.ts` 회귀 가드 3건 신규 — emit content에 fallback 패턴이 들어가는지 + bare indexed access가 사라졌는지 검증.
+
 ## [0.1.0-alpha.14.2] — 2026-05-11
 
 ### Changed

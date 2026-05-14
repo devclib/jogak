@@ -82,7 +82,9 @@ export async function generateRegistryFile(options: GenerateOptions): Promise<Ge
   const buildCalls = files
     .map(
       (_, i) =>
-        `_buildEntry(_meta${i.toString()}, _named${i.toString()}, _sources[${i.toString()}], _autoArgTypes[${i.toString()}])`,
+        // `noUncheckedIndexedAccess: true` 사용자 환경에서도 typecheck를 통과하도록
+        // indexed access에 fallback. 인덱스는 항상 유효하므로 런타임 동작은 동일.
+        `_buildEntry(_meta${i.toString()}, _named${i.toString()}, _sources[${i.toString()}] ?? '', _autoArgTypes[${i.toString()}] ?? {})`,
     )
     .join(',\n  ')
 
