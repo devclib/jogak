@@ -1,0 +1,63 @@
+---
+title: Jogak — Lightweight component showcase
+---
+
+# Jogak
+
+> Pronounced "**조각**" — Korean for **"piece"**. Small pieces gathered into a whole.
+
+**Jogak** is a lightweight, fast component showcase. A drop-in alternative to Storybook with the same workflow (`dev` / `build` / static deploy) but a leaner stack — Single Vite, single iframe scope for user components, ts-morph for type extraction, Preact for Web Components.
+
+> Status: `0.1.0-alpha.x` — API is **not yet stable**. We are in the quiet period before promoting to `0.1.0-beta.0`. Feedback is welcome.
+
+## At a glance
+
+| Metric (size 500 catalog) | Jogak | Storybook 8 | Ratio |
+|---|---|---|---|
+| Dev cold start | **2.9 s** | 3.6 s | 1.3× |
+| Build time | **4.1 s** | 7.6 s | **1.8×** |
+| Bundle (gzip) | **156 KB** | 1.09 MB | **7.0×** |
+| Idle RSS (dev) | **345 MB** | 489 MB | **1.4×** |
+| HMR latency (warm) | **199 ms** | — | < 200 ms |
+
+See [Benchmarks](/docs/benchmarks) for the full table and reproduction commands.
+
+## 5 frameworks, one viewer
+
+```ts
+const meta = {
+  title: 'Components/Button',
+  component: Button,
+  framework: 'vue', // 'react' | 'next' | 'vue' | 'svelte' | 'web-components'
+} satisfies JogakMeta
+```
+
+The same `*.jogak.{ts,tsx}` convention works across **React · Next.js · Vue 3 · Svelte 5 · Web Components**. User components mount in your own Vite scope (iframe isolation) — your Tailwind, design system, and bundler stay yours.
+
+## Quick start
+
+```bash
+pnpm add -D @jogak/cli @jogak/core
+
+# write *.jogak.tsx next to your components, then:
+npx jogak dev          # http://localhost:5173
+npx jogak build        # static output → ./jogak-static
+```
+
+→ Continue to the [Quick start guide](/docs).
+
+## Why "Jogak"?
+
+> "조각들이 모여 하나의 조각을 만든다" — _Small pieces come together to form one whole._
+>
+> Storybook is heavy and error-prone for many teams. Jogak shares the same intent — a place to **gather component pieces** — but stays small enough to ship as a drop-in.
+
+Try it. Send feedback. The alpha exists to harden the contract before `beta`.
+
+## Where to next
+
+- [Why Jogak](/docs/why) — the architecture choices and what makes it light
+- [Frameworks](/docs/frameworks/react) — per-framework setup (React, Next.js, Vue, Svelte, WC)
+- [Configuration](/docs/configuration) — `jogak.config.ts`, `previewIsolation`, `globalCss`
+- [Host embedding](/docs/host-embedding) — Vite SPA, Next.js App Router, Web Components host
+- [Roadmap](/docs/roadmap) — alpha → beta → 1.0

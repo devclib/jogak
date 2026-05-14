@@ -1,0 +1,97 @@
+---
+title: Vue 3
+---
+
+# Vue 3
+
+Vue 3.4+ with SFC `<script setup>`. The Vue adapter mounts components with reactive props so changes from the Controls panel reflect without remount.
+
+## Setup
+
+```bash
+pnpm add -D @jogak/cli @jogak/core
+pnpm add vue
+pnpm add -D @vitejs/plugin-vue
+```
+
+```ts filename="jogak.config.ts"
+import { defineJogakConfig } from '@jogak/core'
+
+export default defineJogakConfig({
+  framework: 'vue',
+})
+```
+
+```ts filename="vite.config.ts"
+import { defineConfig } from 'vite'
+import vue from '@vitejs/plugin-vue'
+
+export default defineConfig({
+  plugins: [vue()],
+})
+```
+
+```ts filename="src/vue-shims.d.ts"
+// Required for tsc to resolve `.vue` imports without vue-tsc.
+declare module '*.vue' {
+  import type { DefineComponent } from 'vue'
+  const component: DefineComponent<Record<string, unknown>, Record<string, unknown>, unknown>
+  export default component
+}
+```
+
+## Define a component
+
+```vue filename="src/components/Counter.vue"
+<script setup lang="ts">
+import { ref } from 'vue'
+
+const props = defineProps<{
+  /** Starting value */
+  initial?: number
+  step?: number
+  label?: string
+}>()
+
+const count = ref(props.initial ?? 0)
+</script>
+
+<template>
+  <div>
+    <button @click="count -= (props.step ?? 1)">−</button>
+    <span>{{ props.label ?? 'count' }}: {{ count }}</span>
+    <button @click="count += (props.step ?? 1)">+</button>
+  </div>
+</template>
+```
+
+```ts filename="src/components/Counter.vue.jogak.ts"
+import type { JogakMeta, Jogak } from '@jogak/core'
+import Counter from './Counter.vue'
+
+const meta = {
+  title: 'Vue/Counter',
+  component: Counter,
+  framework: 'vue',
+  argTypes: {
+    initial: { control: 'number' },
+    step: { control: 'number' },
+    label: { control: 'text' },
+  },
+} satisfies JogakMeta
+
+export default meta
+
+export const Default: Jogak = {
+  name: 'Default',
+  args: { initial: 0, step: 1, label: 'count' },
+}
+```
+
+## Props auto-extraction
+
+Vue SFC props are extracted from `defineProps<Props>()` generic type. JSDoc descriptions are preserved. If `@vue/compiler-sfc` is not installed in your project, Jogak skips extraction and falls back to manual `meta.argTypes`.
+
+## Working example
+
+See [`examples/vue/`](https://github.com/devclib/jogak/tree/main/examples/vue) — Vue 3 SFC with Button/Card/Counter.

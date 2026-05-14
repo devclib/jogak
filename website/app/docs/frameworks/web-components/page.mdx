@@ -1,0 +1,96 @@
+---
+title: Web Components
+---
+
+# Web Components
+
+Vanilla JS / Custom Elements with **Shadow DOM isolation**. Only the Preact runtime ships (~3 KB) — React is never loaded on the Web Components path.
+
+## Setup
+
+```bash
+pnpm add -D @jogak/cli @jogak/core
+pnpm add preact
+pnpm add -D @preact/preset-vite
+```
+
+```ts filename="jogak.config.ts"
+import { defineJogakConfig } from '@jogak/core'
+
+export default defineJogakConfig({
+  framework: 'web-components',
+})
+```
+
+```ts filename="vite.config.ts"
+import { defineConfig } from 'vite'
+import preact from '@preact/preset-vite'
+
+export default defineConfig({
+  plugins: [preact()],
+})
+```
+
+```json filename="tsconfig.json"
+{
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "jsxImportSource": "preact"
+  }
+}
+```
+
+## Define a component
+
+Preact JSX (or any framework-agnostic class component):
+
+```tsx filename="src/components/Pill.tsx"
+export type Tone = 'info' | 'success' | 'warning' | 'danger'
+
+export function Pill({ label, tone = 'info' }: { label: string; tone?: Tone }) {
+  return <span data-tone={tone}>{label}</span>
+}
+```
+
+```tsx filename="src/components/Pill.jogak.tsx"
+import type { JogakMeta, Jogak } from '@jogak/core'
+import { Pill } from './Pill'
+
+const meta = {
+  title: 'WC/Pill',
+  component: Pill,
+  framework: 'web-components',
+  argTypes: {
+    label: { control: 'text' },
+    tone: { control: 'select', options: ['info', 'success', 'warning', 'danger'] },
+  },
+} satisfies JogakMeta
+
+export default meta
+
+export const Info: Jogak = { name: 'Info', args: { label: 'New', tone: 'info' } }
+```
+
+## Use as a real Custom Element in any host page
+
+The same registry can register the component as a Custom Element so external host pages (Astro, Hugo, plain HTML, …) consume it without a framework runtime:
+
+```ts
+import { defineJogakElement } from '@jogak/core/renderers/web-components'
+import { entries } from '../.jogak/registry'
+
+for (const entry of entries) {
+  const last = entry.title.split('/').pop()!.toLowerCase()
+  defineJogakElement(`jogak-${last}`, entry)
+}
+```
+
+```html
+<jogak-pill label="Hello" tone="info"></jogak-pill>
+```
+
+Shadow DOM keeps the host page's styles out, and the host's `:root` design tokens still cascade in.
+
+## Working example
+
+See [`examples/web-components/`](https://github.com/devclib/jogak/tree/main/examples/web-components) — Preact + Custom Elements with Pill and Counter.

@@ -1,0 +1,94 @@
+---
+title: Next.js
+---
+
+# Next.js
+
+Next.js 14 / 15 (both App Router and Pages Router) is supported via the **next** builder adapter. RSC + Client Components mount side by side.
+
+## Setup
+
+```bash
+pnpm add -D @jogak/cli @jogak/core
+```
+
+Tailwind v4 with PostCSS:
+
+```bash
+pnpm add -D @tailwindcss/postcss
+```
+
+```js filename="postcss.config.mjs"
+export default { plugins: { '@tailwindcss/postcss': {} } }
+```
+
+```ts filename="jogak.config.ts"
+import { defineJogakConfig } from '@jogak/core'
+
+export default defineJogakConfig({
+  framework: 'next',
+  globalCss: 'src/app/globals.css',
+})
+```
+
+## App Router
+
+Server Component:
+
+```tsx filename="src/components/ui/Badge.tsx"
+// no 'use client' — pure Server Component
+export function Badge({ tone = 'info', children }: { tone?: 'info' | 'success'; children: string }) {
+  return <span className={`badge badge-${tone}`}>{children}</span>
+}
+```
+
+Client Component:
+
+```tsx filename="src/components/ui/Button.tsx"
+'use client'
+import { useState } from 'react'
+
+export function Button({ label }: { label: string }) {
+  const [count, setCount] = useState(0)
+  return <button onClick={() => setCount((c) => c + 1)}>{label} ({count})</button>
+}
+```
+
+Either works as a `meta.component` — Jogak's next renderer routes correctly. Server Components see their server tree mounted; Client Components hydrate with state.
+
+## Host embedding (Next.js App Router page)
+
+Skip `jogak dev` and embed the catalog inside an existing Next.js page:
+
+```bash
+pnpm jogak generate --patterns 'src/**/*.jogak.tsx'
+# → .jogak/registry.ts
+```
+
+```tsx filename="src/app/jogak/page.tsx"
+'use client'
+import dynamic from 'next/dynamic'
+import { entries } from '../../../.jogak/registry'
+
+const JogakApp = dynamic(() => import('@jogak/ui').then((m) => ({ default: m.JogakApp })), {
+  ssr: false,
+})
+
+export default function Page() {
+  return <JogakApp entries={entries} codeTheme="vsDark" />
+}
+```
+
+```js filename="next.config.mjs"
+export default {
+  transpilePackages: ['@jogak/core', '@jogak/ui'],
+  webpack(config) {
+    config.resolve.extensionAlias = { '.js': ['.ts', '.tsx', '.js'] }
+    return config
+  },
+}
+```
+
+## Working example
+
+See [`examples/nextjs/`](https://github.com/devclib/jogak/tree/main/examples/nextjs) — Next.js 15 App Router with Server `Badge` + Client `Button` side by side.

@@ -32,6 +32,7 @@ export default [
       'packages/ui/src/examples/**',
       'apps/**',
       'examples/**',
+      'website/**',
     ],
   },
 

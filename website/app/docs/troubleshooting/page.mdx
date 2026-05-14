@@ -1,0 +1,62 @@
+---
+title: Troubleshooting
+---
+
+# Troubleshooting
+
+## "does not provide an export named X" after a library update
+
+When `@jogak/core` / `@jogak/ui` is updated, Vite's `node_modules/.vite/deps` pre-bundle cache may go stale. The plugin auto-detects this on dev boot and purges the cache. If that doesn't kick in:
+
+```bash
+rm -rf node_modules/.vite
+```
+
+## HMR doesn't fire on a custom registry
+
+If you inject your own registry via `<JogakProvider registry={customRegistry}>`, the HMR `jogak:meta-update` event only updates `defaultRegistry` (the plugin doesn't know which registry you're using). With a custom registry, `*.jogak.tsx` changes fall back to a full reload.
+
+## RSS spike right after boot
+
+For the first ~5 s of dev, RSS can briefly hit 700 MB+ from esbuild prebundle + ts-morph child spawn. It settles within 5 s and drops further once lazy virtual modules kick in. On very memory-constrained environments (< 1 GB), this initial spike can be risky.
+
+## `Cannot find module './*.vue'` (TypeScript)
+
+Add a Vue SFC shim:
+
+```ts filename="src/vue-shims.d.ts"
+declare module '*.vue' {
+  import type { DefineComponent } from 'vue'
+  const component: DefineComponent<Record<string, unknown>, Record<string, unknown>, unknown>
+  export default component
+}
+```
+
+Or use `vue-tsc` as your typecheck command instead of `tsc`.
+
+## Props panel is empty
+
+Auto-extraction needs a tsconfig:
+
+- `@jogak/cli` auto-detects `<cwd>/tsconfig.json`. Override with `--ts-config <path>`.
+- If no `tsconfig` is found, extraction is **skipped** and the panel will be empty unless you define controls manually via `meta.argTypes`.
+
+```ts
+const meta = {
+  title: 'Components/Button',
+  component: Button,
+  argTypes: {
+    variant: { control: 'select', options: ['primary', 'secondary'] },
+    onClick: { action: true },
+  },
+} satisfies JogakMeta
+```
+
+## "Attempted to synchronously unmount a root while React was already rendering"
+
+Fixed in `0.1.0-alpha.14.4` for the Next.js Client renderer. If you still see it with the host-embedded path, please [file an issue](https://github.com/devclib/jogak/issues/new) with the repro.
+
+## Still stuck?
+
+- [GitHub Issues](https://github.com/devclib/jogak/issues) — bug reports get triaged within a week
+- [GitHub Discussions](https://github.com/devclib/jogak/discussions) — usage questions, ideas, beta feedback

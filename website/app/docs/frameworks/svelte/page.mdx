@@ -1,0 +1,87 @@
+---
+title: Svelte 5
+---
+
+# Svelte 5
+
+Svelte 5+ with **runes** (`$props()`, `$state()`). The Svelte adapter uses Svelte 5's `mount`/`unmount` API.
+
+## Setup
+
+```bash
+pnpm add -D @jogak/cli @jogak/core
+pnpm add svelte
+pnpm add -D @sveltejs/vite-plugin-svelte
+```
+
+```ts filename="jogak.config.ts"
+import { defineJogakConfig } from '@jogak/core'
+
+export default defineJogakConfig({
+  framework: 'svelte',
+})
+```
+
+```ts filename="vite.config.ts"
+import { defineConfig } from 'vite'
+import { svelte } from '@sveltejs/vite-plugin-svelte'
+
+export default defineConfig({
+  plugins: [svelte()],
+})
+```
+
+## Define a component
+
+```svelte filename="src/components/Counter.svelte"
+<script lang="ts">
+  import { untrack } from 'svelte'
+
+  let {
+    initial = 0,
+    step = 1,
+    label = 'count',
+  }: { initial?: number; step?: number; label?: string } = $props()
+
+  // `$state(initial)` directly triggers Svelte 5's `state_referenced_locally` warning.
+  // `untrack` makes the one-time initial-value capture explicit.
+  let value = $state(untrack(() => initial))
+</script>
+
+<div>
+  <button onclick={() => (value -= step)}>−</button>
+  <span>{label}: <strong>{value}</strong></span>
+  <button onclick={() => (value += step)}>+</button>
+</div>
+```
+
+```ts filename="src/components/Counter.svelte.jogak.ts"
+import type { JogakMeta, Jogak } from '@jogak/core'
+import Counter from './Counter.svelte'
+
+const meta = {
+  title: 'Svelte/Counter',
+  component: Counter,
+  framework: 'svelte',
+  argTypes: {
+    initial: { control: 'number' },
+    step: { control: 'number' },
+    label: { control: 'text' },
+  },
+} satisfies JogakMeta
+
+export default meta
+
+export const Default: Jogak = {
+  name: 'Default',
+  args: { initial: 0, step: 1, label: 'count' },
+}
+```
+
+## Props auto-extraction
+
+`$props()` destructure with TypeScript type annotation is parsed at build time (`@jogak/core`'s svelte extractor uses regex + ts-morph). Default values from destructuring become the entry's default args.
+
+## Working example
+
+See [`examples/svelte/`](https://github.com/devclib/jogak/tree/main/examples/svelte) — Svelte 5 runes with Button/Card/Counter.

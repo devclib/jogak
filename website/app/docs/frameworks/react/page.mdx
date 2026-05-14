@@ -1,0 +1,84 @@
+---
+title: React
+---
+
+# React
+
+The default path — `@jogak/cli` + `@jogak/core` only. React is the implicit framework when `meta.framework` is unset.
+
+## Setup
+
+```bash
+pnpm add -D @jogak/cli @jogak/core
+```
+
+```ts filename="jogak.config.ts"
+import { defineJogakConfig } from '@jogak/core'
+
+export default defineJogakConfig({
+  // framework: 'react'   // optional — react is the default
+  globalCss: 'src/styles/globals.css',
+})
+```
+
+```ts filename="vite.config.ts"
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
+
+export default defineConfig({
+  plugins: [react(), tailwindcss()],
+})
+```
+
+## Define a component
+
+```tsx filename="src/components/Button.jogak.tsx"
+import type { JogakMeta, Jogak } from '@jogak/core'
+import { Button } from './Button'
+
+const meta = {
+  title: 'Components/Button',
+  component: Button,
+} satisfies JogakMeta
+
+export default meta
+
+export const Primary: Jogak = {
+  name: 'Primary',
+  args: { label: 'Click me', variant: 'primary' },
+}
+```
+
+## What's auto-extracted
+
+For a component with:
+
+```tsx
+type ButtonProps = {
+  /** Button text */
+  label: string
+  variant?: 'primary' | 'secondary'
+  disabled?: boolean
+  onClick?: (e: MouseEvent<HTMLButtonElement>) => void
+}
+```
+
+Jogak generates:
+
+- `label` — text input (required, JSDoc as description)
+- `variant` — select with `primary`/`secondary` options
+- `disabled` — checkbox
+- `onClick` — Action spy (logs to the Actions panel)
+
+## Working example
+
+See [`examples/react-vite/`](https://github.com/devclib/jogak/tree/main/examples/react-vite) — React 19 + Vite 6 + Tailwind v4, with Button/Card/Counter and 14 jogak cases.
+
+```bash
+git clone --depth 1 https://github.com/devclib/jogak.git
+cp -r jogak/examples/react-vite my-jogak-react
+cd my-jogak-react
+pnpm install
+pnpm jogak:dev
+```

@@ -1,0 +1,114 @@
+---
+title: Host embedding
+---
+
+# Host embedding
+
+Skip the `jogak dev` SPA entirely and embed the catalog inside your own host bundle. Useful when you want the catalog under your app's routing, design system, or auth.
+
+## Vite SPA
+
+Add the Jogak Vite plugin to your `vite.config.ts`:
+
+```ts filename="vite.config.ts"
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import { jogak } from '@jogak/core/vite'
+
+export default defineConfig({
+  plugins: [react(), jogak({ codeTheme: 'vsDark' })],
+})
+```
+
+```tsx filename="src/main.tsx"
+import { createRoot } from 'react-dom/client'
+import 'virtual:jogak'
+import { _jogakCodeTheme } from 'virtual:jogak'
+import { JogakApp } from '@jogak/ui'
+
+createRoot(document.getElementById('root')!).render(
+  <JogakApp codeTheme={_jogakCodeTheme} />,
+)
+```
+
+Evaluating `import 'virtual:jogak'` auto-registers entries on `defaultRegistry`. `<JogakApp />` (no `entries` prop) reads from `defaultRegistry`.
+
+To pass a statically decided list instead:
+
+```tsx
+<JogakApp entries={entries} codeTheme="vsDark" />
+```
+
+### Plugin options
+
+```ts
+jogak({
+  patterns: ['src/**/*.jogak.tsx'],
+  codeTheme: 'vsDark',
+  cwd: __dirname,
+  tsConfigFilePath: './tsconfig.json',
+  disableCacheValidation: false,
+  globalCss: true,
+  previewIsolation: 'iframe',
+})
+```
+
+## Next.js App Router
+
+Codegen first:
+
+```bash
+pnpm jogak generate --patterns 'src/**/*.jogak.tsx'
+# → .jogak/registry.ts
+```
+
+```tsx filename="app/jogak/page.tsx"
+'use client'
+import dynamic from 'next/dynamic'
+import { entries } from '../../../.jogak/registry'
+
+const JogakApp = dynamic(
+  () => import('@jogak/ui').then((m) => ({ default: m.JogakApp })),
+  { ssr: false },
+)
+
+export default function Page() {
+  return <JogakApp entries={entries} codeTheme="vsDark" />
+}
+```
+
+```js filename="next.config.mjs"
+export default {
+  transpilePackages: ['@jogak/core', '@jogak/ui'],
+  webpack(config) {
+    config.resolve.extensionAlias = { '.js': ['.ts', '.tsx', '.js'] }
+    return config
+  },
+}
+```
+
+The `transpilePackages` line is required — `@jogak/*` packages ship native ESM `.mjs` and Next.js needs to know.
+
+## Web Components (any host page)
+
+Register each entry as a Custom Element, then drop tags into any host page (Astro, Hugo, plain HTML, …):
+
+```ts
+import { defineJogakElement } from '@jogak/core/renderers/web-components'
+import { entries } from '../.jogak/registry'
+
+for (const entry of entries) {
+  const last = entry.title.split('/').pop()!.toLowerCase()
+  defineJogakElement(`jogak-${last}`, entry)
+}
+```
+
+```html
+<jogak-button label="Hello" variant="primary"></jogak-button>
+```
+
+Shadow DOM provides style isolation; only the Preact runtime ships (~3 KB).
+
+## Webpack / Standalone
+
+The same `jogak generate` output works with any bundler that can import TypeScript. See [`@jogak/core/adapters/webpack`](https://github.com/devclib/jogak/tree/main/packages/core/src/adapters/webpack) and [`@jogak/core/adapters/standalone`](https://github.com/devclib/jogak/tree/main/packages/core/src/adapters/standalone) for the dev-server adapters.

@@ -1,0 +1,41 @@
+---
+title: Roadmap
+---
+
+# Roadmap
+
+Jogak is currently `0.1.0-alpha.x`. The promotion path is **alpha → beta → 1.0.0** — no leap from alpha straight to 1.0, because SemVer ties 1.0 to "no breaking without a 2.0".
+
+## Where we are (May 2026)
+
+- **alpha.14.4** published — 5 frameworks, iframe isolation, props auto-extraction, host embedding, 5 starter templates
+- All known **critical** and **should-fix** defects: zero
+- 17 test files / 119 unit tests passing · framework-smoke CI matrix (vue, svelte) green
+
+## Quiet period (in progress)
+
+Started 2026-05-15. The alpha → beta gate requires:
+
+| Criterion | Status |
+|---|---|
+| Critical defects: zero | ✅ |
+| Should-fix defects: zero | ✅ |
+| Vue/Svelte e2e automation | ✅ |
+| **2–3 week quiet period** (no new options, no default changes — fix-only) | ⏳ |
+| **External issue cycle** — at least one cycle where issues are resolved by fix-only (no API churn) | ⏳ |
+
+Any new default change or option resets the quiet-period clock — beta means "no intended breaking changes from here on" and that needs settling time.
+
+## Planned for beta
+
+- **No new APIs** before beta. Anything tagged `enhancement` on the issue tracker is parked.
+- Documentation polish, error messages, examples coverage.
+- Cross-framework matrix expansion in CI (4 builders × 5 frameworks = 20-cell smoke).
+
+## Planned post-beta (towards 1.0)
+
+- One more cycle of issue intake on beta.
+- 4 builder × 5 framework e2e automation completed.
+- Stability metrics (RSS / HMR / cold-start regression zero) maintained for 1–2 weeks.
+
+If you want to influence the beta gate, the most useful thing you can do is **try Jogak on a real project and file an issue** — even small papercuts. The quiet period exists to surface and harden against precisely those.

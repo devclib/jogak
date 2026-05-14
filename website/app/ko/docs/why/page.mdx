@@ -1,0 +1,43 @@
+---
+title: Why Jogak
+---
+
+# Why Jogak
+
+Storybook은 동작합니다. 다만 스택이 무겁습니다 — manager UI는 별도 React 앱으로 배포, preview iframe은 자체 번들러 런타임을 가짐, addon 로더, 런타임 react-docgen, webpack-혹은-vite-but-둘-다-config로 결정되는 빌더. 카탈로그 자체는 작은데, 주변 기계 장치가 큽니다.
+
+Jogak은 반대의 입장을 취합니다 — **장치를 걷어내고, 카탈로그를 남긴다.**
+
+## 4개의 레버
+
+### 1. 단일 Vite 인스턴스
+별도 manager 앱 없음. 별도 번들러로 도는 preview iframe 없음. 같은 Vite가 chrome UI와 사용자 콘텐츠를 모두 서빙합니다. (사용자 컴포넌트는 iframe에 마운트되지만, 그 iframe은 호스트의 Vite scope를 공유합니다 — [previewIsolation](/docs/configuration#previewisolation) 참고.)
+
+### 2. Lazy 가상 모듈
+index 모듈은 entry의 **메타데이터만** 노출합니다 (title, prop 타입, default args). 각 entry의 컴포넌트는 사용자가 클릭할 때 dynamic import됩니다. **첫 dev 페이지 로드 시 모듈 그래프에는 사용자 모듈이 zero** — idle RSS가 카탈로그 크기에 따라 거의 증가하지 않습니다.
+
+| 카탈로그 크기 | Storybook idle RSS | Jogak idle RSS |
+|---|---|---|
+| 100 entries | 403 MB | **321 MB** |
+| 500 entries | 489 MB | **345 MB** |
+
+### 3. child_process 격리 ts-morph
+Props 추출은 별도 child process에서 실행됩니다. 5초 idle 후 `SIGTERM`되어 OS가 메모리를 즉시 회수합니다. 메인 프로세스는 ts-morph type checker 전체를 들고 있지 않습니다.
+
+### 4. In-place HMR
+`*.jogak.tsx` 파일을 편집하면 index 메타데이터는 `ws` custom event로 patch, args/component 변경은 entry 가상 모듈의 self-accept으로 자동 rehydrate됩니다. **전체 reload 없음.** HMR warm median: **153 ms** (size 100) / **199 ms** (size 500).
+
+## 포기하는 것
+
+- **Addon 생태계 없음.** Jogak은 의도적으로 addon API를 ship하지 않습니다. 필요한 기능이 있으면 issue를 열어주세요 — 본체에 넣거나 우회 방법을 문서화합니다 ([Roadmap](/docs/roadmap) 참고).
+- **테마 외 manager UI 커스터마이즈 제한.** chrome 레이아웃은 고정, 컴포넌트별 컨트롤/소스 뷰는 자동 생성됩니다 (설정 아님).
+- **Storybook stories 미지원.** Jogak은 자체 스키마인 `*.jogak.{ts,tsx}`를 사용합니다. 모양은 비슷(`title`, `args`, `argTypes`)하지만 `.stories.tsx` 파일은 인식되지 않습니다.
+
+이 트레이드오프가 맞지 않다면 Storybook 8이 여전히 훌륭한 선택입니다 — Jogak은 **drop-in**이지만 완전한 superset은 아닙니다.
+
+## 이름
+
+> **조각** (jogak)은 "piece"라는 뜻입니다.
+> _조각들이 모여 하나의 조각을 만든다._
+
+컴포넌트 라이브러리는 조각들로 만들어집니다. 뷰어도 그래야 합니다 — 작고, 갈아 끼우기 쉽고, 교체 가능. 이 페이지의 모든 디자인 선택 뒤에는 이 bias가 있습니다.
