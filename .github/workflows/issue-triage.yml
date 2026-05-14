@@ -1,0 +1,57 @@
+name: Issue Triage
+
+# 새 issue가 열리면 자동으로 환영 코멘트를 남기고, `triage` 라벨이 붙은 상태로
+# alpha 단계임을 안내한다. label은 issue template에서 이미 부여(`bug`/`enhancement`/`question`).
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  welcome:
+    if: github.event.issue.user.type != 'Bot'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = context.payload.issue;
+            const labels = (issue.labels || []).map(l => l.name);
+            const isBug = labels.includes('bug');
+            const isFeat = labels.includes('enhancement');
+            const isQuestion = labels.includes('question');
+
+            let kind = 'issue';
+            if (isBug) kind = 'bug';
+            else if (isFeat) kind = 'feature request';
+            else if (isQuestion) kind = 'question';
+
+            const body = [
+              `안녕하세요 @${issue.user.login}, ${kind} 보고해 주셔서 감사합니다.`,
+              ``,
+              `**현재 Jogak은 \`0.1.0-alpha.x\` 단계**입니다 — API는 아직 안정화되지 않았고,`,
+              `beta 진입 전 외부 사용자 피드백을 적극 수렴하고 있습니다.`,
+              ``,
+              isBug
+                ? `버그 보고는 quiet period 졸업 기준의 핵심 신호입니다. ` +
+                  `재현 가능한 최소 repo가 있으면 진단이 크게 빨라집니다.`
+                : isFeat
+                ? `API 추가는 beta 진입 전에는 신중히 다룹니다. ` +
+                  `채택 여부와 우선순위는 triage 후 코멘트로 안내드립니다.`
+                : `질문은 가능하면 ` +
+                  `[Discussions](https://github.com/devclib/jogak/discussions)도 함께 참고해 주세요.`,
+              ``,
+              `라벨 \`triage\`가 자동 부여되었습니다. 메인테이너 검토 후 추가 라벨이 붙거나 코멘트가 달릴 예정입니다.`,
+            ].join('\n');
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+              body,
+            });

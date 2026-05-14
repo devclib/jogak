@@ -1,0 +1,97 @@
+name: Weekly Issue Digest
+
+# 매주 월요일 09:00 KST(전주 일요일 00:00 UTC)에 open issue 요약을 Actions
+# step summary로 출력. quiet period 동안 issue 누적 상태를 한눈에 추적.
+# beta 졸업 기준 "외부 사용자 issue 1사이클" 충족 여부 판단 자료.
+
+on:
+  schedule:
+    # 매주 월요일 00:00 UTC (09:00 KST)
+    - cron: "0 0 * * MON"
+  workflow_dispatch:
+
+permissions:
+  issues: read
+  contents: read
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+            const sinceIso = since.toISOString();
+
+            const openIssues = await github.paginate(github.rest.issues.listForRepo, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              per_page: 100,
+            });
+            // PR도 issues API에 잡히므로 제외
+            const issues = openIssues.filter(i => !i.pull_request);
+
+            const byLabel = (name) => issues.filter(i => i.labels.some(l => l.name === name));
+
+            const fmtIssue = (i) => {
+              const days = Math.floor((Date.now() - new Date(i.created_at)) / 86_400_000);
+              const updDays = Math.floor((Date.now() - new Date(i.updated_at)) / 86_400_000);
+              const labels = i.labels.map(l => l.name).filter(n => !['triage', 'bug', 'enhancement', 'question'].includes(n));
+              const labelStr = labels.length ? ` _(${labels.join(', ')})_` : '';
+              return `- [#${i.number}](${i.html_url}) ${i.title}${labelStr}  \n  ` +
+                `created ${days}d ago · last activity ${updDays}d ago · @${i.user.login}`;
+            };
+
+            const newThisWeek = issues.filter(i => new Date(i.created_at) >= since);
+            const updatedThisWeek = issues.filter(i =>
+              new Date(i.updated_at) >= since && new Date(i.created_at) < since
+            );
+
+            const bugs = byLabel('bug');
+            const feats = byLabel('enhancement');
+            const questions = byLabel('question');
+            const stale = byLabel('stale');
+            const triage = byLabel('triage');
+
+            const summary = core.summary
+              .addHeading(`Jogak Weekly Issue Digest — ${new Date().toISOString().slice(0, 10)}`, 1)
+              .addRaw(`총 open: **${issues.length}** · 이번 주 신규: **${newThisWeek.length}** · 활동: **${updatedThisWeek.length}**`)
+              .addBreak()
+              .addBreak()
+              .addRaw(`bug **${bugs.length}** · feature **${feats.length}** · question **${questions.length}** · triage 대기 **${triage.length}** · stale **${stale.length}**`)
+              .addBreak();
+
+            const sections = [
+              ['🆕 이번 주 신규', newThisWeek],
+              ['🔄 이번 주 활동(신규 제외)', updatedThisWeek],
+              ['🐛 Open bugs', bugs],
+              ['✨ Open feature requests', feats],
+              ['❓ Open questions', questions],
+              ['⏳ Triage 대기', triage],
+              ['💤 Stale', stale],
+            ];
+
+            for (const [title, list] of sections) {
+              summary.addHeading(`${title} (${list.length})`, 2);
+              if (list.length === 0) {
+                summary.addRaw('— 없음').addBreak();
+              } else {
+                summary.addRaw(list.map(fmtIssue).join('\n\n')).addBreak();
+              }
+            }
+
+            summary.addHeading('Beta 졸업 기준 추적', 2);
+            const allClosedRecently = newThisWeek.length === 0 && issues.length === 0;
+            const onlyFixHistory = bugs.length === 0;
+            summary.addRaw([
+              `- open bug: ${bugs.length === 0 ? '✅ zero' : `⏳ ${bugs.length}`}`,
+              `- triage 대기: ${triage.length === 0 ? '✅ zero' : `⏳ ${triage.length}`}`,
+              `- API churn (default 변경 PR): 별도 확인 필요`,
+            ].join('\n'));
+
+            await summary.write();
+
+            core.info(`Wrote digest with ${issues.length} open issues.`);

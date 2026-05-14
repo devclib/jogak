@@ -1,0 +1,31 @@
+name: ❓ Question
+description: 사용법 · 동작 원리 · 베스트 프랙티스 질문
+title: "[question] "
+labels: ["question", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        > 일반적인 질문은 [Discussions](https://github.com/devclib/jogak/discussions)에서
+        > 더 빠르게 답변됩니다. 이 폼은 "버그인지 의도된 동작인지 헷갈리는" 경우에 적합합니다.
+
+  - type: input
+    id: version
+    attributes:
+      label: "@jogak/* 버전"
+      placeholder: "0.1.0-alpha.14.4"
+    validations:
+      required: true
+
+  - type: textarea
+    id: question
+    attributes:
+      label: 질문
+    validations:
+      required: true
+
+  - type: textarea
+    id: tried
+    attributes:
+      label: 이미 시도한 방법 / 참고한 문서
+      description: README, CHANGELOG, examples/ 폴더 등

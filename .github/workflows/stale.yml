@@ -1,0 +1,54 @@
+name: Stale Issues
+
+# 30일 무응답 issue에 `stale` 라벨 + 경고 코멘트, 60일 무응답이면 close.
+# beta 졸업 기준의 "1사이클 처리" 카운팅을 깨끗하게 유지.
+
+on:
+  schedule:
+    # 매일 01:30 UTC (10:30 KST)
+    - cron: "30 1 * * *"
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  pull-requests: write
+  contents: read
+
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/stale@v9
+        with:
+          days-before-issue-stale: 30
+          days-before-issue-close: 30
+          # PR은 사용자 결정 — 자동 close 비활성. label만 부여.
+          days-before-pr-stale: 30
+          days-before-pr-close: -1
+
+          stale-issue-label: stale
+          stale-pr-label: stale
+
+          # bug/enhancement는 자체 우선순위가 있으므로 stale 적용 제외 가능하지만,
+          # beta 정착 기간엔 모든 issue를 균등 추적하기 위해 일단 모두 stale 대상.
+          # 다음 라벨은 영구 제외 (pin/long-term roadmap 표시용).
+          exempt-issue-labels: "pinned,security,roadmap"
+          exempt-pr-labels: "pinned,security"
+
+          stale-issue-message: |
+            본 issue는 30일간 활동이 없어 `stale` 라벨이 부여되었습니다.
+
+            추가 정보·우선순위 의견이 있으시면 코멘트 부탁드립니다.
+            **30일간 추가 활동이 없으면 자동 close**되며, 필요 시 다시 열어 주세요.
+
+            (alpha → beta 정착 기간 동안 issue tracker를 깨끗하게 유지하기 위한 자동화입니다.)
+          stale-pr-message: |
+            본 PR은 30일간 활동이 없어 `stale` 라벨이 부여되었습니다.
+            (자동 close는 비활성 — 작성자가 명시적으로 닫거나 머지해 주세요.)
+          close-issue-message: |
+            60일 무활동으로 자동 close합니다. 동일 문제가 다시 발생하면 새 issue로
+            열어 주시거나 본 issue를 reopen해 주세요. 감사합니다.
+
+          # 한 번에 처리할 최대 issue 수 (rate limit 보호).
+          operations-per-run: 30

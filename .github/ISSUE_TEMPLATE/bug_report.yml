@@ -1,0 +1,82 @@
+name: 🐛 Bug report
+description: 버그·회귀·예상치 못한 동작 보고
+title: "[bug] "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Jogak은 현재 `0.1.0-alpha.x` 단계입니다 — API는 아직 안정화되지 않았습니다.
+        beta 진입 전 외부 issue가 매우 중요한 신호이니 상세히 적어 주시면 큰 도움이 됩니다.
+
+  - type: input
+    id: version
+    attributes:
+      label: "@jogak/* 버전"
+      description: "`npm ls @jogak/core` 결과 또는 package.json의 caret"
+      placeholder: "0.1.0-alpha.14.4"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: framework
+    attributes:
+      label: 영향 framework
+      multiple: true
+      options:
+        - React (Vite SPA)
+        - Next.js (App Router · RSC)
+        - Next.js (Pages Router)
+        - Vue 3
+        - Svelte 5
+        - Web Components (Preact + Custom Elements)
+        - 빌더(vite/next/webpack/standalone) 자체
+        - 기타 / 모르겠음
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: 재현 절차
+      description: 가능하면 최소 reproduction(GitHub repo·gist·codesandbox 등) 링크. 안 되면 단계별로.
+      placeholder: |
+        1. `pnpm add -D @jogak/cli @jogak/core@0.1.0-alpha.X.Y`
+        2. `*.jogak.tsx` 파일 작성
+        3. `npx jogak dev` 실행
+        4. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 예상 동작
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: 실제 동작
+      description: 에러 메시지, 콘솔 로그, 스크린샷 등 포함
+    validations:
+      required: true
+
+  - type: input
+    id: node
+    attributes:
+      label: Node / pnpm 버전
+      placeholder: "node v22.x · pnpm 10.x"
+
+  - type: input
+    id: os
+    attributes:
+      label: OS
+      placeholder: "macOS 15 / Ubuntu 22.04 / Windows 11"
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: 추가 컨텍스트
+      description: jogak.config.ts 옵션, previewIsolation 설정, 사용 중인 다른 plugin 등
