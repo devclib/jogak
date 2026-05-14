@@ -59,13 +59,18 @@ const HOST_URL = `http://localhost:${PORT}`
 // 사용자 vite scope (jogak dev가 자체 spawn). default 5174부터 시작 — adapter spawn 로직.
 const PREVIEW_ORIGIN = process.env['PREVIEW_ORIGIN'] || 'http://localhost:5174'
 
-console.log(`[smoke:${fixture}] spawn ${cfg.appName} jogak dev on :${PORT}`)
+// `pnpm --filter <app> exec jogak`은 CI의 첫 install 시점에 cli/dist가 없어
+// fixture node_modules/.bin/jogak symlink가 누락된다(workspace bin link 시점
+// 제약). Node로 cli.js를 직접 호출해 install/build 순서에 무관하게 구동한다.
+const CLI_BIN = resolve(ROOT, 'packages/cli/dist/cli.js')
+const FIXTURE_CWD = resolve(ROOT, 'apps', cfg.appName)
+console.log(`[smoke:${fixture}] spawn jogak dev (cwd=${cfg.appName}) on :${PORT}`)
 
 const child = spawn(
-  'pnpm',
-  ['--filter', cfg.appName, 'exec', 'jogak', 'dev', '--port', String(PORT), '--host', 'false'],
+  process.execPath,
+  [CLI_BIN, 'dev', '--port', String(PORT), '--host', 'false'],
   {
-    cwd: ROOT,
+    cwd: FIXTURE_CWD,
     stdio: ['ignore', 'pipe', 'pipe'],
     env: { ...process.env, FORCE_COLOR: '0', NO_COLOR: '1', BROWSER: 'none' },
     detached: false,
