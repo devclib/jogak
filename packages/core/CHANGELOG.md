@@ -5,6 +5,12 @@ All notable changes to Jogak packages are documented here. The repository follow
 
 Version numbers apply to all packages in the workspace (synchronized release).
 
+## [0.1.0-alpha.14.4] — 2026-05-15
+
+### Fixed
+
+- **Next.js Client 어댑터의 nested root unmount race** (`src/renderers/next/client/Preview.tsx`): `JogakClientShell` cleanup에서 `rootRef.current?.unmount()`를 동기 호출 → React 19에서 outer root unmount 도중 inner root sync unmount 시 `"Attempted to synchronously unmount a root while React was already rendering"` 경고가 출력되던 결함. `queueMicrotask`로 defer하여 outer cleanup 완료 후 처리. 테스트 동작은 동일하나 stderr 4건이 사라져 CI 로그가 깨끗해진다.
+
 ## [0.1.0-alpha.14.3] — 2026-05-15
 
 ### Fixed

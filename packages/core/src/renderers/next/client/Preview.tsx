@@ -62,8 +62,19 @@ export function JogakClientShell({
 
   useEffect(() => {
     return () => {
-      rootRef.current?.unmount()
+      const root = rootRef.current
       rootRef.current = null
+      if (root === null) return
+      // React 19: 동일 트리에서 outer root unmount 도중 inner root를 동기 unmount하면
+      // "Attempted to synchronously unmount a root while React was already rendering" race.
+      // microtask로 defer하여 outer cleanup이 끝난 뒤에 처리한다.
+      queueMicrotask(() => {
+        try {
+          root.unmount()
+        } catch {
+          /* 이미 unmount된 경우 무시 */
+        }
+      })
     }
   }, [])
 

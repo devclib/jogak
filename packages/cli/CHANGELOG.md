@@ -5,6 +5,12 @@ All notable changes to Jogak packages are documented here. The repository follow
 
 Version numbers apply to all packages in the workspace (synchronized release).
 
+## [0.1.0-alpha.14.4] — 2026-05-15
+
+### Changed
+
+- **버전 동기화 (no functional change)**: `@jogak/core@0.1.0-alpha.14.4` (Next.js Client 어댑터 nested root unmount race fix) publish에 맞춰 동기화. `@jogak/cli` 소스 변경 없음.
+
 ## [0.1.0-alpha.14.3] — 2026-05-15
 
 ### Changed
