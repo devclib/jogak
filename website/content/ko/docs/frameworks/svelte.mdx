@@ -1,0 +1,87 @@
+---
+title: Svelte 5
+---
+
+# Svelte 5
+
+Svelte 5+ 와 **runes** (`$props()`, `$state()`). Svelte 어댑터는 Svelte 5의 `mount`/`unmount` API를 사용합니다.
+
+## 셋업
+
+```bash
+pnpm add -D @jogak/cli @jogak/core
+pnpm add svelte
+pnpm add -D @sveltejs/vite-plugin-svelte
+```
+
+```ts filename="jogak.config.ts"
+import { defineJogakConfig } from '@jogak/core'
+
+export default defineJogakConfig({
+  framework: 'svelte',
+})
+```
+
+```ts filename="vite.config.ts"
+import { defineConfig } from 'vite'
+import { svelte } from '@sveltejs/vite-plugin-svelte'
+
+export default defineConfig({
+  plugins: [svelte()],
+})
+```
+
+## 컴포넌트 정의
+
+```svelte filename="src/components/Counter.svelte"
+<script lang="ts">
+  import { untrack } from 'svelte'
+
+  let {
+    initial = 0,
+    step = 1,
+    label = 'count',
+  }: { initial?: number; step?: number; label?: string } = $props()
+
+  // `$state(initial)`을 직접 쓰면 Svelte 5의 `state_referenced_locally` 경고가 발생한다.
+  // `untrack`으로 최초 1회 초기값 캡처라는 의도를 명시한다.
+  let value = $state(untrack(() => initial))
+</script>
+
+<div>
+  <button onclick={() => (value -= step)}>−</button>
+  <span>{label}: <strong>{value}</strong></span>
+  <button onclick={() => (value += step)}>+</button>
+</div>
+```
+
+```ts filename="src/components/Counter.svelte.jogak.ts"
+import type { JogakMeta, Jogak } from '@jogak/core'
+import Counter from './Counter.svelte'
+
+const meta = {
+  title: 'Svelte/Counter',
+  component: Counter,
+  framework: 'svelte',
+  argTypes: {
+    initial: { control: 'number' },
+    step: { control: 'number' },
+    label: { control: 'text' },
+  },
+} satisfies JogakMeta
+
+export default meta
+
+export const Default: Jogak = {
+  name: 'Default',
+  args: { initial: 0, step: 1, label: 'count' },
+}
+```
+
+## Props 자동 추출
+
+TypeScript 타입 어노테이션이 붙은 `$props()` destructure는 빌드 타임에 파싱됩니다 (`@jogak/core`의 svelte extractor는 regex + ts-morph 사용). destructure의 기본값이 entry의 default args가 됩니다.
+
+## 동작 예제
+
+[`examples/svelte/`](https://github.com/devclib/jogak/tree/main/examples/svelte) 참고 — Svelte 5 runes, Button/Card/Counter.

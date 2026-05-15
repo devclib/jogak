@@ -1,0 +1,84 @@
+---
+title: React
+---
+
+# React
+
+기본 경로입니다 — `@jogak/cli` + `@jogak/core`만 있으면 됩니다. `meta.framework`를 지정하지 않으면 React가 암묵적 기본 framework입니다.
+
+## 셋업
+
+```bash
+pnpm add -D @jogak/cli @jogak/core
+```
+
+```ts filename="jogak.config.ts"
+import { defineJogakConfig } from '@jogak/core'
+
+export default defineJogakConfig({
+  // framework: 'react'   // 선택 — react가 기본값
+  globalCss: 'src/styles/globals.css',
+})
+```
+
+```ts filename="vite.config.ts"
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
+
+export default defineConfig({
+  plugins: [react(), tailwindcss()],
+})
+```
+
+## 컴포넌트 정의
+
+```tsx filename="src/components/Button.jogak.tsx"
+import type { JogakMeta, Jogak } from '@jogak/core'
+import { Button } from './Button'
+
+const meta = {
+  title: 'Components/Button',
+  component: Button,
+} satisfies JogakMeta
+
+export default meta
+
+export const Primary: Jogak = {
+  name: 'Primary',
+  args: { label: 'Click me', variant: 'primary' },
+}
+```
+
+## 자동 추출되는 것
+
+다음 컴포넌트가 있을 때:
+
+```tsx
+type ButtonProps = {
+  /** 버튼 텍스트 */
+  label: string
+  variant?: 'primary' | 'secondary'
+  disabled?: boolean
+  onClick?: (e: MouseEvent<HTMLButtonElement>) => void
+}
+```
+
+Jogak이 생성하는 것:
+
+- `label` — text 입력 (required, JSDoc이 description으로)
+- `variant` — `primary`/`secondary` 옵션의 select
+- `disabled` — checkbox
+- `onClick` — Action spy (Actions 패널에 로그)
+
+## 동작 예제
+
+[`examples/react-vite/`](https://github.com/devclib/jogak/tree/main/examples/react-vite) 참고 — React 19 + Vite 6 + Tailwind v4, Button/Card/Counter와 14개 jogak case.
+
+```bash
+git clone --depth 1 https://github.com/devclib/jogak.git
+cp -r jogak/examples/react-vite my-jogak-react
+cd my-jogak-react
+pnpm install
+pnpm jogak:dev
+```

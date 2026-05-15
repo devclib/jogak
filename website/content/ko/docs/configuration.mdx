@@ -1,0 +1,83 @@
+---
+title: Configuration
+---
+
+# Configuration
+
+Jogak은 프로젝트 루트의 `jogak.config.{ts,mjs,js,json}`에서 옵션을 읽습니다. CLI 플래그는 config 파일 값을 override합니다.
+
+## defineJogakConfig
+
+```ts filename="jogak.config.ts"
+import { defineJogakConfig } from '@jogak/core'
+
+export default defineJogakConfig({
+  patterns: ['src/**/*.jogak.{ts,tsx}'],
+  framework: 'react',
+  globalCss: 'src/styles/globals.css',
+  previewIsolation: 'iframe',
+  codeTheme: 'vsDark',
+
+  // host 옵션 (CLI 플래그로 override 가능)
+  port: 5173,
+  host: false,
+  open: false,
+})
+```
+
+## 옵션
+
+### `patterns`
+
+`readonly string[]` — glob (기본값: `['src/**/*.jogak.ts', 'src/**/*.jogak.tsx']`). Vue/Svelte/Preact는 관련 확장자를 포함하세요 (`*.jogak.{ts,tsx}`로 모두 커버 — Vue/Svelte SFC는 `.jogak.ts` companion 파일에서 import).
+
+### `framework`
+
+`'react' | 'next' | 'vue' | 'svelte' | 'web-components'` (선택). `meta.framework`가 지정되지 않은 entry의 기본 framework를 설정합니다. 파일별 `meta.framework`가 항상 우선합니다. **기본이 React가 아니면 필수입니다.**
+
+### `globalCss`
+
+`boolean | string | readonly string[]` (기본값 `false`).
+
+- `true` — 8개 후보에서 자동 감지: `src/index.css` → `src/main.css` → `src/styles/index.css` → `src/styles/main.css` → `src/app/globals.css` → `src/styles/globals.css` → `src/global.css` → `src/app.css`
+- `string` / `string[]` — 명시 경로 (배열은 순서대로 import)
+
+사용자의 global stylesheet를 iframe scope(컴포넌트가 마운트되는 곳)에 적용합니다. Jogak의 chrome UI는 prefix 격리(`jogak:` Tailwind prefix)되어 있어 사용자 CSS가 사이드바에 영향을 주지 않습니다.
+
+### `previewIsolation`
+
+`'iframe' | 'shadow' | 'none'` (기본값 `'iframe'`).
+
+- **`'iframe'` (권장)** — 사용자 컴포넌트가 별도 iframe에 마운트되며, 그 iframe의 `src`는 사용자 `vite.config.ts`가 완전히 존중되는 Vite scope를 가리킵니다. Tailwind, 디자인 시스템, 플러그인이 모두 정상 동작합니다.
+- **`'shadow'` (deprecated)** — 같은 document 안에서 Shadow DOM 마운트. Radix류 portal이 `document.body`로 빠지면 Tailwind utility scoping을 잃습니다.
+- **`'none'` (deprecated)** — 같은 document에 직접 마운트. 수동 CSS 격리 필요.
+
+### `codeTheme`
+
+prism-react-renderer 테마 이름 (기본값 `'vsDark'`). 소스 코드 뷰어가 사용합니다.
+
+### `cwd` / `tsConfigFilePath`
+
+사용자 프로젝트 루트와 tsconfig 경로를 override합니다. 기본적으로 둘 다 `process.cwd()`에서 자동 감지합니다.
+
+### `disableCacheValidation`
+
+dev boot 시 Vite 의존성 캐시 검증을 비활성화합니다 (기본 off — 디버깅 중이 아니면 켜둔 채로).
+
+## CLI 플래그 매핑
+
+CLI 플래그가 config 파일을 override합니다:
+
+| CLI 플래그 | Config 필드 |
+|---|---|
+| `--patterns <glob>` | `patterns` |
+| `--port <n>` | `port` |
+| `--host <true\|false\|string>` | `host` |
+| `--open [path]` | `open` |
+| `--ts-config <path>` | `tsConfigFilePath` |
+| `--cwd <path>` | `cwd` |
+| `--code-theme <name>` | `codeTheme` |
+| `--out-dir <path>` (build) | `outDir` |
+| `--base <string>` (build) | `base` |
+
+전체 플래그 목록은 [CLI](/ko/docs/cli)를 참고하세요.

@@ -1,0 +1,42 @@
+---
+title: Benchmarks
+---
+
+# Benchmarks
+
+Storybook 8 (Vite 빌더) 대비 수치. 동일한 React 카탈로그(N개 컴포넌트, 각 3 entry)를 양쪽에 구성.
+
+## 스케일 표
+
+| 지표 | size 100 | size 500 | 비고 |
+|---|---|---|---|
+| 개발 콜드 스타트 | **1.7 s** vs 3.3 s (**2.0×**) | **2.9 s** vs 3.6 s (1.3×) | "첫 HTTP 200" |
+| 빌드 시간 | **2.0 s** vs 2.9 s (1.4×) | **4.1 s** vs 7.6 s (**1.8×**) | 카탈로그가 클수록 격차 확대 |
+| 번들 (gzip) | **108 KB** vs 716 KB (**6.6×**) | **156 KB** vs 1.09 MB (**7.0×**) | manager 번들 없음 |
+| dist 총합 | **340 KB** vs 3 MB (**8.9×**) | — | 정적 호스팅 전송량 |
+| Idle RSS (dev) | **321 MB** vs 403 MB (1.3×) | **345 MB** vs 489 MB (**1.4×**) | dev tree RSS 중앙값 |
+| HMR (warm 중앙값) | **153 ms** | **199 ms** | args 편집 → DOM, < 200 ms |
+
+## 로컬에서 재현
+
+모든 측정 코드는 [`benchmarks/`](https://github.com/devclib/jogak/tree/main/benchmarks)에 있습니다.
+
+```bash
+pnpm bench:scale:full   # size 5 / 50 / 100 / 500
+pnpm bench:rss          # idle RSS (jogak vs storybook)
+pnpm bench:hmr          # HMR 지연 (size 50, 10 runs)
+pnpm bench:baseline     # jogak vs storybook (size 5)
+```
+
+이 수치는 최근 MacBook Pro에서 관측한 것입니다. 절대 수치는 환경마다 다릅니다 — 회귀 추적에 사용하는 것은 **비율**입니다.
+
+## "가볍다"는 것의 의미
+
+번들/RSS 비율은 압축 트릭이 아니라 아키텍처 결정에서 나옵니다:
+
+- **manager 번들 없음** — chrome UI가 사용자 콘텐츠와 같은 Vite로 ship
+- **첫 페인트에 사용자 모듈 zero** — lazy 가상 모듈이 컴포넌트 그래프 hydration을 미룸
+- **런타임 react-docgen 없음** — ts-morph가 빌드 타임에 추출, child process는 5초 후 dispose
+- **Web Components는 Preact (~3 KB)** — React 런타임은 WC 어댑터 경로에 도달하지 않음
+
+아키텍처 근거는 [Why Jogak](/ko/docs/why)을 참고하세요.

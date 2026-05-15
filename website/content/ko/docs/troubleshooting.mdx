@@ -1,0 +1,62 @@
+---
+title: Troubleshooting
+---
+
+# Troubleshooting
+
+## 라이브러리 업데이트 후 "does not provide an export named X"
+
+`@jogak/core` / `@jogak/ui`가 업데이트되면 Vite의 `node_modules/.vite/deps` pre-bundle 캐시가 stale해질 수 있습니다. 플러그인이 dev boot 시 자동 감지하여 캐시를 purge합니다. 그래도 안 되면:
+
+```bash
+rm -rf node_modules/.vite
+```
+
+## 커스텀 registry에서 HMR이 동작하지 않음
+
+`<JogakProvider registry={customRegistry}>`로 자체 registry를 주입하면, HMR `jogak:meta-update` 이벤트는 `defaultRegistry`만 업데이트합니다 (플러그인은 어떤 registry를 쓰는지 모름). 커스텀 registry에서는 `*.jogak.tsx` 변경이 full reload로 fallback됩니다.
+
+## boot 직후 RSS 스파이크
+
+dev 첫 ~5초 동안 esbuild prebundle + ts-morph child spawn으로 RSS가 잠깐 700 MB+ 까지 오를 수 있습니다. 5초 내에 안정되고, lazy 가상 모듈이 작동하면 더 떨어집니다. 메모리가 매우 제한적인 환경(< 1 GB)에서는 이 초기 스파이크가 위험할 수 있습니다.
+
+## `Cannot find module './*.vue'` (TypeScript)
+
+Vue SFC shim을 추가하세요:
+
+```ts filename="src/vue-shims.d.ts"
+declare module '*.vue' {
+  import type { DefineComponent } from 'vue'
+  const component: DefineComponent<Record<string, unknown>, Record<string, unknown>, unknown>
+  export default component
+}
+```
+
+또는 typecheck 명령으로 `tsc` 대신 `vue-tsc`를 사용하세요.
+
+## Props 패널이 비어 있음
+
+자동 추출에는 tsconfig가 필요합니다:
+
+- `@jogak/cli`는 `<cwd>/tsconfig.json`을 자동 감지합니다. `--ts-config <path>`로 override.
+- `tsconfig`를 찾지 못하면 추출이 **건너뛰어지며**, `meta.argTypes`로 컨트롤을 수동 정의하지 않는 한 패널이 비어 있습니다.
+
+```ts
+const meta = {
+  title: 'Components/Button',
+  component: Button,
+  argTypes: {
+    variant: { control: 'select', options: ['primary', 'secondary'] },
+    onClick: { action: true },
+  },
+} satisfies JogakMeta
+```
+
+## "Attempted to synchronously unmount a root while React was already rendering"
+
+`0.1.0-alpha.14.4`에서 Next.js Client renderer에 대해 수정되었습니다. 호스트 임베딩 경로에서 여전히 보인다면 재현 케이스와 함께 [issue를 열어](https://github.com/devclib/jogak/issues/new) 주세요.
+
+## 여전히 막혔다면
+
+- [GitHub Issues](https://github.com/devclib/jogak/issues) — 버그 보고는 1주일 내 triage됩니다
+- [GitHub Discussions](https://github.com/devclib/jogak/discussions) — 사용법 질문, 아이디어, beta 피드백

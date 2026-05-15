@@ -1,0 +1,97 @@
+---
+title: Vue 3
+---
+
+# Vue 3
+
+Vue 3.4+ 와 SFC `<script setup>`. Vue 어댑터는 reactive props로 컴포넌트를 마운트하므로 Controls 패널의 변경이 remount 없이 반영됩니다.
+
+## 셋업
+
+```bash
+pnpm add -D @jogak/cli @jogak/core
+pnpm add vue
+pnpm add -D @vitejs/plugin-vue
+```
+
+```ts filename="jogak.config.ts"
+import { defineJogakConfig } from '@jogak/core'
+
+export default defineJogakConfig({
+  framework: 'vue',
+})
+```
+
+```ts filename="vite.config.ts"
+import { defineConfig } from 'vite'
+import vue from '@vitejs/plugin-vue'
+
+export default defineConfig({
+  plugins: [vue()],
+})
+```
+
+```ts filename="src/vue-shims.d.ts"
+// vue-tsc 없이 tsc가 `.vue` import를 해석하려면 필요.
+declare module '*.vue' {
+  import type { DefineComponent } from 'vue'
+  const component: DefineComponent<Record<string, unknown>, Record<string, unknown>, unknown>
+  export default component
+}
+```
+
+## 컴포넌트 정의
+
+```vue filename="src/components/Counter.vue"
+<script setup lang="ts">
+import { ref } from 'vue'
+
+const props = defineProps<{
+  /** 시작 값 */
+  initial?: number
+  step?: number
+  label?: string
+}>()
+
+const count = ref(props.initial ?? 0)
+</script>
+
+<template>
+  <div>
+    <button @click="count -= (props.step ?? 1)">−</button>
+    <span>{{ props.label ?? 'count' }}: {{ count }}</span>
+    <button @click="count += (props.step ?? 1)">+</button>
+  </div>
+</template>
+```
+
+```ts filename="src/components/Counter.vue.jogak.ts"
+import type { JogakMeta, Jogak } from '@jogak/core'
+import Counter from './Counter.vue'
+
+const meta = {
+  title: 'Vue/Counter',
+  component: Counter,
+  framework: 'vue',
+  argTypes: {
+    initial: { control: 'number' },
+    step: { control: 'number' },
+    label: { control: 'text' },
+  },
+} satisfies JogakMeta
+
+export default meta
+
+export const Default: Jogak = {
+  name: 'Default',
+  args: { initial: 0, step: 1, label: 'count' },
+}
+```
+
+## Props 자동 추출
+
+Vue SFC props는 `defineProps<Props>()` 제네릭 타입에서 추출됩니다. JSDoc description이 보존됩니다. 프로젝트에 `@vue/compiler-sfc`가 설치되어 있지 않으면 Jogak은 추출을 건너뛰고 수동 `meta.argTypes`로 fallback합니다.
+
+## 동작 예제
+
+[`examples/vue/`](https://github.com/devclib/jogak/tree/main/examples/vue) 참고 — Vue 3 SFC, Button/Card/Counter.

@@ -1,0 +1,83 @@
+---
+title: Configuration
+---
+
+# Configuration
+
+Jogak reads options from `jogak.config.{ts,mjs,js,json}` at the project root. CLI flags override config file values.
+
+## defineJogakConfig
+
+```ts filename="jogak.config.ts"
+import { defineJogakConfig } from '@jogak/core'
+
+export default defineJogakConfig({
+  patterns: ['src/**/*.jogak.{ts,tsx}'],
+  framework: 'react',
+  globalCss: 'src/styles/globals.css',
+  previewIsolation: 'iframe',
+  codeTheme: 'vsDark',
+
+  // host options (overridable via CLI flags)
+  port: 5173,
+  host: false,
+  open: false,
+})
+```
+
+## Options
+
+### `patterns`
+
+`readonly string[]` — globs (default: `['src/**/*.jogak.ts', 'src/**/*.jogak.tsx']`). For Vue/Svelte/Preact, include the relevant extensions (`*.jogak.{ts,tsx}` covers all — Vue/Svelte SFCs are imported _from_ a `.jogak.ts` companion file).
+
+### `framework`
+
+`'react' | 'next' | 'vue' | 'svelte' | 'web-components'` (optional). Sets the default framework for entries whose `meta.framework` is unset. Per-file `meta.framework` always wins. **Required if your default isn't React.**
+
+### `globalCss`
+
+`boolean | string | readonly string[]` (default `false`).
+
+- `true` — auto-detect from 8 candidates: `src/index.css` → `src/main.css` → `src/styles/index.css` → `src/styles/main.css` → `src/app/globals.css` → `src/styles/globals.css` → `src/global.css` → `src/app.css`
+- `string` / `string[]` — explicit paths (arrays imported in order)
+
+Applies the user's global stylesheet to the iframe scope (where your components mount). Jogak's chrome UI is prefix-isolated (`jogak:` Tailwind prefix), so user CSS never affects the sidebar.
+
+### `previewIsolation`
+
+`'iframe' | 'shadow' | 'none'` (default `'iframe'`).
+
+- **`'iframe'` (recommended)** — User components mount in a separate iframe whose `src` points to a Vite scope where your `vite.config.ts` is fully respected. Your Tailwind, design system, and plugins all work normally.
+- **`'shadow'` (deprecated)** — Shadow DOM mount inside the same document. Radix-style portals to `document.body` lose Tailwind utility scoping.
+- **`'none'` (deprecated)** — Direct mount in the same document. Requires manual CSS isolation.
+
+### `codeTheme`
+
+prism-react-renderer theme name (default `'vsDark'`). Used by the source code viewer.
+
+### `cwd` / `tsConfigFilePath`
+
+Override the user project root and tsconfig path. By default, both auto-detected from `process.cwd()`.
+
+### `disableCacheValidation`
+
+Disable the Vite dependency cache validation on dev boot (default off — leave it on unless you're debugging).
+
+## CLI flag mapping
+
+CLI flags override the config file:
+
+| CLI flag | Config field |
+|---|---|
+| `--patterns <glob>` | `patterns` |
+| `--port <n>` | `port` |
+| `--host <true\|false\|string>` | `host` |
+| `--open [path]` | `open` |
+| `--ts-config <path>` | `tsConfigFilePath` |
+| `--cwd <path>` | `cwd` |
+| `--code-theme <name>` | `codeTheme` |
+| `--out-dir <path>` (build) | `outDir` |
+| `--base <string>` (build) | `base` |
+
+See [CLI](/en/docs/cli) for the full flag list.

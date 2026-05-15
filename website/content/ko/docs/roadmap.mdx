@@ -1,0 +1,41 @@
+---
+title: Roadmap
+---
+
+# Roadmap
+
+Jogak은 현재 `0.1.0-alpha.x`입니다. 승격 경로는 **alpha → beta → 1.0.0** 입니다 — alpha에서 1.0으로 바로 점프하지 않습니다. SemVer 상 1.0은 "2.0 없이는 breaking 없음"을 약속하기 때문입니다.
+
+## 현재 위치 (2026년 5월)
+
+- **alpha.14.4** publish — 5개 framework, iframe 격리, props 자동 추출, 호스트 임베딩, 5개 starter 템플릿
+- 알려진 **critical** / **should-fix** 결함: zero
+- 17개 테스트 파일 / 119개 단위 테스트 통과 · framework-smoke CI matrix (vue, svelte) green
+
+## Quiet period (진행 중)
+
+2026-05-15 시작. alpha → beta 게이트 요구사항:
+
+| 기준 | 상태 |
+|---|---|
+| Critical 결함: zero | ✅ |
+| Should-fix 결함: zero | ✅ |
+| Vue/Svelte e2e 자동화 | ✅ |
+| **2–3주 quiet period** (새 옵션·디폴트 변경 없음 — fix만) | ⏳ |
+| **외부 issue 사이클** — issue가 fix만으로 해결되는 사이클 최소 1회 (API churn 없음) | ⏳ |
+
+새 디폴트 변경이나 옵션 추가는 quiet period 시계를 리셋합니다 — beta는 "여기서부터 의도된 breaking 없음"을 의미하며, 그것은 정착 시간이 필요합니다.
+
+## Beta 계획
+
+- beta 전에는 **새 API 없음**. issue tracker에서 `enhancement`로 태깅된 것은 보류됩니다.
+- 문서 다듬기, 에러 메시지, examples 커버리지.
+- CI의 크로스 framework matrix 확장 (4 빌더 × 5 framework = 20-셀 smoke).
+
+## Post-beta 계획 (1.0을 향해)
+
+- beta에서 issue 수집 사이클 1회 더.
+- 4 빌더 × 5 framework e2e 자동화 완성.
+- 안정성 메트릭 (RSS / HMR / 콜드 스타트 회귀 zero) 1–2주 유지.
+
+beta 게이트에 영향을 주고 싶다면, 가장 도움이 되는 것은 **실제 프로젝트에서 Jogak을 써보고 issue를 여는 것**입니다 — 작은 불편이라도. quiet period는 바로 그런 것들을 표면화하고 단단하게 만들기 위해 존재합니다.

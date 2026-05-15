@@ -1,0 +1,69 @@
+---
+title: CLI
+---
+
+# CLI
+
+`@jogak/cli` provides three commands.
+
+## `jogak dev`
+
+Start the dev server (Vite-backed) with HMR.
+
+```
+jogak dev [options]
+  --patterns <glob[,glob...]>   default 'src/**/*.jogak.{ts,tsx}'
+  --port <number>               default 5173
+  --host <true|false|string>    network exposure (default false)
+  --open [path]                 open browser on start
+  --no-generate                 disable .jogak/registry.ts safety-net codegen
+  --ts-config <path>            tsconfig path (default: <cwd>/tsconfig.json)
+  --cwd <path>                  user project root (default: process.cwd())
+  --code-theme <name>           prism theme (default: 'vsDark')
+```
+
+## `jogak build`
+
+Produce a static catalog ready to upload anywhere.
+
+```
+jogak build [options]
+  --out-dir <path>              default 'jogak-static'
+  --base <string>               public path (default './' — works anywhere)
+  --minify <boolean|esbuild|terser>  default 'esbuild'
+  --sourcemap                   default false
+  --emit-registry               also emit .jogak/registry.ts during build
+```
+
+The output is `index.html` + a single chunk. Drop it on GitHub Pages, Vercel, Netlify, S3 — any static host.
+
+```bash
+# GitHub Pages with a sub-path:
+npx jogak build --base /my-repo/
+```
+
+## `jogak generate`
+
+Codegen `*.jogak.{ts,tsx}` into plain TS that any host bundler can consume (for [Host embedding](/en/docs/host-embedding)).
+
+```
+jogak generate [options]
+  --patterns <glob[,glob...]>   default 'src/**/*.jogak.{ts,tsx}'
+  --out <path>                  default '.jogak/registry.ts'
+  --ts-config <path>            tsconfig path (default: <cwd>/tsconfig.json)
+  --cwd <path>                  user project root
+```
+
+The emitted `.jogak/registry.ts` exports:
+
+- `entries: readonly RegistryEntry[]` — full hydrated entries (component + meta + args)
+- `metas: readonly RegistryEntryMeta[]` — lightweight sidebar metadata (no component import)
+
+Use `entries` when the host bundler can import every component eagerly; use `metas` when you want to lazy-load components yourself.
+
+## Exit codes
+
+- `0` — success
+- `1` — runtime error (Vite, build, codegen)
+- `2` — invalid CLI arguments
+- `130` — SIGINT (Ctrl+C)

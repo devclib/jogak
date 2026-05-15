@@ -1,0 +1,114 @@
+---
+title: Host embedding
+---
+
+# 호스트 임베딩
+
+`jogak dev` SPA를 완전히 건너뛰고 카탈로그를 직접 호스트 번들에 임베딩할 수 있습니다. 카탈로그를 앱의 라우팅, 디자인 시스템, 인증 아래에 두고 싶을 때 유용합니다.
+
+## Vite SPA
+
+`vite.config.ts`에 Jogak Vite 플러그인을 추가:
+
+```ts filename="vite.config.ts"
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import { jogak } from '@jogak/core/vite'
+
+export default defineConfig({
+  plugins: [react(), jogak({ codeTheme: 'vsDark' })],
+})
+```
+
+```tsx filename="src/main.tsx"
+import { createRoot } from 'react-dom/client'
+import 'virtual:jogak'
+import { _jogakCodeTheme } from 'virtual:jogak'
+import { JogakApp } from '@jogak/ui'
+
+createRoot(document.getElementById('root')!).render(
+  <JogakApp codeTheme={_jogakCodeTheme} />,
+)
+```
+
+`import 'virtual:jogak'`를 평가하면 entry가 `defaultRegistry`에 자동 등록됩니다. `<JogakApp />`(`entries` prop 없이)은 `defaultRegistry`에서 읽습니다.
+
+정적으로 결정된 목록을 넘기려면:
+
+```tsx
+<JogakApp entries={entries} codeTheme="vsDark" />
+```
+
+### 플러그인 옵션
+
+```ts
+jogak({
+  patterns: ['src/**/*.jogak.tsx'],
+  codeTheme: 'vsDark',
+  cwd: __dirname,
+  tsConfigFilePath: './tsconfig.json',
+  disableCacheValidation: false,
+  globalCss: true,
+  previewIsolation: 'iframe',
+})
+```
+
+## Next.js App Router
+
+먼저 codegen:
+
+```bash
+pnpm jogak generate --patterns 'src/**/*.jogak.tsx'
+# → .jogak/registry.ts
+```
+
+```tsx filename="app/jogak/page.tsx"
+'use client'
+import dynamic from 'next/dynamic'
+import { entries } from '../../../.jogak/registry'
+
+const JogakApp = dynamic(
+  () => import('@jogak/ui').then((m) => ({ default: m.JogakApp })),
+  { ssr: false },
+)
+
+export default function Page() {
+  return <JogakApp entries={entries} codeTheme="vsDark" />
+}
+```
+
+```js filename="next.config.mjs"
+export default {
+  transpilePackages: ['@jogak/core', '@jogak/ui'],
+  webpack(config) {
+    config.resolve.extensionAlias = { '.js': ['.ts', '.tsx', '.js'] }
+    return config
+  },
+}
+```
+
+`transpilePackages` 라인은 필수입니다 — `@jogak/*` 패키지는 네이티브 ESM `.mjs`를 ship하므로 Next.js가 알아야 합니다.
+
+## Web Components (어떤 호스트 페이지든)
+
+각 entry를 Custom Element로 등록하면, 어떤 호스트 페이지(Astro, Hugo, 순수 HTML 등)에든 태그를 넣을 수 있습니다:
+
+```ts
+import { defineJogakElement } from '@jogak/core/renderers/web-components'
+import { entries } from '../.jogak/registry'
+
+for (const entry of entries) {
+  const last = entry.title.split('/').pop()!.toLowerCase()
+  defineJogakElement(`jogak-${last}`, entry)
+}
+```
+
+```html
+<jogak-button label="Hello" variant="primary"></jogak-button>
+```
+
+Shadow DOM이 스타일 격리를 제공하고, Preact 런타임만 ship됩니다 (~3 KB).
+
+## Webpack / Standalone
+
+같은 `jogak generate` 산출물이 TypeScript를 import할 수 있는 어떤 번들러에서든 동작합니다. dev-server 어댑터는 [`@jogak/core/adapters/webpack`](https://github.com/devclib/jogak/tree/main/packages/core/src/adapters/webpack)과 [`@jogak/core/adapters/standalone`](https://github.com/devclib/jogak/tree/main/packages/core/src/adapters/standalone)을 참고하세요.

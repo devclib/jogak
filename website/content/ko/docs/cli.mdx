@@ -1,0 +1,69 @@
+---
+title: CLI
+---
+
+# CLI
+
+`@jogak/cli`는 세 개의 명령을 제공합니다.
+
+## `jogak dev`
+
+HMR과 함께 dev 서버(Vite 기반)를 시작합니다.
+
+```
+jogak dev [options]
+  --patterns <glob[,glob...]>   기본값 'src/**/*.jogak.{ts,tsx}'
+  --port <number>               기본값 5173
+  --host <true|false|string>    네트워크 노출 (기본값 false)
+  --open [path]                 시작 시 브라우저 열기
+  --no-generate                 .jogak/registry.ts 안전망 codegen 비활성화
+  --ts-config <path>            tsconfig 경로 (기본값: <cwd>/tsconfig.json)
+  --cwd <path>                  사용자 프로젝트 루트 (기본값: process.cwd())
+  --code-theme <name>           prism 테마 (기본값: 'vsDark')
+```
+
+## `jogak build`
+
+어디든 업로드할 수 있는 정적 카탈로그를 생성합니다.
+
+```
+jogak build [options]
+  --out-dir <path>              기본값 'jogak-static'
+  --base <string>               public 경로 (기본값 './' — 어디서든 동작)
+  --minify <boolean|esbuild|terser>  기본값 'esbuild'
+  --sourcemap                   기본값 false
+  --emit-registry               build 중 .jogak/registry.ts도 emit
+```
+
+산출물은 `index.html` + 단일 chunk입니다. GitHub Pages, Vercel, Netlify, S3 — 어떤 정적 호스트에든 올리면 됩니다.
+
+```bash
+# 하위 경로가 있는 GitHub Pages:
+npx jogak build --base /my-repo/
+```
+
+## `jogak generate`
+
+`*.jogak.{ts,tsx}`를 어떤 호스트 번들러든 사용할 수 있는 일반 TS로 codegen합니다 ([호스트 임베딩](/ko/docs/host-embedding)용).
+
+```
+jogak generate [options]
+  --patterns <glob[,glob...]>   기본값 'src/**/*.jogak.{ts,tsx}'
+  --out <path>                  기본값 '.jogak/registry.ts'
+  --ts-config <path>            tsconfig 경로 (기본값: <cwd>/tsconfig.json)
+  --cwd <path>                  사용자 프로젝트 루트
+```
+
+emit된 `.jogak/registry.ts`가 export하는 것:
+
+- `entries: readonly RegistryEntry[]` — 완전히 hydrate된 entry (component + meta + args)
+- `metas: readonly RegistryEntryMeta[]` — 경량 사이드바 메타데이터 (component import 없음)
+
+호스트 번들러가 모든 컴포넌트를 eager import할 수 있으면 `entries`를, 컴포넌트를 직접 lazy-load하고 싶으면 `metas`를 사용하세요.
+
+## Exit 코드
+
+- `0` — 성공
+- `1` — 런타임 에러 (Vite, build, codegen)
+- `2` — 잘못된 CLI 인자
+- `130` — SIGINT (Ctrl+C)
