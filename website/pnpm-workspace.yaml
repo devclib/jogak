@@ -1,0 +1,5 @@
+# website는 jogak monorepo 안에 있지만 독립 프로젝트로 배포된다.
+# 빈 packages 목록 = pnpm이 이 디렉토리를 workspace 루트로 인식 →
+# 상위 monorepo의 pnpm-workspace.yaml(apps/* · packages/*)을 탐색하지 않는다.
+# 덕분에 Vercel/로컬 모두 `pnpm install`이 website 의존성만 설치한다.
+packages: []
