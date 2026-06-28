@@ -24,7 +24,15 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
-    jogak({ patterns: ['src/**/*.jogak.ts', 'src/**/*.jogak.tsx'], codeTheme: 'vsDark' }),
+    // VR/local 데모는 사용자 vite spawn 없이 ui 단일 dev server로 동작 — iframe isolation
+    // (alpha.8+ default)에서는 chrome scope가 component=null로 stub만 emit하고 실제
+    // hydrate는 별도 사용자 vite scope가 담당하므로, 단일 server 환경에선 component가
+    // 영영 null로 남는다. VR/demo 한정으로 'none' 명시해 chrome scope에서 직접 hydrate.
+    jogak({
+      patterns: ['src/**/*.jogak.ts', 'src/**/*.jogak.tsx'],
+      codeTheme: 'vsDark',
+      previewIsolation: 'none',
+    }),
     dts({
       include: ['src/**/*.ts', 'src/**/*.tsx'],
       exclude: [

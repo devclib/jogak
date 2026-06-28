@@ -10,13 +10,13 @@
     "jogak:build": "jogak build"
   },
   "dependencies": {
-    "@jogak/core": "^0.1.0-alpha.14.4",
+    "@jogak/core": "^0.1.0-alpha.14.5",
     "next": "^15.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
-    "@jogak/cli": "^0.1.0-alpha.14.4",
+    "@jogak/cli": "^0.1.0-alpha.14.5",
     "@tailwindcss/postcss": "^4.2.4",
     "@types/node": "^20.14.0",
     "@types/react": "^19.0.0",

@@ -5,6 +5,12 @@ All notable changes to Jogak packages are documented here. The repository follow
 
 Version numbers apply to all packages in the workspace (synchronized release).
 
+## [0.1.0-alpha.14.5] — 2026-06-04
+
+### Changed
+
+- **버전 동기화 (no functional change)**: `@jogak/cli@0.1.0-alpha.14.5` (vite 6.4.3 high severity bump) publish에 맞춰 caret semver 일관성 유지. `@jogak/ui` 소스/dist 변경 없음. 본 패키지의 dev `vite.config.ts`만 `previewIsolation: 'none'` 명시 추가 — VR/local demo가 단일 ui dev server로 동작할 때 alpha.14.1 (`d64a8f8`)부터 도입된 chrome scope `component=null` stub로 인해 component가 hydrate되지 않던 회귀 fix. 사용자 publish 산출물에는 영향 없음.
+
 ## [0.1.0-alpha.14.4] — 2026-05-15
 
 ### Changed

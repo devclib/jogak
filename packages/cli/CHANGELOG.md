@@ -5,6 +5,12 @@ All notable changes to Jogak packages are documented here. The repository follow
 
 Version numbers apply to all packages in the workspace (synchronized release).
 
+## [0.1.0-alpha.14.5] — 2026-06-04
+
+### Security
+
+- **`vite` dependency caret `^6.0.0` → `^6.4.3`** — vite ≤ 6.4.2의 `server.fs.deny` bypass on Windows alternate paths (high severity, GHSA-jqfw-vq24-v9c3) 취약점 해결. 사용자 `pnpm add @jogak/cli` 시 vite 6.4.3+가 자동 설치된다. API/동작 변경 없음.
+
 ## [0.1.0-alpha.14.4] — 2026-05-15
 
 ### Changed
