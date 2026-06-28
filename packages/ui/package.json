@@ -1,6 +1,6 @@
 {
   "name": "@jogak/ui",
-  "version": "0.1.0-alpha.14.5",
+  "version": "1.0.0-beta.0",
   "description": "Showcase viewer UI for Jogak — Sidebar / Preview / Controls / Actions and the JogakApp shell.",
   "keywords": [
     "jogak",

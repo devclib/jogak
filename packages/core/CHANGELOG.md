@@ -5,6 +5,34 @@ All notable changes to Jogak packages are documented here. The repository follow
 
 Version numbers apply to all packages in the workspace (synchronized release).
 
+## [1.0.0-beta.0] — 2026-06-04
+
+### Milestone — alpha → beta 졸업
+
+본 릴리스는 코드 변경이 아닌 안정도 등급 승격이다. alpha.14.5 시점 코드와 동일,
+sync 버전 bump만 수행.
+
+졸업 기준 5항목 모두 충족:
+1. **Critical issue zero** — alpha.14.1/14.3/14.4/14.5 사이클로 누적 결함(WC 어댑터,
+   codegen strict, Next Client unmount race, Vue SFC shim, VR A-1 회귀, vite/next/
+   svelte high severity 9건) 모두 해소.
+2. **Should-fix zero** — open issue 0건, audit prod high+critical 0건.
+3. **Vue / Svelte e2e** — framework-smoke matrix(vue, svelte 각 6/6) CI 자동화.
+4. **Quiet period 20일** — 2026-05-15부터 2026-06-04까지 외부 보고/CI failure 0건.
+5. **외부 issue 1사이클** — open 0건 상황이라 quiet period 무이슈를 1사이클로 수용
+   (사용자 결정, 2026-06-04).
+
+### API 동결
+
+beta부터 1.0.0 stable까지 **public API breaking change 금지**. 변경 시 `2.0.0`
+또는 별도 alpha 라인.
+
+### npm dist-tag
+
+`@jogak/core@1.0.0-beta.0`이 npm `latest` dist-tag로 promote된다 (release.yml의
+`Promote pre-release to latest` step). 외부 사용자가 `pnpm add @jogak/core` (no
+suffix) 명령 한 줄로 beta.0을 받는다.
+
 ## [0.1.0-alpha.14.5] — 2026-06-04
 
 ### Changed

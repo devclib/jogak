@@ -5,6 +5,14 @@ All notable changes to Jogak packages are documented here. The repository follow
 
 Version numbers apply to all packages in the workspace (synchronized release).
 
+## [1.0.0-beta.0] — 2026-06-04
+
+### Milestone — alpha → beta 졸업
+
+본 릴리스는 코드 변경이 아닌 안정도 등급 승격이다. alpha.14.5 시점 코드와 동일,
+sync 버전 bump만 수행. 자세한 졸업 기준 + API 동결 정책은 `@jogak/core@1.0.0-beta.0`
+CHANGELOG 참조.
+
 ## [0.1.0-alpha.14.5] — 2026-06-04
 
 ### Changed

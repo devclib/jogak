@@ -136,3 +136,24 @@ jobs:
             echo "=== publishing @jogak/$pkg@$PKG_VER with --tag $DIST_TAG ==="
             npm publish "$TGZ" --access public --provenance --tag "$DIST_TAG"
           done
+
+      - name: Promote pre-release to latest
+        # beta/rc는 publish 시 자기 tag(beta/rc)로만 들어간다. 그러나 외부 사용자가
+        # `pnpm add @jogak/core` (no @suffix)로 받을 때 `latest` dist-tag가 가리키는
+        # 버전을 받으므로, beta/rc도 latest로 함께 promote해 install 즉시 동작시킨다.
+        # stable(1.0.0) publish 후엔 그것이 latest가 되어 자연스럽게 덮어 쓴다.
+        if: |
+          (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && !inputs.dry_run))
+          && (steps.dist-tag.outputs.tag == 'beta' || steps.dist-tag.outputs.tag == 'rc')
+        run: |
+          for pkg in core ui cli; do
+            PKG_VER=$(node -p "require('/__w/jogak/jogak/packages/$pkg/package.json').version" 2>/dev/null \
+              || node -p "require(\"$GITHUB_WORKSPACE/packages/$pkg/package.json\").version")
+            CURRENT_LATEST=$(npm view "@jogak/$pkg" dist-tags.latest 2>/dev/null || echo "")
+            if [ "$CURRENT_LATEST" = "$PKG_VER" ]; then
+              echo "=== latest already @jogak/$pkg@$PKG_VER, skip ==="
+              continue
+            fi
+            echo "=== promote @jogak/$pkg@$PKG_VER to latest (was: $CURRENT_LATEST) ==="
+            npm dist-tag add "@jogak/$pkg@$PKG_VER" latest
+          done
