@@ -643,9 +643,15 @@ function NoneAdapterContent({ entry, args }: { entry: RegistryEntry; args: Reado
   const containerRef = useRef<HTMLDivElement>(null)
   const adapterRef = useRef<JogakAdapter | null>(null)
 
+  // 1.0.0-beta: chrome scope stub(component=null) guard — alpha.14.1에서 도입된 stub은
+  // iframe 모드 + 사용자 vite scope 전제. 'none' 모드는 chrome scope에서 직접 mount하는데
+  // component가 null이면 React.createElement(null) 등 framework별 불명확 에러 발생.
+  const hasComponent = entry.meta.component !== null && entry.meta.component !== undefined
+
   // 알파.14.1: entry.meta.framework로 dispatch. async 적응을 위해 effect 내에서
   // await adapterFor → 캡처된 adapter로 render. unmount는 같은 adapter ref 사용.
   useEffect(() => {
+    if (!hasComponent) return
     const container = containerRef.current
     if (container === null) return
     let cancelled = false
@@ -666,10 +672,11 @@ function NoneAdapterContent({ entry, args }: { entry: RegistryEntry; args: Reado
       queueMicrotask(() => { adapter.unmount(container) })
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [entry])
+  }, [entry, hasComponent])
 
   // args 갱신용 effect — adapter가 이미 캐시돼 있으면 동기 분기를 탄다.
   useEffect(() => {
+    if (!hasComponent) return
     const container = containerRef.current
     if (container === null) return
     let cancelled = false
@@ -685,7 +692,19 @@ function NoneAdapterContent({ entry, args }: { entry: RegistryEntry; args: Reado
       void resolved.render(entry, args, container)
     })
     return () => { cancelled = true }
-  }, [entry, args])
+  }, [entry, args, hasComponent])
+
+  if (!hasComponent) {
+    return (
+      <div
+        data-testid="preview-content"
+        data-jogak-preview-placeholder=""
+        className={PREVIEW_HOST_CLASS}
+      >
+        <StubPlaceholder entryId={entry.id} />
+      </div>
+    )
+  }
 
   return (
     <div
@@ -697,6 +716,40 @@ function NoneAdapterContent({ entry, args }: { entry: RegistryEntry; args: Reado
 }
 
 /**
+ * 1.0.0-beta: chrome scope stub(component=null) 발생 시 표시하는 placeholder.
+ *
+ * alpha.14.1에서 도입된 chrome scope stub은 `previewIsolation: 'iframe'` 환경에서
+ * 사용자 vite scope가 component를 hydrate하는 전제로 동작. 사용자 vite/dev server가
+ * 없는 환경(Next/Nuxt, 또는 'none'/'shadow' 모드 잘못 조합)에서 chrome scope mount
+ * 시도 시 React.createElement(null) 에러가 발생하던 회귀를 placeholder로 대체.
+ */
+function StubPlaceholder({ entryId }: { entryId: string }): ReactElement {
+  return (
+    <div
+      className="jogak:p-6 jogak:text-[var(--jogak-color-text-secondary)]"
+      style={{ fontSize: 13, lineHeight: 1.6 }}
+    >
+      <strong style={{ display: 'block', color: 'var(--jogak-color-text)', marginBottom: 8 }}>
+        Preview unavailable — entry has no resolvable component
+      </strong>
+      <p style={{ margin: '0 0 8px' }}>
+        <code style={{ background: 'var(--jogak-color-bg-muted)', padding: '2px 6px', borderRadius: 4 }}>{entryId}</code>
+        {' '}의 component가 null로 등록되어 있습니다 (chrome scope stub).
+      </p>
+      <p style={{ margin: '0 0 8px' }}>
+        <code>previewIsolation: 'iframe'</code> 모드는 사용자 vite/dev server scope에서
+        component를 hydrate해야 정상 동작합니다.
+      </p>
+      <ul style={{ margin: 0, paddingLeft: 18 }}>
+        <li>Vite 환경: 사용자 vite 자동 spawn이 활성화됐는지 확인</li>
+        <li>Next/Nuxt 환경: <code>jogak.config.ts</code>의 <code>userViteUrl</code>로 dev server URL 지정 또는 <code>previewIsolation: 'none'</code></li>
+        <li>standalone 환경: jogak adapter가 사용자 framework dev server를 spawn하지 못한 상태</li>
+      </ul>
+    </div>
+  )
+}
+
+/**
  * Shadow 모드 — ShadowMount의 ShadowRoot 안에서 adapter.render를 호출하는
  * 작은 wrapper. ShadowMount 안 portal 내부에 위치하므로 useRef는 ShadowRoot scope.
  */
@@ -704,7 +757,12 @@ function ShadowAdapterContent({ entry, args }: { entry: RegistryEntry; args: Rea
   const ref = useRef<HTMLDivElement>(null)
   const adapterRef = useRef<JogakAdapter | null>(null)
 
+  // 1.0.0-beta: chrome scope stub(component=null) guard — 'shadow' 모드도 chrome scope에서
+  // 직접 mount하므로 null guard 필요.
+  const hasComponent = entry.meta.component !== null && entry.meta.component !== undefined
+
   useEffect(() => {
+    if (!hasComponent) return
     const c = ref.current
     if (c === null) return
     let cancelled = false
@@ -724,9 +782,10 @@ function ShadowAdapterContent({ entry, args }: { entry: RegistryEntry; args: Rea
       queueMicrotask(() => { adapter.unmount(c) })
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [entry])
+  }, [entry, hasComponent])
 
   useEffect(() => {
+    if (!hasComponent) return
     const c = ref.current
     if (c === null) return
     let cancelled = false
@@ -742,7 +801,15 @@ function ShadowAdapterContent({ entry, args }: { entry: RegistryEntry; args: Rea
       void resolved.render(entry, args, c)
     })
     return () => { cancelled = true }
-  }, [entry, args])
+  }, [entry, args, hasComponent])
+
+  if (!hasComponent) {
+    return (
+      <div data-testid="preview-content-shadow" data-jogak-preview-placeholder="">
+        <StubPlaceholder entryId={entry.id} />
+      </div>
+    )
+  }
 
   return <div ref={ref} data-testid="preview-content-shadow" />
 }

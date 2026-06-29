@@ -1,6 +1,7 @@
 /**
  * 알파.9: standalone-adapter 또는 fallback 시 사용되는 same-origin iframe entry.
  * 알파.14.1: entry.meta.framework 기반 adapter dispatch (react/vue/svelte/wc 지원).
+ * 1.0.0-beta: chrome scope stub(component=null) 안전 처리 — placeholder UI 표시.
  *
  * `IframeMount`는 알파.9에서 postMessage 프로토콜로 통일됐다 (cross-origin 어댑터와 동일).
  * preview-frame.tsx도 같은 프로토콜을 따라야 한다 — 부모는 `jogak:setProps` 메시지를,
@@ -21,11 +22,82 @@ if (rootEl === null) throw new Error('#jogak-preview-root not found')
 let currentContainer: HTMLDivElement | null = null
 let currentAdapter: JogakAdapter | null = null
 
+/**
+ * chrome scope stub entry(component=null)에 대해 mount 시도 대신 안내 UI를 표시.
+ *
+ * alpha.14.1에서 도입된 chrome scope stub은 `previewIsolation: 'iframe'` 환경에서
+ * 사용자 vite scope가 component를 hydrate하는 전제로 동작한다. 사용자 vite/dev server
+ * 가 없는 환경(Next/Nuxt/standalone fallback)에서는 stub이 그대로 chrome SPA의 iframe
+ * (preview-frame.html)에 도달해 React.createElement(null) 에러가 발생했었다.
+ *
+ * 이제 명시적 placeholder + 사용자 안내로 fallback해서 디버깅 가능한 상태로 만든다.
+ */
+function renderStubPlaceholder(container: HTMLElement, entryId: string): void {
+  container.innerHTML = ''
+  const wrapper = document.createElement('div')
+  wrapper.setAttribute('data-jogak-preview-placeholder', '')
+  wrapper.style.cssText =
+    'padding: 24px; border: 1px dashed #e5e7eb; border-radius: 12px; ' +
+    'background: #fafaf9; color: #57534e; font-family: system-ui, sans-serif; ' +
+    'font-size: 13px; line-height: 1.6; max-width: 720px; margin: 12px auto;'
+  wrapper.innerHTML = `
+    <strong style="display:block; color:#1c1917; margin-bottom:8px;">
+      Preview unavailable — entry has no resolvable component
+    </strong>
+    <p style="margin:0 0 8px;">
+      <code style="background:#f5f5f4; padding:2px 6px; border-radius:4px;">${escapeHtml(entryId)}</code>
+      의 component가 null로 등록되어 있습니다.
+    </p>
+    <p style="margin:0 0 8px;">
+      <code>previewIsolation: 'iframe'</code> 모드는 사용자 vite/dev server scope에서
+      component를 hydrate해야 정상 동작합니다.
+    </p>
+    <ul style="margin:0; padding-left:18px;">
+      <li>Vite 환경: 사용자 vite 자동 spawn이 활성화됐는지 확인</li>
+      <li>Next/Nuxt 환경: 사용자 dev server URL을 <code>jogak.config.ts</code>의
+        <code>userViteUrl</code>로 지정하거나 <code>previewIsolation: 'none'</code>으로
+        chrome scope mount로 전환</li>
+      <li>standalone 환경: jogak adapter가 사용자 framework dev server를 spawn하지 못한 상태</li>
+    </ul>
+  `
+  container.appendChild(wrapper)
+}
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 async function renderEntry(
   entryId: string,
   args: Readonly<Record<string, unknown>>,
 ): Promise<void> {
   const entry = await defaultRegistry.requestEntry(entryId)
+
+  // 1.0.0-beta: chrome scope stub(component=null) guard.
+  // adapter.render에 null component를 넘기면 React.createElement(null) 등 framework별로
+  // 불명확한 에러가 발생한다 — 명확한 placeholder + 부모에게 jogak:error 알림.
+  if (entry.meta.component === null || entry.meta.component === undefined) {
+    if (currentContainer !== null && currentAdapter !== null) {
+      currentAdapter.unmount(currentContainer)
+      currentAdapter = null
+    }
+    if (currentContainer === null) {
+      currentContainer = document.createElement('div')
+      rootEl?.replaceChildren(currentContainer)
+    }
+    renderStubPlaceholder(currentContainer, entryId)
+    throw new Error(
+      `[jogak/preview] entry "${entryId}" has no component (chrome scope stub). ` +
+        `사용자 vite scope가 component를 hydrate해야 합니다. ` +
+        `Next/Nuxt 환경이면 jogak.config의 userViteUrl 또는 previewIsolation:'none'을 확인하세요.`,
+    )
+  }
+
   const framework = entry.meta.framework ?? 'react'
   const nextAdapter = await adapterFor(framework)
 
