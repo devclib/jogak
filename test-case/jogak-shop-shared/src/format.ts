@@ -1,6 +1,6 @@
 // Currency formatting + rating helpers. framework-agnostic.
 
-import type { Currency, Product } from './types.js'
+import type { Currency, Product } from './types'
 
 export function formatPrice(cents: number, currency: Currency = 'USD'): string {
   const value = cents / 100
