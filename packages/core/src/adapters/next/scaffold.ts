@@ -51,15 +51,13 @@ export function scaffoldPreviewPage(opts: ScaffoldOptions): ScaffoldHandle {
     )
   }
 
-  const cssImports = resolveGlobalCssPaths(opts.globalCss, opts.cwd)
-    .map((p) => `import ${JSON.stringify(p)}`)
-    .join('\n')
+  const cssAbsPaths = resolveGlobalCssPaths(opts.globalCss, opts.cwd)
 
   if (detected.router === 'app') {
-    return scaffoldAppRouter(opts.cwd, detected.routerDir, cssImports, opts.rsc === true)
+    return scaffoldAppRouter(opts.cwd, detected.routerDir, cssAbsPaths, opts.rsc === true)
   }
   // Pages Router에서 rsc 옵션을 명시했더라도 RSC는 App Router 전용 — 무시.
-  return scaffoldPagesRouter(opts.cwd, detected.routerDir, cssImports)
+  return scaffoldPagesRouter(opts.cwd, detected.routerDir, cssAbsPaths)
 }
 
 interface DetectedRouter {
@@ -84,11 +82,20 @@ function detectRouter(cwd: string): DetectedRouter | undefined {
 function scaffoldAppRouter(
   cwd: string,
   appDir: string,
-  cssImports: string,
+  cssAbsPaths: readonly string[],
   rsc: boolean,
 ): ScaffoldHandle {
   const targetDir = resolve(appDir, PREVIEW_ROUTE_NAME)
   mkdirSync(targetDir, { recursive: true })
+
+  // 알파.X: Next 16 turbopack은 절대 경로 import (`/abs/path/file.css`)를 module
+  // not found로 거부한다. webpack과 호환 위해 targetDir 기준 상대 경로로 emit.
+  const cssImports = cssAbsPaths
+    .map((abs) => {
+      const rel = toPosix(relative(targetDir, abs))
+      return `import ${JSON.stringify(rel.startsWith('.') ? rel : `./${rel}`)}`
+    })
+    .join('\n')
 
   // CLI가 사전 생성한 .jogak/registry.ts에서 entries import.
   const registryAbsPath = resolve(cwd, '.jogak/registry')
@@ -126,7 +133,7 @@ function scaffoldAppRouter(
   }
 }
 
-function scaffoldPagesRouter(cwd: string, pagesDir: string, cssImports: string): ScaffoldHandle {
+function scaffoldPagesRouter(cwd: string, pagesDir: string, cssAbsPaths: readonly string[]): ScaffoldHandle {
   // Pages Router는 단일 파일 라우트 — pages/jogak-preview.tsx
   const targetFile = resolve(pagesDir, `${PREVIEW_ROUTE_NAME}.tsx`)
 
@@ -137,7 +144,7 @@ function scaffoldPagesRouter(cwd: string, pagesDir: string, cssImports: string):
   // Pages Router는 글로벌 CSS를 `_app.tsx`에서만 import 가능 (Next.js 제약).
   // jogak이 사용자 `_app.tsx`를 침범하지 않으므로 글로벌 CSS는 사용자 _app.tsx 책임.
   // jogak-preview.tsx 자체에는 cssImports를 emit하지 않는다.
-  void cssImports
+  void cssAbsPaths
 
   writeFileSync(targetFile, renderPagesRouterSource('', registryImport), 'utf8')
 

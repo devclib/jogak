@@ -14,7 +14,7 @@
   "dependencies": {
     "@jogak-shop/shared": "workspace:*",
     "@jogak/core": "workspace:*",
-    "next": "^15.5.19",
+    "next": "^16.2.9",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
