@@ -5,6 +5,17 @@ All notable changes to Jogak packages are documented here. The repository follow
 
 Version numbers apply to all packages in the workspace (synchronized release).
 
+## [1.0.0-beta.1] — 2026-06-30
+
+### Fixed
+
+- **chrome scope stub(`component=null`) null guard 추가** — alpha.14.1에서 도입된 chrome scope stub은 `previewIsolation: 'iframe'` 모드에서 **사용자 vite/dev server scope**가 component를 hydrate하는 전제로 동작. 사용자 vite 부재 환경(Next/Nuxt/standalone)에서 stub이 chrome SPA mount path에 도달해 `Element type is invalid: got null` fail 발생.
+  - `preview-frame.tsx`: null entry → inline HTML placeholder + `jogak:error` postMessage
+  - `NoneAdapterContent` / `ShadowAdapterContent`: chrome scope React adapter render 전 null 체크, `<StubPlaceholder>` 컴포넌트로 fallback (jogak class system)
+  - `IframeMount`: iframe → chrome `jogak:error` 메시지 수신 시 banner overlay 표시 (cross-origin iframe content가 안 보이는 경우 backup)
+  - 회귀 가드: `Preview/null-guard.test.tsx` 신규 2건 (none/shadow path × null entry)
+  - Vite 사용자 동작 변화 zero. Next/Nuxt/standalone 사용자는 fail-fast → friendly placeholder + 진단 안내 전환.
+
 ## [1.0.0-beta.0] — 2026-06-04
 
 ### Milestone — alpha → beta 졸업

@@ -5,6 +5,16 @@ All notable changes to Jogak packages are documented here. The repository follow
 
 Version numbers apply to all packages in the workspace (synchronized release).
 
+## [1.0.0-beta.1] — 2026-06-30
+
+### Fixed
+
+- **`packages/core/src/adapters/next/scaffold.ts` — 상대 경로 emit**: Next 16 Turbopack은 `import "/abs/path/globals.css"` 절대 경로를 module-not-found로 거부 (webpack은 OK였음). `scaffoldAppRouter`/`scaffoldPagesRouter`가 받는 `cssAbsPaths`를 `targetDir` 기준 `path.relative()`로 상대 경로 변환 후 emit. Next 15 webpack + Next 16 Turbopack 양쪽 호환.
+
+### Validated
+
+- test-case/jogak-{react,next,vue,svelte,nuxt}-shop 5 framework 매트릭스로 실 사용 검증. 5 framework × 14 컴포넌트 × 12 jogak 메타 × 5 페이지 = jogak 본체의 multi-component / wrapper 패턴 / framework dispatch 정상 동작 확인.
+
 ## [1.0.0-beta.0] — 2026-06-04
 
 ### Milestone — alpha → beta 졸업

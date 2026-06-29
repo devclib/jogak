@@ -5,6 +5,16 @@ All notable changes to Jogak packages are documented here. The repository follow
 
 Version numbers apply to all packages in the workspace (synchronized release).
 
+## [1.0.0-beta.1] — 2026-06-30
+
+### Changed
+
+- **버전 동기화 (no functional change)**: `@jogak/core@1.0.0-beta.1` (Next 16 turbopack 호환 scaffold fix) + `@jogak/ui@1.0.0-beta.1` (chrome scope null guard) publish에 맞춰 caret semver 일관성 유지. `@jogak/cli` 소스 변경 없음.
+
+### CI
+
+- **release.yml `Promote pre-release to latest` step 신설**: 1.0.0-beta.0 publish 시 발견된 401 (OIDC publish vs dist-tag add 인증 분리) 해소. `NPM_TOKEN` secret 등록 시 beta/rc publish 후 자동으로 `latest` dist-tag promote. secret 미설정 시 step skip + warning emit (publish 자체는 OIDC로 성공 유지).
+
 ## [1.0.0-beta.0] — 2026-06-04
 
 ### Milestone — alpha → beta 졸업
