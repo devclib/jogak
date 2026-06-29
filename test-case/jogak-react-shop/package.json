@@ -1,0 +1,31 @@
+{
+  "name": "@jogak-test-case/react-shop",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 5273",
+    "build": "vite build",
+    "preview": "vite preview --port 5273",
+    "typecheck": "tsc --noEmit",
+    "jogak:dev": "jogak dev --port 5373",
+    "jogak:build": "jogak build"
+  },
+  "dependencies": {
+    "@jogak-shop/shared": "workspace:*",
+    "@jogak/core": "workspace:*",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-router-dom": "^7.0.0"
+  },
+  "devDependencies": {
+    "@jogak/cli": "workspace:*",
+    "@tailwindcss/vite": "^4.2.4",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.3.0",
+    "tailwindcss": "^4.2.4",
+    "typescript": "^5.5.0",
+    "vite": "^6.4.3"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "name": "@jogak-shop/shared",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "framework-agnostic shop domain data + types + utils. Used by all jogak-<framework>-shop test apps.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./data": "./src/data.ts",
+    "./types": "./src/types.ts",
+    "./format": "./src/format.ts",
+    "./mock-pay": "./src/mock-pay.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0"
+  }
+}

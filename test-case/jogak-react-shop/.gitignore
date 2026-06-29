@@ -1,0 +1,5 @@
+# jogak (auto-generated, do not commit preview scaffolding)
+.jogak/
+node_modules/
+dist/
+jogak-static/
