@@ -142,10 +142,18 @@ jobs:
         # `pnpm add @jogak/core` (no @suffix)로 받을 때 `latest` dist-tag가 가리키는
         # 버전을 받으므로, beta/rc도 latest로 함께 promote해 install 즉시 동작시킨다.
         # stable(1.0.0) publish 후엔 그것이 latest가 되어 자연스럽게 덮어 쓴다.
+        #
+        # npm OIDC trusted publisher는 publish만 인증한다. dist-tag add는 별도 인증이
+        # 필요하므로 NPM_TOKEN secret을 통해 ~/.npmrc에 _authToken을 set한다. secret
+        # 미설정 시 step은 skip (publish는 OIDC로 이미 성공한 상태 유지).
         if: |
           (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && !inputs.dry_run))
           && (steps.dist-tag.outputs.tag == 'beta' || steps.dist-tag.outputs.tag == 'rc')
+          && env.NPM_TOKEN != ''
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
+          echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > "$HOME/.npmrc"
           for pkg in core ui cli; do
             PKG_VER=$(node -p "require('/__w/jogak/jogak/packages/$pkg/package.json').version" 2>/dev/null \
               || node -p "require(\"$GITHUB_WORKSPACE/packages/$pkg/package.json\").version")
@@ -157,3 +165,15 @@ jobs:
             echo "=== promote @jogak/$pkg@$PKG_VER to latest (was: $CURRENT_LATEST) ==="
             npm dist-tag add "@jogak/$pkg@$PKG_VER" latest
           done
+          rm -f "$HOME/.npmrc"
+
+      - name: Warn if NPM_TOKEN not configured
+        if: |
+          (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && !inputs.dry_run))
+          && (steps.dist-tag.outputs.tag == 'beta' || steps.dist-tag.outputs.tag == 'rc')
+          && env.NPM_TOKEN == ''
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          echo "::warning::NPM_TOKEN secret 미설정. beta/rc publish는 성공했지만 latest dist-tag promote는 skip됨."
+          echo "::warning::수동 promote: npm dist-tag add @jogak/<pkg>@<version> latest (npm login 후)"
