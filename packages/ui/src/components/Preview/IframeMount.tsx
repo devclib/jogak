@@ -99,15 +99,14 @@ export function IframeMount({
 
   return (
     <div
-      className={className}
+      className={`jogak:relative ${className ?? ''}`}
       data-testid={dataTestId}
-      style={{ position: 'relative' }}
     >
       <iframe
         ref={iframeRef}
         src={src}
         title="Preview"
-        style={{ width: '100%', height: '100%', minHeight: 256, border: 'none', display: 'block' }}
+        className="jogak:block jogak:w-full jogak:h-full jogak:min-h-[256px] jogak:border-none"
       />
       {errorMessage !== null ? (
         <div
