@@ -22,8 +22,7 @@ const meta = {
   title: 'Molecules/CartItemRow',
   component: CartItemRowShowcase,
   argTypes: {
-    product: { control: 'select', options: products.map((p) => p.id) },
-    initial: { control: 'number' },
+    initial: { control: 'number', description: '초기 수량' },
   },
 } satisfies JogakMeta
 

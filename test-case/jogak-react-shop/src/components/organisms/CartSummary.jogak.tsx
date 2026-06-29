@@ -6,8 +6,7 @@ const meta = {
   title: 'Organisms/CartSummary',
   component: CartSummary,
   argTypes: {
-    cart: { control: 'select', options: ['empty', 'small', 'large', 'mixed'] },
-    compact: { control: 'boolean' },
+    compact: { control: 'boolean', description: 'sticky 비활성화 + 패딩 축소' },
   },
 } satisfies JogakMeta
 

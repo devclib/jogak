@@ -6,8 +6,7 @@ const meta = {
   title: 'Molecules/ReviewItem',
   component: ReviewItem,
   argTypes: {
-    review: { control: 'select', options: reviews.map((r) => r.id) },
-    compact: { control: 'boolean' },
+    compact: { control: 'boolean', description: '제목 생략 + line-clamp body' },
   },
 } satisfies JogakMeta
 
