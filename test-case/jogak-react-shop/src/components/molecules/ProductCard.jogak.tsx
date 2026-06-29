@@ -6,7 +6,6 @@ const meta = {
   title: 'Molecules/ProductCard',
   component: ProductCard,
   argTypes: {
-    product: { control: 'select', options: products.map((p) => p.id), description: '상품 선택' },
     layout: { control: 'select', options: ['grid', 'horizontal'] },
   },
 } satisfies JogakMeta

@@ -6,9 +6,8 @@ const meta = {
   title: 'Organisms/ProductGrid',
   component: ProductGrid,
   argTypes: {
-    products: { control: 'select', options: ['all', 'apparel', 'tech', 'empty'], description: '필터링된 상품 셋' },
     columns: { control: 'select', options: [2, 3, 4] },
-    emptyMessage: { control: 'text' },
+    emptyMessage: { control: 'text', description: '상품이 없을 때 메시지' },
   },
 } satisfies JogakMeta
 
