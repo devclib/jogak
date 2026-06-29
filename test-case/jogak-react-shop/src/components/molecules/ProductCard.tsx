@@ -51,7 +51,12 @@ export function ProductCard({
         onClick={() => onClick?.(product)}
         className={`text-left ${layout === 'horizontal' ? 'w-32 shrink-0' : 'w-full'}`}
       >
-        <ProductImage color={product.imageColor} label={product.name} rounded="none" />
+        <ProductImage
+          color={product.imageColor}
+          label={product.name}
+          aspect={layout === 'horizontal' ? 'square' : 'landscape'}
+          rounded="none"
+        />
       </button>
       <div className={`p-3 flex flex-col gap-2 ${layout === 'horizontal' ? 'flex-1' : ''}`}>
         <div className="flex items-center gap-1 flex-wrap">
