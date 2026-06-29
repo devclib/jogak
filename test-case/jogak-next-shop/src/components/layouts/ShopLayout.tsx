@@ -1,11 +1,17 @@
 'use client'
 
 import type { ReactElement, ReactNode } from 'react'
+import { usePathname } from 'next/navigation'
 import { NavBar } from '../organisms/NavBar.tsx'
 import { useCart } from '../../lib/cart-store.ts'
 
 export function ShopLayout({ children }: { children: ReactNode }): ReactElement {
+  const pathname = usePathname()
   const cart = useCart()
+  // jogak preview는 NavBar/footer 없이 컴포넌트만 표시 (jogak 쇼케이스 의도)
+  if (pathname?.startsWith('/jogak-preview') === true) {
+    return <>{children}</>
+  }
   const count = cart.lines.reduce((sum, l) => sum + l.quantity, 0)
   return (
     <div className="min-h-screen flex flex-col">
