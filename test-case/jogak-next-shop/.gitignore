@@ -1,0 +1,9 @@
+node_modules/
+.next/
+out/
+dist/
+jogak-static/
+.jogak/
+next-env.d.ts
+# jogak (auto-generated, do not commit preview scaffolding)
+**/jogak-preview/

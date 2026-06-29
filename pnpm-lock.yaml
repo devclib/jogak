@@ -547,6 +547,46 @@ importers:
         specifier: ^3.2.6
         version: 3.2.6(@types/node@20.19.39)(happy-dom@20.9.0)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.47.1)
 
+  test-case/jogak-next-shop:
+    dependencies:
+      '@jogak-shop/shared':
+        specifier: workspace:*
+        version: link:../jogak-shop-shared
+      '@jogak/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      next:
+        specifier: ^15.5.19
+        version: 15.5.19(@playwright/test@1.59.1)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
+      react:
+        specifier: ^19.0.0
+        version: 19.2.5
+      react-dom:
+        specifier: ^19.0.0
+        version: 19.2.5(react@19.2.5)
+    devDependencies:
+      '@jogak/cli':
+        specifier: workspace:*
+        version: link:../../packages/cli
+      '@tailwindcss/postcss':
+        specifier: ^4.2.4
+        version: 4.3.0
+      '@types/node':
+        specifier: ^20.14.0
+        version: 20.19.39
+      '@types/react':
+        specifier: ^19.0.0
+        version: 19.2.14
+      '@types/react-dom':
+        specifier: ^19.0.0
+        version: 19.2.3(@types/react@19.2.14)
+      tailwindcss:
+        specifier: ^4.2.4
+        version: 4.3.0
+      typescript:
+        specifier: ^5.5.0
+        version: 5.9.3
+
   test-case/jogak-react-shop:
     dependencies:
       '@jogak-shop/shared':

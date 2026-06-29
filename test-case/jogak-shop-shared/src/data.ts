@@ -1,7 +1,7 @@
 // Static shop catalog — 16 products / 5 categories / sample reviews.
 // 외부 framework 앱은 그대로 import해서 사용 (DB 없음).
 
-import type { Category, Product, Review } from './types.js'
+import type { Category, Product, Review } from './types'
 
 export const categories: readonly Category[] = [
   { slug: 'apparel', name: 'Apparel', description: '일상에서 입을 수 있는 핵심 의류 라인.' },

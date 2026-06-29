@@ -1,13 +1,13 @@
 // Mock payment + order ID. DB 없음 — localStorage/sessionStorage 위임.
 
-import type { Address, Cart, Order } from './types.js'
-import { products } from './data.js'
-import { effectivePriceCents } from './format.js'
+import type { Address, Cart, Order } from './types'
+import { products } from './data'
+import { effectivePriceCents } from './format'
 import {
   SHIPPING_FEE_CENTS,
   FREE_SHIPPING_THRESHOLD_CENTS,
   TAX_RATE,
-} from './data.js'
+} from './data'
 
 export function calcSubtotalCents(cart: Cart): number {
   let total = 0

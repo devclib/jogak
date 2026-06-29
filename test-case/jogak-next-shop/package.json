@@ -1,0 +1,30 @@
+{
+  "name": "@jogak-test-case/next-shop",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "next dev -p 5283",
+    "build": "next build",
+    "start": "next start -p 5283",
+    "typecheck": "tsc --noEmit",
+    "jogak:dev": "jogak dev --port 5383",
+    "jogak:build": "jogak build"
+  },
+  "dependencies": {
+    "@jogak-shop/shared": "workspace:*",
+    "@jogak/core": "workspace:*",
+    "next": "^15.5.19",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@jogak/cli": "workspace:*",
+    "@tailwindcss/postcss": "^4.2.4",
+    "@types/node": "^20.14.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "tailwindcss": "^4.2.4",
+    "typescript": "^5.5.0"
+  }
+}
