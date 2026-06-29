@@ -725,22 +725,19 @@ function NoneAdapterContent({ entry, args }: { entry: RegistryEntry; args: Reado
  */
 function StubPlaceholder({ entryId }: { entryId: string }): ReactElement {
   return (
-    <div
-      className="jogak:p-6 jogak:text-[var(--jogak-color-text-secondary)]"
-      style={{ fontSize: 13, lineHeight: 1.6 }}
-    >
-      <strong style={{ display: 'block', color: 'var(--jogak-color-text)', marginBottom: 8 }}>
+    <div className="jogak:p-6 jogak:text-[13px] jogak:leading-relaxed jogak:text-[var(--jogak-color-text-secondary)]">
+      <strong className="jogak:block jogak:mb-2 jogak:text-[var(--jogak-color-text)]">
         Preview unavailable — entry has no resolvable component
       </strong>
-      <p style={{ margin: '0 0 8px' }}>
-        <code style={{ background: 'var(--jogak-color-bg-muted)', padding: '2px 6px', borderRadius: 4 }}>{entryId}</code>
+      <p className="jogak:m-0 jogak:mb-2">
+        <code className="jogak:bg-[var(--jogak-color-bg-muted)] jogak:px-1.5 jogak:py-0.5 jogak:rounded">{entryId}</code>
         {' '}의 component가 null로 등록되어 있습니다 (chrome scope stub).
       </p>
-      <p style={{ margin: '0 0 8px' }}>
+      <p className="jogak:m-0 jogak:mb-2">
         <code>previewIsolation: 'iframe'</code> 모드는 사용자 vite/dev server scope에서
         component를 hydrate해야 정상 동작합니다.
       </p>
-      <ul style={{ margin: 0, paddingLeft: 18 }}>
+      <ul className="jogak:m-0 jogak:pl-[18px]">
         <li>Vite 환경: 사용자 vite 자동 spawn이 활성화됐는지 확인</li>
         <li>Next/Nuxt 환경: <code>jogak.config.ts</code>의 <code>userViteUrl</code>로 dev server URL 지정 또는 <code>previewIsolation: 'none'</code></li>
         <li>standalone 환경: jogak adapter가 사용자 framework dev server를 spawn하지 못한 상태</li>
