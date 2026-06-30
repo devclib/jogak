@@ -5,6 +5,13 @@ All notable changes to Jogak packages are documented here. The repository follow
 
 Version numbers apply to all packages in the workspace (synchronized release).
 
+## [1.0.0-beta.2] — 2026-06-30
+
+### Fixed
+
+- **iframe height auto-sync (`IframeMount` + `preview-frame.tsx`)**: chrome scope IframeMount가 iframe scope의 `jogak:height` postMessage를 수신 → `setContentHeight(height)` → iframe element의 `style.height` 갱신. preview-frame.tsx (chrome SPA fallback)도 동일 ResizeObserver inject. min-h-[256px]는 메시지 수신 전 fallback으로만 유지. 모든 framework (Vite/Next/Nuxt/Svelte/Vue/WC) 자동 수혜.
+- **검증**: jogak-react-shop ProductCard에서 before(iframe ~260px, Badge/title/price 잘림) → after(iframe ~430px, 컴포넌트 자연 높이 전체 표시) 확인.
+
 ## [1.0.0-beta.1] — 2026-06-30
 
 ### Fixed

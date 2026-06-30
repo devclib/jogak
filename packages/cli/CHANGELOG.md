@@ -5,6 +5,12 @@ All notable changes to Jogak packages are documented here. The repository follow
 
 Version numbers apply to all packages in the workspace (synchronized release).
 
+## [1.0.0-beta.2] — 2026-06-30
+
+### Changed
+
+- **버전 동기화 (no functional change)**: `@jogak/core@1.0.0-beta.2` + `@jogak/ui@1.0.0-beta.2` (iframe height auto-sync) publish에 맞춰 caret semver 일관성 유지. `@jogak/cli` 소스 변경 없음.
+
 ## [1.0.0-beta.1] — 2026-06-30
 
 ### Changed

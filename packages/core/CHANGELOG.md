@@ -5,6 +5,12 @@ All notable changes to Jogak packages are documented here. The repository follow
 
 Version numbers apply to all packages in the workspace (synchronized release).
 
+## [1.0.0-beta.2] — 2026-06-30
+
+### Fixed
+
+- **iframe height auto-sync (ResizeObserver + `jogak:height` postMessage)**: preview iframe 높이가 고정값(min-h-[256px])이라 컴포넌트 자연 높이가 그보다 크면 iframe 내부에 scroll이 발생하던 결함. 5 iframe scope (vite/next pages+RSC/webpack/next IframeBridge)에 동일 ResizeObserver 패턴 inject — `body` 관찰 → `Math.ceil(contentRect.height)`를 부모(chrome SPA IframeMount)에 postMessage. 부모가 iframe element `style.height`를 자연 높이로 갱신. frame-rate throttle은 browser native, `height > 0` 가드 + `disconnect()` cleanup으로 memory leak 회피.
+
 ## [1.0.0-beta.1] — 2026-06-30
 
 ### Fixed
