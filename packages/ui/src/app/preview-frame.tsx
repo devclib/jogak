@@ -147,4 +147,23 @@ window.addEventListener('message', (event: MessageEvent) => {
   }
 })
 
+// 1.0.0-beta.2: iframe content 높이를 부모에 동기화 — 부모 IframeMount가 받아
+// iframe element의 height를 갱신해서 내부 scroll 대신 자연 높이로 표시.
+//
+// ResizeObserver는 element 크기 변경 시점에 동기 콜백. body 자체를 관찰해
+// 컴포넌트 mount/unmount/args 변경 시 자동 갱신.
+//
+// 첫 ready 직후엔 컴포넌트 미마운트 상태(height=0)일 수 있어 ResizeObserver의
+// 첫 콜백은 일반적으로 mount 직후. throttle 없음 — ResizeObserver는 자체로
+// browser frame rate에 맞춰 throttle.
+const heightObserver = new ResizeObserver((entries) => {
+  for (const entry of entries) {
+    const height = Math.ceil(entry.contentRect.height)
+    if (height > 0) {
+      window.parent.postMessage({ type: 'jogak:height', height }, '*')
+    }
+  }
+})
+heightObserver.observe(document.body)
+
 window.parent.postMessage({ type: 'jogak:ready' }, '*')

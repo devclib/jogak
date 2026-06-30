@@ -153,6 +153,15 @@ window.addEventListener('message', (event: MessageEvent) => {
   }
 })
 
+// 1.0.0-beta.2: body 높이 sync — iframe 내부 scroll 회피.
+const heightObserver = new ResizeObserver((entries) => {
+  for (const entry of entries) {
+    const height = Math.ceil(entry.contentRect.height)
+    if (height > 0) window.parent.postMessage({ type: 'jogak:height', height }, '*')
+  }
+})
+heightObserver.observe(document.body)
+
 window.parent.postMessage({ type: 'jogak:ready' }, '*')
 `
 }
