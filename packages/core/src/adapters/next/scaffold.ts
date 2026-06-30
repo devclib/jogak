@@ -378,8 +378,19 @@ export default function ${componentName}() {
     }
 
     window.addEventListener('message', handler)
+    // 1.0.0-beta.2: body 높이 sync.
+    const heightObserver = new ResizeObserver((entries) => {
+      for (const e of entries) {
+        const height = Math.ceil(e.contentRect.height)
+        if (height > 0) window.parent.postMessage({ type: 'jogak:height', height }, '*')
+      }
+    })
+    heightObserver.observe(document.body)
     window.parent.postMessage({ type: 'jogak:ready' }, '*')
-    return () => { window.removeEventListener('message', handler) }
+    return () => {
+      window.removeEventListener('message', handler)
+      heightObserver.disconnect()
+    }
   }, [])
 
   return <div id="jogak-preview-root" ref={ref} />

@@ -140,6 +140,18 @@ window.addEventListener('message', (event) => {
   }
 })
 
+// 1.0.0-beta.2: body 높이를 부모(chrome SPA의 IframeMount)에 동기화 — iframe element height
+// 갱신으로 내부 scroll 회피. ResizeObserver는 frame 단위 throttle.
+const heightObserver = new ResizeObserver((entries) => {
+  for (const entry of entries) {
+    const height = Math.ceil(entry.contentRect.height)
+    if (height > 0) {
+      window.parent.postMessage({ type: 'jogak:height', height }, '*')
+    }
+  }
+})
+heightObserver.observe(document.body)
+
 window.parent.postMessage({ type: 'jogak:ready' }, '*')
 `
 
