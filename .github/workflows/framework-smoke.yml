@@ -19,6 +19,7 @@ on:
       - 'apps/jogak-svelte-test/**'
       - 'apps/jogak-vite-test/**'
       - 'apps/jogak-next-test/**'
+      - 'apps/wc-demo/**'
       - 'e2e/framework-smoke.mjs'
       - '.github/workflows/framework-smoke.yml'
       - 'pnpm-lock.yaml'
@@ -33,6 +34,7 @@ on:
       - 'apps/jogak-svelte-test/**'
       - 'apps/jogak-vite-test/**'
       - 'apps/jogak-next-test/**'
+      - 'apps/wc-demo/**'
       - 'e2e/framework-smoke.mjs'
       - '.github/workflows/framework-smoke.yml'
       - 'pnpm-lock.yaml'
@@ -50,9 +52,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # react 재편입 시도 — childLog dump 인프라(a1c54c2)로 CI 원인 파악.
-        # 로컬 <10s vs CI 60s+ 격차의 정체 확인 후 fix 예정.
-        fixture: [vue, svelte, react]
+        # 1.0.0 post-1.0: wc 편입 (5 framework matrix 완성).
+        fixture: [vue, svelte, react, wc]
     steps:
       - uses: actions/checkout@v4
 

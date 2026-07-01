@@ -6,6 +6,7 @@
   "license": "MIT",
   "scripts": {
     "jogak:gen": "jogak generate --patterns 'src/**/*.jogak.tsx'",
+    "jogak:dev": "jogak dev",
     "predev": "pnpm jogak:gen",
     "prebuild": "pnpm jogak:gen",
     "dev": "vite --port 5174",

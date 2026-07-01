@@ -56,6 +56,15 @@ const FIXTURES = {
     testid: 'next-hello',
     expectedText: 'Hello jogak-next (next)',
   },
+  // 1.0.0 post-1.0: Web Components 편입. wc-demo에 jogak.config.ts +
+  // Hello fixture 추가 → jogak dev로 vite adapter가 wc renderer dispatch.
+  wc: {
+    appName: 'wc-demo',
+    titleGroup: 'WC',
+    titleEntry: 'Hello',
+    testid: 'wc-hello',
+    expectedText: 'Hello wc-demo (wc)',
+  },
 }
 
 const args = Object.fromEntries(
@@ -67,7 +76,7 @@ const args = Object.fromEntries(
 const fixture = (args['fixture'] || '').toLowerCase()
 const cfg = FIXTURES[fixture]
 if (!cfg) {
-  console.error('Usage: node e2e/framework-smoke.mjs --fixture=vue|svelte|react|next')
+  console.error('Usage: node e2e/framework-smoke.mjs --fixture=vue|svelte|react|next|wc')
   process.exit(2)
 }
 
