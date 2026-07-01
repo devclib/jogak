@@ -49,11 +49,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # 1.0.0-beta.5: react는 로컬 clean state에서 <10s에 성공하지만 CI ubuntu
-        # runner에서 40s 이상 걸림 (vue/svelte는 60s 이내 성공). 원인 진단 followup
-        # 필요. fixture 파일(apps/jogak-vite-test/src/components/Hello*)은 유지해
-        # 로컬 회귀 catch에 활용.
-        fixture: [vue, svelte]
+        # react 재편입 시도 — childLog dump 인프라(a1c54c2)로 CI 원인 파악.
+        # 로컬 <10s vs CI 60s+ 격차의 정체 확인 후 fix 예정.
+        fixture: [vue, svelte, react]
     steps:
       - uses: actions/checkout@v4
 
