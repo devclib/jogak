@@ -5,6 +5,13 @@ All notable changes to Jogak packages are documented here. The repository follow
 
 Version numbers apply to all packages in the workspace (synchronized release).
 
+## [1.0.0-beta.4] — 2026-07-01
+
+### Fixed
+
+- **[critical] vite import-analysis 정적 스캔 우회 (axe-core optional 실동작 보장)** — `import('axe-core')`를 vite 6의 import-analysis가 정적 리터럴로 취급해 axe-core 미설치 시 preview iframe 자체가 fail. runtime `.catch(() => null)`이나 `/* @vite-ignore */` (vite 5 형식) 모두 vite 6에서 무효. 변수 obfuscation(`const axeModuleId = 'axe-core'; await import(axeModuleId)`)으로 vite 정적 분석 우회. 4 axe 진입점 모두 갱신 (`preview-entry/source.ts`, `preview-entry/a11y-snippet.ts`, `renderers/next/client/IframeBridge.tsx`, ui의 `preview-frame.tsx`). beta.3에서 실 vite 사용자 preview fail 회귀 hotfix.
+- **Next 어댑터 A11y followup (5/5 framework 완성)** — beta.3에서 미룬 Next 3 위치 (`renderers/next/client/IframeBridge.tsx`, `adapters/next/scaffold.ts:renderClientMountSource + renderRscBridgeSource`)에 axe-core 지원 추가. 각 useEffect 안 render 완료 시 `scheduleA11y()` 호출.
+
 ## [1.0.0-beta.3] — 2026-07-01
 
 ### Added

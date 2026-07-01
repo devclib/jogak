@@ -5,6 +5,18 @@ All notable changes to Jogak packages are documented here. The repository follow
 
 Version numbers apply to all packages in the workspace (synchronized release).
 
+## [1.0.0-beta.4] — 2026-07-01
+
+### Fixed
+
+- **[critical] `preview-frame.tsx`의 axe import를 변수 obfuscation** — beta.3의 axe-core import가 vite 6 정적 분석에서 fail하던 이슈 hotfix. chrome SPA fallback path에서도 동일 패턴 적용.
+- **dev server port 중복 처리 안내** — 요청 port가 사용 중이라 vite가 fallback한 경우 명확 warning 출력 (`lsof -ti tcp:X` 명령 힌트 + `--port` 사용 안내). 기존 vite의 default 메시지는 원인 안내 없이 "Port X in use, trying another one..."뿐이라 사용자가 "다른 jogak dev가 살아있는지" 판단 못 했음.
+
+### Added
+
+- **Sidebar empty state (첫 5분 UX)** — `.jogak.{ts,tsx}` 파일 없이 `jogak dev` 실행 시 sidebar가 빈 nav로 렌더되던 것을 첫 컴포넌트 생성 boilerplate (JogakMeta / Jogak 완전 예시) + `jogak.dev/docs` 링크로 대체. 검색 결과 zero도 `SearchEmptyState`로 명확 안내.
+- 회귀 가드 2건 (`empty-state.test.tsx`) — ui test 32 → 34.
+
 ## [1.0.0-beta.3] — 2026-07-01
 
 ### Added

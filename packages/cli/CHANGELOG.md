@@ -5,6 +5,12 @@ All notable changes to Jogak packages are documented here. The repository follow
 
 Version numbers apply to all packages in the workspace (synchronized release).
 
+## [1.0.0-beta.4] — 2026-07-01
+
+### Changed
+
+- **버전 동기화 (no functional change)**: `@jogak/core@1.0.0-beta.4` (axe vite fix + Next A11y) + `@jogak/ui@1.0.0-beta.4` (port 안내 + Sidebar empty state) publish에 맞춰 caret semver 일관성 유지. `@jogak/cli` 소스 변경 없음.
+
 ## [1.0.0-beta.3] — 2026-07-01
 
 ### Changed
