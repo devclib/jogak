@@ -1,7 +1,14 @@
 name: Framework Smoke
 
-# Vue / Svelte fixture에서 jogak dev 마운트 + iframe scope의 어댑터 dispatch가
-# 정상 동작하는지 확인하는 e2e smoke. React/Next은 visual-regression이 이미 보호.
+# Vue / Svelte / React fixture에서 jogak dev 마운트 + iframe scope의 어댑터 dispatch가
+# 정상 동작하는지 확인하는 e2e smoke.
+#
+# beta.4의 axe-core vite 정적 스캔 회귀는 Vue/Svelte smoke가 catch — VR은 chrome
+# scope만 검증하므로 iframe scope 어댑터 dispatch 결함은 smoke만 catch. React도
+# 동일 결함 가능성이 있어 matrix 확장.
+#
+# Next / WC 어댑터는 초기 컴파일 오버헤드(Next 30초+) 또는 별도 fixture 미준비로
+# 본 smoke에서 제외. VR + test-case/jogak-{next,nuxt}-shop이 대체 커버.
 
 on:
   pull_request:
@@ -11,6 +18,7 @@ on:
       - 'packages/ui/**'
       - 'apps/jogak-vue-test/**'
       - 'apps/jogak-svelte-test/**'
+      - 'apps/jogak-vite-test/**'
       - 'e2e/framework-smoke.mjs'
       - '.github/workflows/framework-smoke.yml'
       - 'pnpm-lock.yaml'
@@ -23,6 +31,7 @@ on:
       - 'packages/ui/**'
       - 'apps/jogak-vue-test/**'
       - 'apps/jogak-svelte-test/**'
+      - 'apps/jogak-vite-test/**'
       - 'e2e/framework-smoke.mjs'
       - '.github/workflows/framework-smoke.yml'
       - 'pnpm-lock.yaml'
@@ -40,7 +49,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        fixture: [vue, svelte]
+        fixture: [vue, svelte, react]
     steps:
       - uses: actions/checkout@v4
 

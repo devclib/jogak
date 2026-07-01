@@ -39,6 +39,23 @@ const FIXTURES = {
     testid: 'svelte-hello',
     expectedText: 'Hello jogak-svelte (svelte)',
   },
+  // 1.0.0-beta.5: React/Next smoke 추가. 이전엔 "React/Next은 VR이 보호"라고 했으나
+  // VR은 chrome scope만 catch. axe-core vite 정적 스캔 이슈(beta.3 hotfix in beta.4)처럼
+  // iframe scope 어댑터 dispatch 결함은 smoke만 catch. 5 framework matrix 완성.
+  react: {
+    appName: 'jogak-vite-test',
+    titleGroup: 'React',
+    titleEntry: 'Hello',
+    testid: 'react-hello',
+    expectedText: 'Hello jogak-vite (react)',
+  },
+  next: {
+    appName: 'jogak-next-test',
+    titleGroup: 'Next',
+    titleEntry: 'Hello',
+    testid: 'next-hello',
+    expectedText: 'Hello jogak-next (next)',
+  },
 }
 
 const args = Object.fromEntries(
@@ -50,7 +67,7 @@ const args = Object.fromEntries(
 const fixture = (args['fixture'] || '').toLowerCase()
 const cfg = FIXTURES[fixture]
 if (!cfg) {
-  console.error('Usage: node e2e/framework-smoke.mjs --fixture=vue|svelte')
+  console.error('Usage: node e2e/framework-smoke.mjs --fixture=vue|svelte|react|next')
   process.exit(2)
 }
 
