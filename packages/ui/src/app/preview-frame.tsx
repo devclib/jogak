@@ -134,8 +134,9 @@ async function runA11y(): Promise<void> {
   a11yRunning = true
   try {
     // axe-core는 optionalDependency — 사용자가 install한 경우만 dynamic import 성공.
-    // @ts-expect-error — axe-core는 optional peer이므로 타입 미보장.
-    const axe = await import('axe-core').catch(() => null)
+    // 변수 obfuscation으로 vite import-analysis 정적 스캔 회피.
+    const axeModuleId = 'axe-core'
+    const axe = await import(axeModuleId).catch(() => null)
     if (axe === null) {
       window.parent.postMessage({ type: 'jogak:a11y', violations: [], notInstalled: true }, '*')
       return
