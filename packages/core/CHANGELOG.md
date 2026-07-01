@@ -5,6 +5,12 @@ All notable changes to Jogak packages are documented here. The repository follow
 
 Version numbers apply to all packages in the workspace (synchronized release).
 
+## [1.0.0-beta.6] — 2026-07-01
+
+### Added
+
+- **[편의성] `jogak.config.ts` 자동 restart** — 사용자가 config를 수정하면 dev server가 자동으로 restart. beta.5까지는 안내 메시지만 있고 사용자가 수동 `Ctrl+C` + 재실행 필요했음 (HMR 진단 P2-2 minimal). `JogakPluginOptions.configPath` 내부 옵션 추가, plugin의 `configureServer`에서 `server.watcher.add(configPath)` + `change` event → `server.restart()`. `previewFrame` 모드에서는 skip (사용자 vite에 jogak() 중복 inject 회피).
+
 ## [1.0.0-beta.5] — 2026-07-01
 
 ### Fixed

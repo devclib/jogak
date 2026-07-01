@@ -5,6 +5,12 @@ All notable changes to Jogak packages are documented here. The repository follow
 
 Version numbers apply to all packages in the workspace (synchronized release).
 
+## [1.0.0-beta.6] — 2026-07-01
+
+### Added
+
+- **`JogakHostOptionsBase.configPath`** 내부 옵션 — CLI가 `loadJogakConfig` 결과 path를 host 통해 plugin으로 pass-through. plugin의 자동 restart(`@jogak/core@1.0.0-beta.6`)와 짝.
+
 ## [1.0.0-beta.5] — 2026-07-01
 
 ### Changed

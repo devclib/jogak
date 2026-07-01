@@ -5,6 +5,13 @@ All notable changes to Jogak packages are documented here. The repository follow
 
 Version numbers apply to all packages in the workspace (synchronized release).
 
+## [1.0.0-beta.6] — 2026-07-01
+
+### Changed
+
+- **`jogak dev` 로그 메시지** — `note: changes to jogak.config.ts require dev server restart` → `watching jogak.config.ts for changes (auto-restart on edit)`. plugin의 자동 restart(`@jogak/core@1.0.0-beta.6`)와 짝.
+- **`DevCliArgs.configPath`** 내부 옵션 — `parseDevArgs`가 `loadJogakConfig`의 path를 세 번째 인자로 받아 host로 전달.
+
 ## [1.0.0-beta.5] — 2026-07-01
 
 ### Added
