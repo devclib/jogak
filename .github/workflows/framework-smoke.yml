@@ -1,14 +1,13 @@
 name: Framework Smoke
 
-# Vue / Svelte fixture에서 jogak dev 마운트 + iframe scope의 어댑터 dispatch가
+# Vue / Svelte / React fixture에서 jogak dev 마운트 + iframe scope의 어댑터 dispatch가
 # 정상 동작하는지 확인하는 e2e smoke.
 #
 # beta.4의 axe-core vite 정적 스캔 회귀는 Vue/Svelte smoke가 catch — VR은 chrome
 # scope만 검증하므로 iframe scope 어댑터 dispatch 결함은 smoke만 catch.
 #
-# React fixture는 준비됐지만(apps/jogak-vite-test/src/components/Hello*) CI runner
-# 환경에서 40s 이상 걸려 timeout — 로컬 clean state에서는 <10s. 원인 진단 후
-# matrix에 편입 예정 (followup). Next / WC는 별도 fixture 문제로 제외.
+# Next 어댑터는 next dev 초기 컴파일이 30s+ 걸려 표준 timeout 부적합 → 별도 job
+# (next-smoke)에서 timeout 5분으로 처리. WC는 dev command 미준비로 followup.
 
 on:
   pull_request:
@@ -19,6 +18,7 @@ on:
       - 'apps/jogak-vue-test/**'
       - 'apps/jogak-svelte-test/**'
       - 'apps/jogak-vite-test/**'
+      - 'apps/jogak-next-test/**'
       - 'e2e/framework-smoke.mjs'
       - '.github/workflows/framework-smoke.yml'
       - 'pnpm-lock.yaml'
@@ -32,6 +32,7 @@ on:
       - 'apps/jogak-vue-test/**'
       - 'apps/jogak-svelte-test/**'
       - 'apps/jogak-vite-test/**'
+      - 'apps/jogak-next-test/**'
       - 'e2e/framework-smoke.mjs'
       - '.github/workflows/framework-smoke.yml'
       - 'pnpm-lock.yaml'
@@ -75,3 +76,36 @@ jobs:
 
       - name: Smoke ${{ matrix.fixture }}
         run: node e2e/framework-smoke.mjs --fixture=${{ matrix.fixture }}
+
+  next-smoke:
+    # Next 어댑터는 next dev의 첫 컴파일이 30초+ 걸려 표준 matrix(60s testid wait)에
+    # 부적합. 본 별도 job은 testid wait timeout 4분(240_000ms)으로 확장. 여전히
+    # iframe scope dispatch 회귀는 catch.
+    name: next iframe mount
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Build core / ui / cli
+        run: pnpm --filter @jogak/core --filter @jogak/ui --filter @jogak/cli build
+
+      - name: Install Playwright chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Smoke next (extended timeout)
+        env:
+          JOGAK_SMOKE_TESTID_TIMEOUT_MS: '240000'
+        run: node e2e/framework-smoke.mjs --fixture=next
