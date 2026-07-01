@@ -5,6 +5,23 @@ All notable changes to Jogak packages are documented here. The repository follow
 
 Version numbers apply to all packages in the workspace (synchronized release).
 
+## [1.0.0-beta.5] — 2026-07-01
+
+### Fixed
+
+- **[안정성] vite-adapter의 `optimizeDeps.include` 자동 구성** — 첫 iframe mount에서 vite가 dependency를 dynamically discover하면 `optimized dependencies changed. reloading`이 트리거되어 컴포넌트 mount 상태 도달 못 하는 회귀. `packages/core/src/adapters/vite/spawn-dev.ts`의 `buildOptimizeDepsInclude`가 사용자 `package.json`의 `dependencies` + `devDependencies`를 확인해 실제 install된 framework(react/vue/svelte)에 대해서만 pre-bundle 항목 추가. `@jogak/core`는 항상 포함. React CI smoke가 이 결함을 60s+ timeout으로 표현했었음 (childLog dump 인프라가 원인 catch).
+
+### Added
+
+- **[편의성] CLI 안내 메시지 개선** (P2-1 min + P2-2 min):
+  - `jogak dev` 실행 시 registry에 `.jogak.{ts,tsx}` 파일이 zero이면 명확한 안내 (boilerplate hint + docs 링크). 첫 5분 UX — sidebar empty state(beta.4)와 짝.
+  - `jogak.config.ts`가 로드되면 "변경 시 dev server 수동 restart 필요" 안내 출력. HMR 진단(P2-2) 결과: config는 CLI가 로드하지 vite가 watch 안 함 → 자동 restart 안 됨.
+
+### CI
+
+- **[진단] framework-smoke `childLog` dump on fail** — CI에서 iframe timeout이 나면 `jogak dev` stdout/stderr(사용자 vite adapter spawn 상태, HMR error, port 충돌 등)의 마지막 200줄을 log에 dump. 본 fix 사이클의 원인 파악에 결정적. (`main` commit `a1c54c2` 시점 반영)
+- **React fixture 편입 완결** — vue/svelte/react 3개 matrix 안정 통과.
+
 ## [1.0.0-beta.4] — 2026-07-01
 
 ### Fixed

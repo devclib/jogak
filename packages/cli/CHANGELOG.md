@@ -5,6 +5,14 @@ All notable changes to Jogak packages are documented here. The repository follow
 
 Version numbers apply to all packages in the workspace (synchronized release).
 
+## [1.0.0-beta.5] — 2026-07-01
+
+### Added
+
+- **`jogak dev` 안내 메시지 강화** (P2-1 min + P2-2 min):
+  - registry에 `.jogak.{ts,tsx}` 파일이 zero이면 boilerplate 힌트 + docs 링크 출력.
+  - `jogak.config.ts` 로드되면 "변경 시 dev server 수동 restart 필요" 안내.
+
 ## [1.0.0-beta.4] — 2026-07-01
 
 ### Changed

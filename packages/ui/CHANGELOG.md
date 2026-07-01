@@ -5,6 +5,12 @@ All notable changes to Jogak packages are documented here. The repository follow
 
 Version numbers apply to all packages in the workspace (synchronized release).
 
+## [1.0.0-beta.5] — 2026-07-01
+
+### Changed
+
+- **버전 동기화 (no functional change)**: `@jogak/core@1.0.0-beta.5` (vite optimizeDeps 자동 구성 + CLI 안내 개선) publish에 맞춰 caret semver 일관성 유지. `@jogak/ui` 소스 변경 없음.
+
 ## [1.0.0-beta.4] — 2026-07-01
 
 ### Fixed
