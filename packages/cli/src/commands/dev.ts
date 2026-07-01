@@ -61,6 +61,17 @@ export async function runDevCommand(args: DevCliArgs): Promise<void> {
       process.stdout.write(
         `[jogak] registry regenerated (${result.fileCount.toString()} files, ${elapsedMs.toString()}ms)\n`,
       )
+      // 1.0.0-beta.5: 첫 5분 UX — .jogak.{ts,tsx} 없이 dev 실행 시 명확 안내.
+      // sidebar empty state는 SPA에서 보이지만 터미널에서도 즉시 알림.
+      if (result.fileCount === 0) {
+        const patternsHint = args.patterns !== undefined
+          ? args.patterns.join(', ')
+          : 'src/**/*.jogak.{ts,tsx}'
+        process.stdout.write(
+          `[jogak] no .jogak.{ts,tsx} files found (patterns: ${patternsHint}).\n` +
+            `[jogak] create one next to a component to see it in the sidebar. Guide: https://jogak.dev/en/docs\n`,
+        )
+      }
     } catch (err: unknown) {
       // 생성 실패해도 host는 띄울 수 있게 하되, non-vite 어댑터는 빈 registry로 동작.
       const message = err instanceof Error ? err.message : String(err)
