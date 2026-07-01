@@ -8,6 +8,8 @@
  */
 
 import { spawn, type ChildProcess } from 'node:child_process'
+import { existsSync } from 'node:fs'
+import { resolve } from 'node:path'
 import type { DevHandle, SpawnDevOptions } from '../../index.js'
 import { scaffoldPreviewPage } from './scaffold.js'
 
@@ -34,8 +36,14 @@ export async function spawnNextDev(opts: SpawnDevOptions): Promise<DevHandle> {
   const port = opts.port ?? 5174
   const cmd = extra.cmd ?? 'next'
 
+  // 1.0.0-beta.7: 'next' binary가 shell PATH에 없어도 사용자 프로젝트의
+  // node_modules/.bin/next를 우선 사용. 없으면 shell PATH에 의존 (기존 동작).
+  // spawn ENOENT 회귀 방지 (CI + 사용자 shell에서 next global install 없는 환경).
+  const localNext = resolve(opts.cwd, 'node_modules/.bin/next')
+  const resolvedCmd = cmd === 'next' && existsSync(localNext) ? localNext : cmd
+
   const child: ChildProcess = spawn(
-    cmd,
+    resolvedCmd,
     ['dev', '-p', String(port), '-H', String(opts.host ?? 'localhost')],
     {
       cwd: opts.cwd,
