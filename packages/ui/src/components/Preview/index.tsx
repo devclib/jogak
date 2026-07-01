@@ -11,6 +11,8 @@ import { Controls } from '../Controls/index.js'
 import { Actions } from '../Actions/index.js'
 import { ShadowMount } from './ShadowMount.js'
 import { IframeMount } from './IframeMount.js'
+import type { A11yResult } from './IframeMount.js'
+import { A11yPanel } from './A11yPanel.js'
 import { formatUsageCode } from './format-usage.js'
 
 export interface PreviewProps {
@@ -142,7 +144,9 @@ export function Preview({
   const state = useEntry(entryId, { skipHydrate: previewIsolation === 'iframe' })
   const [viewport, setViewport] = useState<ViewportKey>('desktop')
   const [bgMode, setBgMode] = useState<BgMode>('white')
-  const [bottomTab, setBottomTab] = useState<'controls' | 'actions'>('controls')
+  const [bottomTab, setBottomTab] = useState<'controls' | 'actions' | 'a11y'>('controls')
+  // 1.0.0-beta.3: A11y (axe-core) 결과. IframeMount의 onA11yResult 콜백으로 갱신.
+  const [a11yResult, setA11yResult] = useState<A11yResult | null>(null)
 
   const prismTheme = resolvePrismTheme(codeTheme)
 
@@ -199,6 +203,8 @@ export function Preview({
       viewport={viewport}
       bgMode={bgMode}
       bottomTab={bottomTab}
+      a11yResult={a11yResult}
+      onA11yResult={setA11yResult}
       onViewportChange={setViewport}
       onBgModeChange={setBgMode}
       onBottomTabChange={setBottomTab}
@@ -288,10 +294,12 @@ interface ReadyFrameProps {
   readonly onResolveJogak: ((entryId: string, jogakName: string) => void) | undefined
   readonly viewport: ViewportKey
   readonly bgMode: BgMode
-  readonly bottomTab: 'controls' | 'actions'
+  readonly bottomTab: 'controls' | 'actions' | 'a11y'
+  readonly a11yResult: A11yResult | null
+  readonly onA11yResult: (result: A11yResult) => void
   readonly onViewportChange: (vp: ViewportKey) => void
   readonly onBgModeChange: (bg: BgMode) => void
-  readonly onBottomTabChange: (tab: 'controls' | 'actions') => void
+  readonly onBottomTabChange: (tab: 'controls' | 'actions' | 'a11y') => void
   readonly prismTheme: PrismTheme
   readonly previewIsolation: 'none' | 'shadow' | 'iframe'
   readonly userPreviewUrl: string
@@ -308,6 +316,8 @@ function ReadyFrame({
   viewport,
   bgMode,
   bottomTab,
+  a11yResult,
+  onA11yResult,
   onViewportChange,
   onBgModeChange,
   onBottomTabChange,
@@ -388,6 +398,7 @@ function ReadyFrame({
             previewIsolation={previewIsolation}
             userPreviewUrl={userPreviewUrl}
             previewEntryPath={previewEntryPath}
+            onA11yResult={onA11yResult}
           />
         </div>
       </div>
@@ -401,7 +412,7 @@ function ReadyFrame({
           role="tablist"
           className="jogak:flex jogak:gap-1 jogak:pt-1 jogak:px-3 jogak:pb-0 jogak:bg-[var(--jogak-color-bg)] jogak:border-b jogak:border-[var(--jogak-color-border)] jogak:shrink-0"
         >
-          {(['controls', 'actions'] as const).map((tab) => {
+          {(['controls', 'actions', 'a11y'] as const).map((tab) => {
             const active = bottomTab === tab
             return (
               <button
@@ -430,8 +441,10 @@ function ReadyFrame({
               argTypes={mergedArgTypes}
               onArgChange={onArgChange}
             />
-          ) : (
+          ) : bottomTab === 'actions' ? (
             <Actions />
+          ) : (
+            <A11yPanel result={a11yResult} />
           )}
         </div>
       </div>
@@ -539,6 +552,7 @@ interface JogakRendererProps {
   readonly previewIsolation: 'none' | 'shadow' | 'iframe'
   readonly userPreviewUrl: string
   readonly previewEntryPath: string
+  readonly onA11yResult?: ((result: A11yResult) => void) | undefined
 }
 
 /**
@@ -548,7 +562,7 @@ interface JogakRendererProps {
  * - `'shadow'` (deprecated) — `<ShadowMount>` 안에 마운트.
  * - `'none'` (deprecated) — 같은 document에 직접 마운트.
  */
-function JogakRenderer({ entry, args, theme, previewIsolation, userPreviewUrl, previewEntryPath }: JogakRendererProps): ReactElement {
+function JogakRenderer({ entry, args, theme, previewIsolation, userPreviewUrl, previewEntryPath, onA11yResult }: JogakRendererProps): ReactElement {
   const [showCode, setShowCode] = useState(false)
   // 알파.10.3: 코드 패널은 jogak 메타 파일이 아니라 현재 args 기반 사용 코드를 노출.
   const usageCode = formatUsageCode(entry, args)
@@ -561,6 +575,7 @@ function JogakRenderer({ entry, args, theme, previewIsolation, userPreviewUrl, p
         previewIsolation={previewIsolation}
         userPreviewUrl={userPreviewUrl}
         previewEntryPath={previewEntryPath}
+        onA11yResult={onA11yResult}
       />
       <button
         type="button"
@@ -604,13 +619,14 @@ interface PreviewMountProps {
   readonly previewIsolation: 'none' | 'shadow' | 'iframe'
   readonly userPreviewUrl: string
   readonly previewEntryPath: string
+  readonly onA11yResult?: ((result: A11yResult) => void) | undefined
 }
 
 const PREVIEW_HOST_CLASS =
   'jogak:border jogak:border-dashed jogak:border-[var(--jogak-color-border)] ' +
   'jogak:rounded-[var(--jogak-radius-xl)] jogak:p-4 jogak:pb-9'
 
-function PreviewMount({ entry, args, previewIsolation, userPreviewUrl, previewEntryPath }: PreviewMountProps): ReactElement {
+function PreviewMount({ entry, args, previewIsolation, userPreviewUrl, previewEntryPath, onA11yResult }: PreviewMountProps): ReactElement {
   if (previewIsolation === 'shadow') {
     return (
       <ShadowMount
@@ -629,6 +645,7 @@ function PreviewMount({ entry, args, previewIsolation, userPreviewUrl, previewEn
         args={args}
         userPreviewUrl={userPreviewUrl}
         previewEntryPath={previewEntryPath}
+        onA11yResult={onA11yResult}
         data-testid="preview-content"
         className={`${PREVIEW_HOST_CLASS} jogak:block jogak:w-full jogak:bg-transparent jogak:min-h-[256px]`}
       />

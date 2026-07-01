@@ -42,7 +42,7 @@ Storybook ships as a plugin platform — the core UI is small; features come fro
 | Backgrounds | White / dark / transparent | Built-in | ✅ |
 | Source view | Usage snippet from args | Built-in | ✅ |
 | Themes | Toggle theme in toolbar | ❌ pass theme via `args` for now | planned |
-| A11y (axe-core) | Accessibility scan | ❌ run `axe-core` in Vitest for now | planned |
+| A11y (axe-core) | Accessibility scan | Built-in (dynamic import, `axe-core` as `optionalDependency`) | ✅ 1.0.0-beta.3+ |
 | MDX docs | Rich documentation pages | ⚠️ only `argTypes.description` today | planned |
 | Interactions / Play | Runtime scripting per story | ❌ move to Vitest + RTL | not planned for 1.0 |
 | Test runner | Storybook-based Jest runner | ❌ use Vitest | not planned for 1.0 |

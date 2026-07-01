@@ -10,6 +10,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync, rmSync } from 'node:fs'
 import { relative, resolve } from 'node:path'
 import { resolveGlobalCssPaths } from '../../server.js'
+import { A11Y_SNIPPET } from '../../preview-entry/a11y-snippet.js'
 
 export interface ScaffoldOptions {
   readonly cwd: string
@@ -139,17 +140,21 @@ function unmount(): void {
   }
 }
 
+${A11Y_SNIPPET}
 window.addEventListener('message', (event: MessageEvent) => {
   const data = event.data
   if (data == null || typeof data !== 'object') return
   if (data.type === 'jogak:setProps') {
     void renderEntry(data.entryId, data.args ?? {}).then(() => {
       window.parent.postMessage({ type: 'jogak:rendered', entryId: data.entryId }, '*')
+      scheduleA11y()
     }).catch((err: unknown) => {
       window.parent.postMessage({ type: 'jogak:error', message: String((err as Error)?.message ?? err) }, '*')
     })
   } else if (data.type === 'jogak:unmount') {
     unmount()
+  } else if (data.type === 'jogak:runA11y') {
+    scheduleA11y()
   }
 })
 

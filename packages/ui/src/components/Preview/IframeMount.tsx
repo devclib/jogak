@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ReactElement } from 'react'
-import type { RegistryEntry } from '@jogak/core'
+import type { RegistryEntry, JogakA11yViolation } from '@jogak/core'
+
+export interface A11yResult {
+  readonly violations: readonly JogakA11yViolation[]
+  readonly notInstalled: boolean
+}
 
 export interface IframeMountProps {
   readonly entry: RegistryEntry
@@ -15,6 +20,8 @@ export interface IframeMountProps {
    * 어댑터의 `previewEntryMeta.devEntryPath`.
    */
   readonly previewEntryPath: string
+  /** 1.0.0-beta.3: A11y (axe-core) 결과 콜백 — iframe scope의 'jogak:a11y' 메시지 수신 시 호출 */
+  readonly onA11yResult?: ((result: A11yResult) => void) | undefined
   readonly className?: string
   readonly 'data-testid'?: string
 }
@@ -42,6 +49,7 @@ export function IframeMount({
   args,
   userPreviewUrl,
   previewEntryPath,
+  onA11yResult,
   className,
   'data-testid': dataTestId,
 }: IframeMountProps): ReactElement {
@@ -72,6 +80,11 @@ export function IframeMount({
         setErrorMessage(data.message)
       } else if (data.type === 'jogak:height' && typeof data.height === 'number' && data.height > 0) {
         setContentHeight(data.height)
+      } else if (data.type === 'jogak:a11y' && Array.isArray(data.violations)) {
+        onA11yResult?.({
+          violations: data.violations as readonly JogakA11yViolation[],
+          notInstalled: data.notInstalled === true,
+        })
       }
     }
     window.addEventListener('message', handler)

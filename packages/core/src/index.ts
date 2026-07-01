@@ -38,6 +38,8 @@ export type {
 export type {
   JogakMessageToFrame,
   JogakMessageFromFrame,
+  JogakA11yViolation,
+  JogakA11yViolationNode,
 } from './preview-entry/protocol.js'
 
 export {

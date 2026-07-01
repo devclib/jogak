@@ -126,17 +126,58 @@ function unmount() {
   }
 }
 
+// 1.0.0-beta.3: A11y (axe-core) 실행. axe-core는 optionalDependency — 미설치 시
+// notInstalled=true. 300ms 디바운스로 args 연속 변경 시 마지막 상태만 검사.
+let a11yRunning = false
+let a11yTimer = 0
+async function runA11y() {
+  if (a11yRunning) return
+  a11yRunning = true
+  try {
+    const axe = await import('axe-core').catch(() => null)
+    if (axe === null) {
+      window.parent.postMessage({ type: 'jogak:a11y', violations: [], notInstalled: true }, '*')
+      return
+    }
+    const result = await axe.default.run(document.body, { resultTypes: ['violations'] })
+    const violations = result.violations.map((v) => ({
+      id: v.id,
+      impact: v.impact ?? null,
+      description: v.description,
+      help: v.help,
+      helpUrl: v.helpUrl,
+      nodes: v.nodes.map((n) => ({
+        target: n.target.map((t) => Array.isArray(t) ? t.join(' ') : String(t)),
+        html: n.html,
+        failureSummary: n.failureSummary ?? '',
+      })),
+    }))
+    window.parent.postMessage({ type: 'jogak:a11y', violations }, '*')
+  } catch {
+    // axe 실행 실패 — silent (사용자 컴포넌트가 던진 에러가 아님)
+  } finally {
+    a11yRunning = false
+  }
+}
+function scheduleA11y() {
+  if (a11yTimer !== 0) window.clearTimeout(a11yTimer)
+  a11yTimer = window.setTimeout(() => { a11yTimer = 0; runA11y() }, 300)
+}
+
 window.addEventListener('message', (event) => {
   const data = event.data
   if (data == null || typeof data !== 'object') return
   if (data.type === 'jogak:setProps') {
     renderEntry(data.entryId, data.args ?? {}).then(() => {
       window.parent.postMessage({ type: 'jogak:rendered', entryId: data.entryId }, '*')
+      scheduleA11y()
     }).catch((err) => {
       window.parent.postMessage({ type: 'jogak:error', message: String(err?.message ?? err) }, '*')
     })
   } else if (data.type === 'jogak:unmount') {
     unmount()
+  } else if (data.type === 'jogak:runA11y') {
+    scheduleA11y()
   }
 })
 
