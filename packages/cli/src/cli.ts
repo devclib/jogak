@@ -381,6 +381,14 @@ async function main(): Promise<void> {
   )
   if (configPath !== undefined) {
     process.stdout.write(`[jogak] config loaded: ${configPath}\n`)
+    // 1.0.0-beta.5: HMR audit (P2-2) — jogak.config.ts는 CLI가 로드하지 vite가
+    // watch 안 함. 변경 시 자동 restart 안 되고 수동 restart 필요. 사용자가
+    // "왜 반영이 안 되지" 의문 갖지 않게 명확 안내.
+    if (command === 'dev' || command === 'd') {
+      process.stdout.write(
+        `[jogak] note: changes to jogak.config.ts require dev server restart (Ctrl+C then re-run).\n`,
+      )
+    }
   }
 
   if (command === 'generate' || command === 'gen') {

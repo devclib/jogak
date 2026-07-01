@@ -5,7 +5,7 @@
  * jogakPreviewFramePlugin + jogak() (previewFrame=true) 자동 inject → createServer.
  */
 
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import type { ViteDevServer } from 'vite'
 import type { DevHandle, SpawnDevOptions } from '../../index.js'
@@ -67,18 +67,15 @@ export async function spawnViteDev(opts: SpawnDevOptions): Promise<DevHandle> {
       strictPort: false,
       cors: true,
     },
-    // 1.0.0-beta.5: react-dom/client 등을 미리 optimizeDeps에 포함 — 첫 iframe mount에서
+    // 1.0.0-beta.5: dependencies를 미리 optimizeDeps에 포함 — 첫 iframe mount에서
     // vite가 dynamically discover → "optimized dependencies changed. reloading" 반복
     // 회귀 방지. jogak-vite-test smoke가 이 이슈로 CI 60s+ timeout (fix 전).
-    // 다른 framework(vue/svelte)은 plugin이 discovery 완료 후 등록해서 무영향.
+    //
+    // include는 사용자 fixture의 실제 dependency에 있을 때만 pre-bundle.
+    // 없는 dep을 강제 include하면 "Failed to resolve" fail. 사용자 vite.config의
+    // 이미 있는 optimizeDeps.include에 mergeConfig가 추가하는 방식.
     optimizeDeps: {
-      include: [
-        'react',
-        'react-dom',
-        'react-dom/client',
-        '@jogak/core',
-        '@jogak/core/renderers/react',
-      ],
+      include: buildOptimizeDepsInclude(opts.cwd),
     },
     appType: 'mpa',
     configFile: false,
@@ -109,4 +106,49 @@ function detectViteConfig(cwd: string): string | undefined {
     if (existsSync(candidate)) return candidate
   }
   return undefined
+}
+
+/**
+ * 1.0.0-beta.5: 사용자 package.json의 dependencies를 확인해 optimizeDeps.include에
+ * 넣을 항목을 선별. 사용자가 실제로 install 안 한 dep을 include에 넣으면 vite가
+ * "Failed to resolve" fail. framework별 pre-bundle 후보에서 존재하는 것만 include.
+ *
+ * jogak core는 항상 include (workspace 또는 install 시 필수 peer).
+ */
+function buildOptimizeDepsInclude(cwd: string): readonly string[] {
+  const include: string[] = ['@jogak/core']
+  let pkgDeps: Record<string, unknown> = {}
+  try {
+    const pkgPath = resolve(cwd, 'package.json')
+    if (existsSync(pkgPath)) {
+      const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8')) as {
+        dependencies?: Record<string, unknown>
+        devDependencies?: Record<string, unknown>
+      }
+      pkgDeps = { ...pkg.dependencies, ...pkg.devDependencies }
+    }
+  } catch {
+    // best-effort — pkg 파싱 실패 시 core만 include.
+    return include
+  }
+
+  // React 계열
+  if ('react' in pkgDeps) {
+    include.push('react')
+    include.push('react-dom')
+    include.push('react-dom/client')
+    include.push('@jogak/core/renderers/react')
+  }
+  // Vue
+  if ('vue' in pkgDeps) {
+    include.push('vue')
+    include.push('@jogak/core/renderers/vue')
+  }
+  // Svelte
+  if ('svelte' in pkgDeps) {
+    include.push('svelte')
+    include.push('@jogak/core/renderers/svelte')
+  }
+
+  return include
 }
