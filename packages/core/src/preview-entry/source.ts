@@ -134,7 +134,9 @@ async function runA11y() {
   if (a11yRunning) return
   a11yRunning = true
   try {
-    const axe = await import('axe-core').catch(() => null)
+    // vite import-analysis 정적 스캔 회피 — 변수 obfuscation으로 optional 의도 보존.
+    const axeModuleId = 'axe-core'
+    const axe = await import(axeModuleId).catch(() => null)
     if (axe === null) {
       window.parent.postMessage({ type: 'jogak:a11y', violations: [], notInstalled: true }, '*')
       return

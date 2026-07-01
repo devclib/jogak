@@ -11,7 +11,8 @@ async function runA11y(): Promise<void> {
   if (a11yRunning) return
   a11yRunning = true
   try {
-    const axe = await import('axe-core').catch(() => null)
+    const axeModuleId = 'axe-core'
+    const axe = await import(axeModuleId).catch(() => null)
     if (axe === null) {
       window.parent.postMessage({ type: 'jogak:a11y', violations: [], notInstalled: true }, '*')
       return
