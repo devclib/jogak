@@ -3,6 +3,46 @@
 import { useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 
+// 1.0.0-beta.4: A11y (axe-core dynamic import) — Next RSC 모드 iframe scope.
+// axe-core는 optionalDependency. 300ms 디바운스로 args 연속 변경 시 마지막 상태만 검사.
+let a11yRunning = false
+let a11yTimer = 0
+async function runA11y(): Promise<void> {
+  if (a11yRunning) return
+  a11yRunning = true
+  try {
+    const axe = await import('axe-core').catch(() => null)
+    if (axe === null) {
+      window.parent.postMessage({ type: 'jogak:a11y', violations: [], notInstalled: true }, '*')
+      return
+    }
+    const result = await axe.default.run(document.body, { resultTypes: ['violations'] })
+    interface AxeNode { target: (string | string[])[]; html: string; failureSummary?: string | null }
+    interface AxeViolation { id: string; impact?: string | null; description: string; help: string; helpUrl: string; nodes: AxeNode[] }
+    const violations = (result.violations as AxeViolation[]).map((v) => ({
+      id: v.id,
+      impact: v.impact ?? null,
+      description: v.description,
+      help: v.help,
+      helpUrl: v.helpUrl,
+      nodes: v.nodes.map((n) => ({
+        target: n.target.map((t: string | string[]) => Array.isArray(t) ? t.join(' ') : String(t)),
+        html: n.html,
+        failureSummary: n.failureSummary ?? '',
+      })),
+    }))
+    window.parent.postMessage({ type: 'jogak:a11y', violations }, '*')
+  } catch {
+    // axe 내부 오류 — silent.
+  } finally {
+    a11yRunning = false
+  }
+}
+function scheduleA11y(): void {
+  if (a11yTimer !== 0) window.clearTimeout(a11yTimer)
+  a11yTimer = window.setTimeout(() => { a11yTimer = 0; void runA11y() }, 300)
+}
+
 /**
  * 알파.13: jogak preview의 RSC 모드 bridge (client component).
  *
@@ -64,6 +104,7 @@ export function JogakIframeBridge(): null {
     const entryId = searchParams.get('entryId')
     if (entryId !== null && entryId !== '') {
       window.parent.postMessage({ type: 'jogak:rendered', entryId }, '*')
+      scheduleA11y()
     }
   }, [searchParams])
 

@@ -14,6 +14,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync, rmSync } from 'node:fs'
 import { relative, resolve } from 'node:path'
 import { resolveGlobalCssPaths } from '../../server.js'
+import { A11Y_SNIPPET } from '../../preview-entry/a11y-snippet.js'
 
 export interface ScaffoldOptions {
   readonly cwd: string
@@ -283,6 +284,8 @@ function renderRscBridgeSource(): string {
 import { useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 
+${A11Y_SNIPPET}
+
 export function JogakIframeBridge() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -304,6 +307,8 @@ export function JogakIframeBridge() {
         router.replace('?' + params.toString(), { scroll: false })
       } else if (data.type === 'jogak:unmount') {
         router.replace('?', { scroll: false })
+      } else if (data.type === 'jogak:runA11y') {
+        scheduleA11y()
       }
     }
     window.addEventListener('message', handler)
@@ -315,6 +320,7 @@ export function JogakIframeBridge() {
     const entryId = searchParams.get('entryId')
     if (entryId !== null && entryId !== '') {
       window.parent.postMessage({ type: 'jogak:rendered', entryId }, '*')
+      scheduleA11y()
     }
   }, [searchParams])
 
@@ -340,6 +346,8 @@ for (const entry of _jogakEntries) {
     defaultRegistry.register(entry)
   }
 }
+
+${A11Y_SNIPPET}
 
 export default function ${componentName}() {
   const ref = useRef<HTMLDivElement>(null)
@@ -369,11 +377,14 @@ export default function ${componentName}() {
       if (data.type === 'jogak:setProps') {
         void renderEntry(data.entryId, data.args ?? {}).then(() => {
           window.parent.postMessage({ type: 'jogak:rendered', entryId: data.entryId }, '*')
+          scheduleA11y()
         }).catch((err) => {
           window.parent.postMessage({ type: 'jogak:error', message: String(err?.message ?? err) }, '*')
         })
       } else if (data.type === 'jogak:unmount') {
         unmount()
+      } else if (data.type === 'jogak:runA11y') {
+        scheduleA11y()
       }
     }
 
