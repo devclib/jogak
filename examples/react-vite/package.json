@@ -11,12 +11,12 @@
     "jogak:build": "jogak build"
   },
   "dependencies": {
-    "@jogak/core": "^1.0.0-beta.7",
+    "@jogak/core": "^1.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
-    "@jogak/cli": "^1.0.0-beta.7",
+    "@jogak/cli": "^1.0.0",
     "@tailwindcss/vite": "^4.2.4",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",

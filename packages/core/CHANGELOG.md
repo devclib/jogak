@@ -5,6 +5,26 @@ All notable changes to Jogak packages are documented here. The repository follow
 
 Version numbers apply to all packages in the workspace (synchronized release).
 
+## [1.0.0] — 2026-07-02
+
+### Milestone — 정식 릴리스
+
+`0.1.0-alpha.0`에서 `1.0.0`까지 5 framework 어댑터 + host embedding + 5 examples + Migration/Comparison 문서 + A11y addon + CI 4 framework matrix 확립. `1.0.0-beta.0` → `1.0.0-beta.7` 7사이클 안정성·편의성 fix로 성숙도 확보. **Public API 고정** — 이후 변경은 semver (minor/patch만, major는 2.0 필요).
+
+### API 안정성 보장
+
+- Types: `ArgType`, `JogakMeta`, `Jogak`, `RegistryEntry`, `RegistryEntryMeta`, `JogakPluginOptions`, `JogakConfig`, `JogakAdapter`, `BuilderAdapter`, `JogakMessageToFrame/FromFrame`, `JogakA11yViolation` 등 모든 public export 안정
+- Runtime: `defineJogakConfig`, `defaultRegistry`, `ComponentRegistry`, `defaultActionChannel`, `action`, `renderPreviewEntrySource` 등 안정
+
+### Since beta.0 — 사용자 impact 큰 변경들
+
+- **beta.1**: Next 16 turbopack scaffold (상대 경로 emit) + chrome scope `component=null` null guard
+- **beta.2**: iframe height auto-sync (ResizeObserver + `jogak:height` postMessage)
+- **beta.3–4**: A11y addon (axe-core `optionalDependency`) + vite import-analysis 정적 스캔 회피
+- **beta.5**: vite `optimizeDeps.include` 자동 구성 (package.json dependencies 기반)
+- **beta.6**: `jogak.config.ts` 자동 restart
+- **beta.7**: Next 어댑터 spawn ENOENT fix + parser skip warning
+
 ## [1.0.0-beta.7] — 2026-07-01
 
 ### Fixed

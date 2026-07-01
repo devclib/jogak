@@ -1,41 +1,35 @@
 ---
-title: Roadmap
+title: 로드맵
 ---
 
-# Roadmap
+# 로드맵
 
-Jogak은 현재 `0.1.0-alpha.x`입니다. 승격 경로는 **alpha → beta → 1.0.0** 입니다 — alpha에서 1.0으로 바로 점프하지 않습니다. SemVer 상 1.0은 "2.0 없이는 breaking 없음"을 약속하기 때문입니다.
+Jogak은 이제 **`1.0.0`** — 정식 릴리스입니다. Public API가 고정됐고, 이후 변경은 semver를 따릅니다.
 
-## 현재 위치 (2026년 5월)
+## 현재 위치 (2026년 7월)
 
-- **alpha.14.4** publish — 5개 framework, iframe 격리, props 자동 추출, 호스트 임베딩, 5개 starter 템플릿
-- 알려진 **critical** / **should-fix** 결함: zero
-- 17개 테스트 파일 / 119개 단위 테스트 통과 · framework-smoke CI matrix (vue, svelte) green
+- **1.0.0** 릴리스 — 5개 framework (React, Next.js, Vue 3, Svelte 5, Web Components), iframe 격리, props 자동 추출(ts-morph), 호스트 임베딩, 5개 starter 예시
+- CI matrix: `vue`, `svelte`, `react` iframe mount + `next` 별도 job (cold compile 대응 long-timeout)
+- Public API 고정 (breaking change 없음) — 2.0 전까지 additive 기능만 추가
 
-## Quiet period (진행 중)
+## alpha → 1.0 여정
 
-2026-05-15 시작. alpha → beta 게이트 요구사항:
-
-| 기준 | 상태 |
+| Phase | Milestone |
 |---|---|
-| Critical 결함: zero | ✅ |
-| Should-fix 결함: zero | ✅ |
-| Vue/Svelte e2e 자동화 | ✅ |
-| **2–3주 quiet period** (새 옵션·디폴트 변경 없음 — fix만) | ⏳ |
-| **외부 issue 사이클** — issue가 fix만으로 해결되는 사이클 최소 1회 (API churn 없음) | ⏳ |
+| `0.1.0-alpha.x` | 엔진 + 어댑터 + 호스트 임베딩 + 5개 예시 |
+| `1.0.0-beta.0` | alpha → beta 승격 (5/5 게이트 통과) |
+| `1.0.0-beta.1 – beta.7` | 안정성/편의성 fix: Next 16 turbopack scaffold, chrome scope null guard, iframe height auto-sync, A11y addon (axe-core), Migration/Comparison 문서, empty-state UX, vite optimizeDeps 자동 구성, `jogak.config.ts` auto-restart, Next spawn resolve, parser skip warning |
+| **`1.0.0`** | **정식 릴리스** — API 고정 |
 
-새 디폴트 변경이나 옵션 추가는 quiet period 시계를 리셋합니다 — beta는 "여기서부터 의도된 breaking 없음"을 의미하며, 그것은 정착 시간이 필요합니다.
+## Post-1.0 (계획)
 
-## Beta 계획
+- **Themes addon** — 툴바 theme switcher (Comparison 매트릭스에 planned로 표시)
+- **MDX docs** — 풍부한 story별 문서화 (planned)
+- **Web Components smoke 자동화** — 현재 VR만 커버
+- **Full parser skip reason** — extract-core 표면 세분화 (defaultObj vs title vs framework)
+- **Interactions / test runner** — 1.x에서 미계획 (설계상 out of scope)
 
-- beta 전에는 **새 API 없음**. issue tracker에서 `enhancement`로 태깅된 것은 보류됩니다.
-- 문서 다듬기, 에러 메시지, examples 커버리지.
-- CI의 크로스 framework matrix 확장 (4 빌더 × 5 framework = 20-셀 smoke).
+## 기여
 
-## Post-beta 계획 (1.0을 향해)
-
-- beta에서 issue 수집 사이클 1회 더.
-- 4 빌더 × 5 framework e2e 자동화 완성.
-- 안정성 메트릭 (RSS / HMR / 콜드 스타트 회귀 zero) 1–2주 유지.
-
-beta 게이트에 영향을 주고 싶다면, 가장 도움이 되는 것은 **실제 프로젝트에서 Jogak을 써보고 issue를 여는 것**입니다 — 작은 불편이라도. quiet period는 바로 그런 것들을 표면화하고 단단하게 만들기 위해 존재합니다.
+- Bug 또는 feature 요청은 [github.com/devclib/jogak/issues](https://github.com/devclib/jogak/issues)
+- 실 프로젝트 사용 피드백이 가장 유용 — 작은 papercut일수록 가치 큽니다

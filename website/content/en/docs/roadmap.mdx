@@ -4,38 +4,32 @@ title: Roadmap
 
 # Roadmap
 
-Jogak is currently `0.1.0-alpha.x`. The promotion path is **alpha → beta → 1.0.0** — no leap from alpha straight to 1.0, because SemVer ties 1.0 to "no breaking without a 2.0".
+Jogak is now **`1.0.0`** — stable release. Public API is frozen; future changes follow semver.
 
-## Where we are (May 2026)
+## Where we are (July 2026)
 
-- **alpha.14.4** published — 5 frameworks, iframe isolation, props auto-extraction, host embedding, 5 starter templates
-- All known **critical** and **should-fix** defects: zero
-- 17 test files / 119 unit tests passing · framework-smoke CI matrix (vue, svelte) green
+- **1.0.0** released — 5 frameworks (React, Next.js, Vue 3, Svelte 5, Web Components), iframe isolation, props auto-extraction (ts-morph), host embedding, 5 starter examples
+- CI matrix: `vue`, `svelte`, `react` iframe mount + `next` separate job (long-timeout for cold compile)
+- Public API frozen (no breaking changes) — additive features only until 2.0
 
-## Quiet period (in progress)
+## Path from alpha to 1.0
 
-Started 2026-05-15. The alpha → beta gate requires:
-
-| Criterion | Status |
+| Phase | Milestone |
 |---|---|
-| Critical defects: zero | ✅ |
-| Should-fix defects: zero | ✅ |
-| Vue/Svelte e2e automation | ✅ |
-| **2–3 week quiet period** (no new options, no default changes — fix-only) | ⏳ |
-| **External issue cycle** — at least one cycle where issues are resolved by fix-only (no API churn) | ⏳ |
+| `0.1.0-alpha.x` | Engine + adapters + host embedding + 5 examples |
+| `1.0.0-beta.0` | alpha → beta promotion (5/5 gate passed) |
+| `1.0.0-beta.1 – beta.7` | Stability + convenience fixes: Next 16 turbopack scaffold, chrome scope null guard, iframe height auto-sync, A11y addon (axe-core), Migration/Comparison docs, empty-state UX, vite optimizeDeps auto-config, `jogak.config.ts` auto-restart, Next spawn resolve, parser skip warning |
+| **`1.0.0`** | **Stable release** — API frozen |
 
-Any new default change or option resets the quiet-period clock — beta means "no intended breaking changes from here on" and that needs settling time.
+## Post-1.0 (planned)
 
-## Planned for beta
+- **Themes addon** — toolbar theme switcher (parked in Comparison matrix)
+- **MDX docs** — richer per-story documentation (parked)
+- **Web Components smoke automation** — currently VR-covered only
+- **Full parser skip reason** — extract-core surface breakdown (defaultObj vs title vs framework)
+- **Interactions / test runner** — not planned for 1.x (out of scope by design)
 
-- **No new APIs** before beta. Anything tagged `enhancement` on the issue tracker is parked.
-- Documentation polish, error messages, examples coverage.
-- Cross-framework matrix expansion in CI (4 builders × 5 frameworks = 20-cell smoke).
+## Contributing
 
-## Planned post-beta (towards 1.0)
-
-- One more cycle of issue intake on beta.
-- 4 builder × 5 framework e2e automation completed.
-- Stability metrics (RSS / HMR / cold-start regression zero) maintained for 1–2 weeks.
-
-If you want to influence the beta gate, the most useful thing you can do is **try Jogak on a real project and file an issue** — even small papercuts. The quiet period exists to surface and harden against precisely those.
+- File an issue at [github.com/devclib/jogak/issues](https://github.com/devclib/jogak/issues) for bugs or feature requests
+- Real-project usage feedback is the most useful contribution — small papercuts are the most valuable
