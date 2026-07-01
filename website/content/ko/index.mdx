@@ -6,11 +6,15 @@ title: Jogak — 가벼운 컴포넌트 쇼케이스
 
 > **조각** — Korean for "piece". 조각들이 모여 하나의 조각을 만든다.
 
-**Jogak**은 가벼운 컴포넌트 쇼케이스 라이브러리입니다. Storybook의 동일한 작업 흐름(`dev` / `build` / static deploy)을 유지하면서, 더 가벼운 스택으로 갈아 끼울 수 있는 **drop-in 대체**입니다 — 단일 Vite, 사용자 컴포넌트는 사용자 자신의 Vite scope에 마운트되는 iframe, 타입 추출은 ts-morph, Web Components는 Preact 런타임만.
+## 더 가벼운 Storybook 대체 — **1.0 정식 릴리스**
 
-> **Storybook에서 오셨나요?** [마이그레이션 가이드](/ko/docs/migration-from-storybook) · [전체 비교 + addon 매트릭스](/ko/docs/comparison)
+- **한 줄 install, 몇 초 만에 실행.** `pnpm add -D @jogak/cli @jogak/core` → `jogak dev` → 끝. wizard, `.storybook/` scaffold, framework preset 없음. Zero-config 동작.
+- **번들 7배 작음. 콜드 스타트 3초 미만.** 단일 Vite 인스턴스, lazy 가상 모듈, `child_process` 격리된 ts-morph. Idle RSS가 카탈로그 크기에 거의 비례하지 않습니다.
+- **5개 framework, 하나의 컨벤션.** React · Next.js · Vue 3 · Svelte 5 · Web Components를 같은 `*.jogak.{ts,tsx}` schema로.
+- **당신의 Vite / Tailwind / plugin 그대로.** 사용자 컴포넌트는 사용자 자신의 Vite scope에 iframe으로 mount — 번들러가 대체되지 않습니다.
+- **Public API 고정.** 1.0.0 정식 — 이후 semver.
 
-> 현재 상태: **`1.0.0`** — 정식 릴리스. Public API는 고정, 이후 변경은 semver를 따릅니다.
+**Storybook에서 오셨나요?** → [마이그레이션 가이드 (5단계)](/ko/docs/migration-from-storybook) · [비교 + addon 매트릭스](/ko/docs/comparison)
 
 ## 한눈에
 
@@ -24,7 +28,32 @@ title: Jogak — 가벼운 컴포넌트 쇼케이스
 
 전체 표와 재현 방법은 [Benchmarks](/ko/docs/benchmarks)에 있습니다.
 
-## 5개 프레임워크, 하나의 뷰어
+## 5분 Quick start
+
+```bash
+# 1. 설치
+pnpm add -D @jogak/cli @jogak/core
+
+# 2. 컴포넌트 옆에 첫 entry 작성
+cat > src/components/Button.jogak.tsx << 'EOF'
+import type { JogakMeta, Jogak } from '@jogak/core'
+import { Button } from './Button'
+
+const meta = { title: 'Components/Button', component: Button } satisfies JogakMeta
+export default meta
+
+export const Primary: Jogak = { name: 'Primary', args: { label: 'Click me' } }
+EOF
+
+# 3. 실행
+npx jogak dev          # http://localhost:5173
+npx jogak build        # static 산출물 → ./jogak-static
+```
+
+`jogak-static/`을 어디든 배포: GitHub Pages, Vercel, Netlify, S3.
+→ framework peer + 옵션은 [Quick start guide](/ko/docs)로.
+
+## 5개 framework, 하나의 컨벤션
 
 ```ts
 const meta = {
@@ -34,27 +63,26 @@ const meta = {
 } satisfies JogakMeta
 ```
 
-동일한 `*.jogak.{ts,tsx}` 컨벤션이 **React · Next.js · Vue 3 · Svelte 5 · Web Components** 5개 프레임워크에서 동작합니다. 사용자 컴포넌트는 사용자 자신의 Vite scope에 마운트되므로 (iframe isolation) Tailwind, 디자인 시스템, 번들러 설정이 그대로 보입니다.
+동일한 `*.jogak.{ts,tsx}` 파일이 **React · Next.js · Vue 3 · Svelte 5 · Web Components**에서 동작합니다. Prop 타입은 ts-morph로 자동 추출 — Controls, Actions, Source view가 설정이 아닌 생성됩니다.
 
-## 빠르게 시작하기
+## 기본 built-in 기능
 
-```bash
-pnpm add -D @jogak/cli @jogak/core
+Storybook essential addon 대응 — addon API 설정 불필요:
 
-# 컴포넌트 옆에 *.jogak.tsx 작성 후:
-npx jogak dev          # http://localhost:5173
-npx jogak build        # static 산출물 → ./jogak-static
-```
+- **Controls** — TypeScript 타입에서 자동
+- **Actions** — 함수 prop 자동 spy
+- **Viewport** — Mobile / Tablet / Desktop
+- **Backgrounds** — white / dark / transparent
+- **Source view** — 현재 args에서 사용 snippet
+- **A11y** — axe-core 자동 스캔 (`axe-core` 설치 시 활성)
 
-→ [Quick start](/ko/docs)로 이어집니다.
+built-in / planned / out of scope 전체는 [addon 매트릭스](/ko/docs/comparison#addon-매트릭스)를 참조.
 
 ## 이름의 의미
 
 > "조각들이 모여 하나의 조각을 만든다."
 >
 > Storybook은 많은 팀에게 무겁고 오류가 잦습니다. Jogak은 같은 의도 — **컴포넌트 조각들을 모아두는 곳** — 을 공유하면서도, drop-in으로 갈아 끼울 만큼 작게 유지하는 것을 목표로 합니다.
->
-> 잦은 오류와 무거운 Storybook과 목표하는 바와 지향점이 비슷합니다. 사용해 보시고 많은 피드백 부탁드립니다.
 
 ## 어디로 갈까요
 
@@ -64,6 +92,6 @@ npx jogak build        # static 산출물 → ./jogak-static
 - [Quick start](/ko/docs) — 5분 만에 첫 entry 마운트
 - [Frameworks](/ko/docs/frameworks/react) — 프레임워크별 셋업 (React, Next.js, Vue, Svelte, WC)
 - [Configuration](/ko/docs/configuration) — `jogak.config.ts`, `previewIsolation`, `globalCss`
-- [Roadmap](/ko/docs/roadmap) — alpha → beta → 1.0 진행 상황
+- [Roadmap](/ko/docs/roadmap) — 1.0 현황과 post-1.0 계획
 
 > 우측 상단 언어 스위처로 영문 문서와 전환할 수 있습니다.

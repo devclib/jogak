@@ -6,11 +6,15 @@ title: Jogak — Lightweight component showcase
 
 > Pronounced "**조각**" — Korean for **"piece"**. Small pieces gathered into a whole.
 
-**Jogak** is a lightweight, fast component showcase. A drop-in alternative to Storybook with the same workflow (`dev` / `build` / static deploy) but a leaner stack — Single Vite, single iframe scope for user components, ts-morph for type extraction, Preact for Web Components.
+## A leaner Storybook alternative — **stable at 1.0**
 
-> **Coming from Storybook?** [Migration guide](/en/docs/migration-from-storybook) · [Full comparison + addon matrix](/en/docs/comparison)
+- **Install in one line, run in seconds.** `pnpm add -D @jogak/cli @jogak/core` → `jogak dev` → done. No wizard, no `.storybook/` scaffold, no framework preset. Zero-config works.
+- **7× smaller bundle. Under 3s cold start.** Single Vite instance, lazy virtual modules, `child_process`-isolated ts-morph. Idle RSS barely scales with catalog size.
+- **5 frameworks, one convention.** React · Next.js · Vue 3 · Svelte 5 · Web Components with the same `*.jogak.{ts,tsx}` schema.
+- **Your Vite / Tailwind / plugins stay yours.** User components mount in your own Vite scope through an iframe — your bundler is not replaced.
+- **Public API frozen.** 1.0.0 stable — semver from here on.
 
-> Status: **`1.0.0`** — stable release. Public API is frozen; future changes follow semver.
+**Coming from Storybook?** → [Migration guide (5 steps)](/en/docs/migration-from-storybook) · [Comparison + addon matrix](/en/docs/comparison)
 
 ## At a glance
 
@@ -24,7 +28,32 @@ title: Jogak — Lightweight component showcase
 
 See [Benchmarks](/en/docs/benchmarks) for the full table and reproduction commands.
 
-## 5 frameworks, one viewer
+## Quick start (5 minutes)
+
+```bash
+# 1. Install
+pnpm add -D @jogak/cli @jogak/core
+
+# 2. Write your first entry next to a component
+cat > src/components/Button.jogak.tsx << 'EOF'
+import type { JogakMeta, Jogak } from '@jogak/core'
+import { Button } from './Button'
+
+const meta = { title: 'Components/Button', component: Button } satisfies JogakMeta
+export default meta
+
+export const Primary: Jogak = { name: 'Primary', args: { label: 'Click me' } }
+EOF
+
+# 3. Run
+npx jogak dev          # http://localhost:5173
+npx jogak build        # static output → ./jogak-static
+```
+
+Deploy `jogak-static/` anywhere: GitHub Pages, Vercel, Netlify, S3.
+→ Continue to the [Quick start guide](/en/docs) for framework peers and options.
+
+## 5 frameworks, one convention
 
 ```ts
 const meta = {
@@ -34,27 +63,26 @@ const meta = {
 } satisfies JogakMeta
 ```
 
-The same `*.jogak.{ts,tsx}` convention works across **React · Next.js · Vue 3 · Svelte 5 · Web Components**. User components mount in your own Vite scope (iframe isolation) — your Tailwind, design system, and bundler stay yours.
+The same `*.jogak.{ts,tsx}` file works across **React · Next.js · Vue 3 · Svelte 5 · Web Components**. Prop types are auto-extracted (via ts-morph) — Controls, Actions, and Source view are generated, not configured.
 
-## Quick start
+## What you get in the box
 
-```bash
-pnpm add -D @jogak/cli @jogak/core
+Storybook addon parity for the essentials — no addon API to configure:
 
-# write *.jogak.tsx next to your components, then:
-npx jogak dev          # http://localhost:5173
-npx jogak build        # static output → ./jogak-static
-```
+- **Controls** — auto from TypeScript types
+- **Actions** — function props auto-spied
+- **Viewport** — Mobile / Tablet / Desktop
+- **Backgrounds** — white / dark / transparent
+- **Source view** — usage snippet from current args
+- **A11y** — axe-core auto-scan (install `axe-core` to enable)
 
-→ Continue to the [Quick start guide](/en/docs).
+See the full [addon matrix](/en/docs/comparison#addon-matrix) for what's built in, planned, and out of scope.
 
 ## Why "Jogak"?
 
 > "조각들이 모여 하나의 조각을 만든다" — _Small pieces come together to form one whole._
 >
 > Storybook is heavy and error-prone for many teams. Jogak shares the same intent — a place to **gather component pieces** — but stays small enough to ship as a drop-in.
-
-Try it. Send feedback. The alpha exists to harden the contract before `beta`.
 
 ## Where to next
 
@@ -64,4 +92,4 @@ Try it. Send feedback. The alpha exists to harden the contract before `beta`.
 - [Frameworks](/en/docs/frameworks/react) — per-framework setup (React, Next.js, Vue, Svelte, WC)
 - [Configuration](/en/docs/configuration) — `jogak.config.ts`, `previewIsolation`, `globalCss`
 - [Host embedding](/en/docs/host-embedding) — Vite SPA, Next.js App Router, Web Components host
-- [Roadmap](/en/docs/roadmap) — alpha → beta → 1.0
+- [Roadmap](/en/docs/roadmap) — where 1.0 stands, what's planned post-1.0
