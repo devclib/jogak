@@ -177,7 +177,10 @@ try {
   // framework 마운트 확인.
   // 1.0.0-beta.5: CI slow runner에서 React iframe compile이 20초 초과하는 경우 있음
   // (Vue/Svelte는 성공). 40초로 확장 — 로컬은 여전히 <10s에 성공.
-  await frame.waitForSelector(`[data-testid="${cfg.testid}"]`, { timeout: 40_000 })
+  // 1.0.0-beta.7: Next 어댑터는 next dev 초기 컴파일 30s+라 환경변수로 override
+  // 가능 (workflow의 next-smoke job이 240s로 설정).
+  const testidTimeoutMs = Number(process.env['JOGAK_SMOKE_TESTID_TIMEOUT_MS'] ?? 40_000)
+  await frame.waitForSelector(`[data-testid="${cfg.testid}"]`, { timeout: testidTimeoutMs })
   const mounted = frame.locator(`[data-testid="${cfg.testid}"]`).first()
   const text = (await mounted.textContent()) ?? ''
 
