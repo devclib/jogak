@@ -201,6 +201,15 @@ try {
 } catch (err) {
   fails.push(`fatal: ${err?.message ?? String(err)}`)
   console.error(err)
+  // 1.0.0-beta.5: 진단 인프라 — fail 시 childLog(jogak dev stdout/stderr) dump.
+  // CI에서 iframe timeout이 발생할 때 사용자 vite adapter가 spawn됐는지, error를
+  // 던졌는지, HMR 준비됐는지 등이 log에 있음. childLog 자체는 spawn 이후 계속
+  // 쌓이므로 마지막 200줄만 표시 (재시도 시 최신 상태).
+  console.error(`[smoke:${fixture}] --- jogak dev childLog (last 200 lines) ---`)
+  const combined = childLog.join('')
+  const lines = combined.split('\n')
+  console.error(lines.slice(-200).join('\n'))
+  console.error(`[smoke:${fixture}] --- end childLog ---`)
 } finally {
   shutdown()
 }
