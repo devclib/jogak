@@ -48,12 +48,18 @@ export function Sidebar({
       </div>
       <nav className="jogak:flex-1 jogak:overflow-auto jogak:py-2">
         {filtered !== null ? (
-          <FlatList
-            metas={filtered}
-            selectedEntryId={selectedEntryId}
-            selectedJogakName={selectedJogakName}
-            onSelect={onSelect}
-          />
+          filtered.length > 0 ? (
+            <FlatList
+              metas={filtered}
+              selectedEntryId={selectedEntryId}
+              selectedJogakName={selectedJogakName}
+              onSelect={onSelect}
+            />
+          ) : (
+            <SearchEmptyState query={query} />
+          )
+        ) : Object.keys(metaTree).length === 0 ? (
+          <SidebarEmptyState />
         ) : (
           <TreeView
             node={metaTree}
@@ -64,6 +70,70 @@ export function Sidebar({
         )}
       </nav>
     </aside>
+  )
+}
+
+/**
+ * 1.0.0-beta.4: registry가 완전히 비어있을 때 (사용자가 `.jogak.{ts,tsx}` 파일을 아직
+ * 안 만든 상태) 표시하는 empty state. 첫 5분 UX — 사용자에게 다음 액션을 명확히 안내.
+ *
+ * Sidebar 자체는 빈 nav로 두는 대신 boilerplate + docs 링크로 대체.
+ */
+function SidebarEmptyState(): ReactElement {
+  return (
+    <div
+      data-testid="sidebar-empty"
+      className="jogak:p-4 jogak:text-[12.5px] jogak:leading-relaxed jogak:text-[var(--jogak-color-text-secondary)]"
+    >
+      <strong className="jogak:block jogak:mb-2 jogak:text-[var(--jogak-color-text)]">
+        No components yet
+      </strong>
+      <p className="jogak:m-0 jogak:mb-2">
+        Create your first <code className="jogak:bg-[var(--jogak-color-bg-muted)] jogak:px-1 jogak:rounded">*.jogak.tsx</code> file next to a component:
+      </p>
+      <pre className="jogak:m-0 jogak:mb-3 jogak:p-2 jogak:bg-[var(--jogak-color-bg-muted)] jogak:rounded jogak:text-[11.5px] jogak:leading-normal jogak:overflow-x-auto jogak:font-[family-name:var(--jogak-font-mono)]">{`import type { JogakMeta, Jogak } from '@jogak/core'
+import { Button } from './Button'
+
+const meta = {
+  title: 'Components/Button',
+  component: Button,
+} satisfies JogakMeta
+
+export default meta
+
+export const Primary: Jogak = {
+  name: 'Primary',
+  args: { label: 'Click me' },
+}`}</pre>
+      <p className="jogak:m-0 jogak:text-[var(--jogak-color-fg-subtle)]">
+        Save the file — this sidebar updates automatically. Full guide at{' '}
+        <a
+          href="https://jogak.dev/en/docs"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="jogak:text-[var(--jogak-color-link)] jogak:underline"
+        >
+          jogak.dev/docs
+        </a>
+        .
+      </p>
+    </div>
+  )
+}
+
+/**
+ * 1.0.0-beta.4: 검색 필터에 결과가 없을 때 표시. registry에는 entries가 있지만 query와 매치 zero.
+ */
+function SearchEmptyState({ query }: { query: string }): ReactElement {
+  return (
+    <div
+      data-testid="sidebar-search-empty"
+      className="jogak:p-4 jogak:text-[12.5px] jogak:text-[var(--jogak-color-text-secondary)]"
+    >
+      <p className="jogak:m-0">
+        No components match <code className="jogak:bg-[var(--jogak-color-bg-muted)] jogak:px-1 jogak:rounded">{query}</code>.
+      </p>
+    </div>
   )
 }
 

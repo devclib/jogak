@@ -225,6 +225,17 @@ export async function runHost(
     await server.listen()
 
     const resolvedPort = server.config.server.port ?? opts.port ?? 5173
+    // 1.0.0-beta.4: 요청 port가 사용 중이라 vite가 fallback한 경우 명확 안내.
+    // vite의 기본 stderr 메시지는 원인 안내 없이 "Port X in use, trying another one..."뿐이라
+    // 사용자가 "다른 jogak dev가 살아있는지" 판단 못 함. 실 사용에서 자주 걸림 (test-case 반복 실행 시).
+    const requestedPort = opts.port ?? 5173
+    if (resolvedPort !== requestedPort) {
+      opts.logger?.warn(
+        `[jogak] port ${requestedPort} is in use — started on ${resolvedPort} instead.\n` +
+          `        Another jogak dev may be running. Check with 'lsof -ti tcp:${requestedPort}' and\n` +
+          `        kill the process, or specify a free port with '--port ${resolvedPort}'.`,
+      )
+    }
     const resolvedHostRaw = opts.host ?? 'localhost'
     const resolvedHost =
       typeof resolvedHostRaw === 'boolean'
