@@ -50,6 +50,10 @@ export interface ExtractedMeta {
 export interface InProcessExtractor {
   extract(filePath: string): Record<string, ArgType>
   extractMeta(filePath: string): ExtractedMeta | undefined
+  /**
+   * 1.0.0 후 minor: extractMeta가 undefined 반환한 이유. 사용자에게 skip reason 명시.
+   */
+  checkMetaSkipReason(filePath: string): MetaSkipReason | undefined
   dispose(): void
 }
 
@@ -109,6 +113,12 @@ export function createInProcessExtractor(options: ExtractCoreOptions = {}): InPr
       const sourceFile = loadOrRefresh(filePath)
       if (sourceFile === undefined) return undefined
       return extractMetaFromSourceFile(sourceFile)
+    },
+    checkMetaSkipReason(filePath) {
+      if (filePath.endsWith('.vue') || filePath.endsWith('.svelte')) return undefined
+      const sourceFile = loadOrRefresh(filePath)
+      if (sourceFile === undefined) return undefined
+      return checkMetaSkipReason(sourceFile)
     },
     dispose() {
       project = undefined
@@ -541,6 +551,23 @@ function readLiteralValue(type: Type): string {
  *
  * 직렬화 불가능한 값(함수 reference 등)은 안전하게 빈 객체/생략으로 처리한다.
  */
+/**
+ * 1.0.0 후 minor: extractMetaFromSourceFile이 undefined 반환하는 이유를 명시적으로
+ * 반환. subprocess가 fresh parse 없이 사용자에게 구체적 warning 표시.
+ *
+ * - `no-default-export`: `export default { ... } satisfies JogakMeta` 없음
+ * - `no-title`: default export는 있으나 `title` string property 없음
+ */
+export type MetaSkipReason = 'no-default-export' | 'no-title'
+
+export function checkMetaSkipReason(sourceFile: SourceFile): MetaSkipReason | undefined {
+  const defaultObj = findDefaultExportObjectLiteral(sourceFile)
+  if (defaultObj === undefined) return 'no-default-export'
+  const title = readStringPropertyLiteral(defaultObj, 'title')
+  if (title === undefined) return 'no-title'
+  return undefined
+}
+
 export function extractMetaFromSourceFile(sourceFile: SourceFile): ExtractedMeta | undefined {
   const defaultObj = findDefaultExportObjectLiteral(sourceFile)
   if (defaultObj === undefined) return undefined
