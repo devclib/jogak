@@ -175,9 +175,12 @@ try {
   if (!frame) throw new Error('iframe contentFrame null')
 
   // framework 마운트 확인.
-  // 1.0.0-beta.5: CI slow runner에서 React iframe compile이 20초 초과하는 경우 있음
-  // (Vue/Svelte는 성공). 40초로 확장 — 로컬은 여전히 <10s에 성공.
-  await frame.waitForSelector(`[data-testid="${cfg.testid}"]`, { timeout: 40_000 })
+  // 1.0.0-beta.5: CI runner에서 React iframe compile이 40초까지도 안 되는 경우 있음.
+  // jogak-vite-test가 tailwind v4 vite plugin + globalCss를 사용해 cold prebundling
+  // 시간이 Vue/Svelte fixture보다 큼. 60s로 확장 — 로컬은 여전히 <10s에 성공.
+  // fixture 자체가 실 사용 환경과 유사하므로 축소하지 않고 timeout만 확장.
+  const testidTimeoutMs = Number(cfg.testidTimeoutMs ?? 60_000)
+  await frame.waitForSelector(`[data-testid="${cfg.testid}"]`, { timeout: testidTimeoutMs })
   const mounted = frame.locator(`[data-testid="${cfg.testid}"]`).first()
   const text = (await mounted.textContent()) ?? ''
 

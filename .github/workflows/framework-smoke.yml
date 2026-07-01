@@ -6,9 +6,9 @@ name: Framework Smoke
 # beta.4의 axe-core vite 정적 스캔 회귀는 Vue/Svelte smoke가 catch — VR은 chrome
 # scope만 검증하므로 iframe scope 어댑터 dispatch 결함은 smoke만 catch.
 #
-# React fixture는 준비됐지만(apps/jogak-vite-test/src/components/Hello*) CI runner
-# 환경에서 40s 이상 걸려 timeout — 로컬 clean state에서는 <10s. 원인 진단 후
-# matrix에 편입 예정 (followup). Next / WC는 별도 fixture 문제로 제외.
+# React는 jogak-vite-test가 tailwind v4 + globalCss라 CI cold prebundling
+# 오래 걸림 — timeout 60s로 확장 후 matrix 편입. Next / WC는 별도 fixture
+# 문제(Next 30s+ 초기 컴파일, WC dev command 없음)로 제외.
 
 on:
   pull_request:
@@ -49,11 +49,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # 1.0.0-beta.5: react는 로컬 clean state에서 <10s에 성공하지만 CI ubuntu
-        # runner에서 40s 이상 걸림 (vue/svelte는 60s 이내 성공). 원인 진단 followup
-        # 필요. fixture 파일(apps/jogak-vite-test/src/components/Hello*)은 유지해
-        # 로컬 회귀 catch에 활용.
-        fixture: [vue, svelte]
+        # react는 jogak-vite-test가 tailwind v4 + globalCss를 사용해 CI cold
+        # prebundling이 40s+ 걸림. timeout 60s로 확장 후 재편입.
+        fixture: [vue, svelte, react]
     steps:
       - uses: actions/checkout@v4
 
