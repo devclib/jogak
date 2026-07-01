@@ -97,6 +97,13 @@ export interface JogakHostOptionsBase {
    * @deprecated 알파.10 제거 예정. `userPreviewUrl` 사용.
    */
   readonly userViteUrl?: string
+  /**
+   * 1.0.0-beta.6: 로드된 `jogak.config.{ts,mts,mjs,js,json}` 절대 경로.
+   * plugin의 `configureServer`가 이 파일 변경 시 dev server를 자동 restart한다.
+   *
+   * CLI가 `loadJogakConfig` 결과의 `path`를 전달 — 사용자가 직접 설정하지 않는다.
+   */
+  readonly configPath?: string
 }
 
 export interface JogakDevOptions extends JogakHostOptionsBase {
@@ -168,6 +175,7 @@ export async function runHost(
     userPreviewUrl?: string
     previewEntryPath?: string
     userViteUrl?: string
+    configPath?: string
   } = {
     patterns: opts.patterns,
     codeTheme,
@@ -193,6 +201,10 @@ export async function runHost(
   // ── 알파.8 alias (deprecated) ───────────────────────
   if (opts.userViteUrl !== undefined && opts.userPreviewUrl === undefined) {
     jogakOptions.userViteUrl = opts.userViteUrl
+  }
+  // ── 1.0.0-beta.6: jogak.config.ts 자동 restart ─────
+  if (opts.configPath !== undefined) {
+    jogakOptions.configPath = opts.configPath
   }
 
   const extraPlugins = (opts.extraPlugins ?? []) as ReadonlyArray<

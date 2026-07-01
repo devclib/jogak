@@ -330,6 +330,16 @@ export interface JogakPluginOptions {
    * 사용자가 직접 설정하는 옵션이 아니다.
    */
   readonly previewEntryPath?: string
+  /**
+   * 1.0.0-beta.6 internal: 로드된 `jogak.config.{ts,mts,mjs,js,json}` 절대 경로.
+   * CLI의 `loadJogakConfig` 결과가 host 통해 plugin에 전달된다.
+   *
+   * plugin이 `configureServer` 훅에서 이 파일을 `server.watcher.add`로 등록해
+   * 변경 시 자동으로 `server.restart()`한다. beta.5까지는 사용자가 수동 restart 필요.
+   *
+   * 사용자가 직접 설정하는 옵션이 아니다.
+   */
+  readonly configPath?: string
 }
 
 /**
