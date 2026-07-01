@@ -64,16 +64,18 @@ process.on('message', (message: IncomingMessage) => {
     const { id, filePath } = message
     try {
       const meta = extractor.extractMeta(filePath)
-      // 1.0.0-beta.7: parser silent skip warning (P2-1 full).
-      // meta === undefined면 사용자 typo 가능성 (export default 누락, title 누락 등).
-      // 이전엔 silent skip이라 사용자가 sidebar에 entry 안 뜨는 이유 알 수 없었음.
-      // stderr write → subprocess가 부모 CLI로 pipe → 사용자 터미널에 즉시 표시.
-      // .vue/.svelte은 정상 undefined (동반 .jogak.ts에서 처리) — 파일명으로 판단.
+      // 1.0.0 후 minor: skip reason 세분화. beta.7의 minimal warning은 원인 상관없이
+      // 동일 hint였음. checkMetaSkipReason으로 구체적 이유 → 사용자에게 실 fix 방법.
+      // .vue/.svelte은 정상 undefined (동반 .jogak.ts에서 처리) — 파일명으로 skip.
       if (meta === undefined && !filePath.endsWith('.vue') && !filePath.endsWith('.svelte')) {
-        process.stderr.write(
-          `[jogak] skipped ${filePath}: no jogak meta detected. Check that the file has ` +
-            `'export default meta' with a 'title' string.\n`,
-        )
+        const reason = extractor.checkMetaSkipReason(filePath)
+        const hint =
+          reason === 'no-default-export'
+            ? "add 'export default meta satisfies JogakMeta' with { title, component }."
+            : reason === 'no-title'
+              ? "the default export is missing a 'title' string property."
+              : "no jogak meta detected. Check 'export default meta' with a 'title' string."
+        process.stderr.write(`[jogak] skipped ${filePath}: ${hint}\n`)
       }
       send({ type: 'metaResult', id, meta: meta ?? null })
     } catch (e) {
