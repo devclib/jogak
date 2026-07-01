@@ -5,6 +5,12 @@ All notable changes to Jogak packages are documented here. The repository follow
 
 Version numbers apply to all packages in the workspace (synchronized release).
 
+## [1.0.0] — 2026-07-02
+
+### Milestone — 정식 릴리스
+
+`@jogak/core@1.0.0` + `@jogak/ui@1.0.0` sync. CLI (`jogak dev` / `jogak build` / `jogak generate`) API 고정. `jogak.config.ts`(`defineJogakConfig`) API 안정.
+
 ## [1.0.0-beta.7] — 2026-07-01
 
 ### Changed
