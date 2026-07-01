@@ -126,6 +126,45 @@ function unmount(): void {
   }
 }
 
+// 1.0.0-beta.3: A11y (axe-core dynamic import) — chrome SPA fallback scope.
+let a11yRunning = false
+let a11yTimer = 0
+async function runA11y(): Promise<void> {
+  if (a11yRunning) return
+  a11yRunning = true
+  try {
+    // axe-core는 optionalDependency — 사용자가 install한 경우만 dynamic import 성공.
+    // @ts-expect-error — axe-core는 optional peer이므로 타입 미보장.
+    const axe = await import('axe-core').catch(() => null)
+    if (axe === null) {
+      window.parent.postMessage({ type: 'jogak:a11y', violations: [], notInstalled: true }, '*')
+      return
+    }
+    const result = await axe.default.run(document.body, { resultTypes: ['violations'] })
+    const violations = result.violations.map((v: { id: string; impact: string | null; description: string; help: string; helpUrl: string; nodes: { target: (string | string[])[]; html: string; failureSummary: string | null }[] }) => ({
+      id: v.id,
+      impact: v.impact ?? null,
+      description: v.description,
+      help: v.help,
+      helpUrl: v.helpUrl,
+      nodes: v.nodes.map((n) => ({
+        target: n.target.map((t: string | string[]) => Array.isArray(t) ? t.join(' ') : String(t)),
+        html: n.html,
+        failureSummary: n.failureSummary ?? '',
+      })),
+    }))
+    window.parent.postMessage({ type: 'jogak:a11y', violations }, '*')
+  } catch {
+    // axe 내부 오류 — 사용자 컴포넌트 문제가 아님. silent.
+  } finally {
+    a11yRunning = false
+  }
+}
+function scheduleA11y(): void {
+  if (a11yTimer !== 0) window.clearTimeout(a11yTimer)
+  a11yTimer = window.setTimeout(() => { a11yTimer = 0; void runA11y() }, 300)
+}
+
 window.addEventListener('message', (event: MessageEvent) => {
   const data = event.data as { type?: unknown; entryId?: unknown; args?: unknown } | null
   if (data === null || typeof data !== 'object') return
@@ -137,6 +176,7 @@ window.addEventListener('message', (event: MessageEvent) => {
           { type: 'jogak:rendered', entryId: data.entryId },
           '*',
         )
+        scheduleA11y()
       })
       .catch((err: unknown) => {
         const message = err instanceof Error ? err.message : String(err)
@@ -144,6 +184,8 @@ window.addEventListener('message', (event: MessageEvent) => {
       })
   } else if (data.type === 'jogak:unmount') {
     unmount()
+  } else if (data.type === 'jogak:runA11y') {
+    scheduleA11y()
   }
 })
 

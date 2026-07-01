@@ -18,9 +18,36 @@ export type JogakMessageToFrame =
   | { readonly type: 'jogak:unmount' }
 
 /**
+ * 1.0.0-beta.3: A11y (axe-core) violation. iframe scope에서 실행 후 부모에 전송.
+ * axe-core의 Result 타입 대신 필요한 필드만 최소로 정의 — chrome scope가 axe-core를
+ * dep로 갖지 않기 위해.
+ */
+export interface JogakA11yViolationNode {
+  readonly target: readonly string[]
+  readonly html: string
+  readonly failureSummary: string
+}
+
+export interface JogakA11yViolation {
+  readonly id: string
+  readonly impact: 'minor' | 'moderate' | 'serious' | 'critical' | null
+  readonly description: string
+  readonly help: string
+  readonly helpUrl: string
+  readonly nodes: readonly JogakA11yViolationNode[]
+}
+
+/**
  * iframe (preview entry) → 부모(jogak SPA).
  */
 export type JogakMessageFromFrame =
   | { readonly type: 'jogak:ready' }
   | { readonly type: 'jogak:rendered'; readonly entryId: string }
   | { readonly type: 'jogak:error'; readonly message: string }
+  | { readonly type: 'jogak:height'; readonly height: number }
+  | {
+      readonly type: 'jogak:a11y'
+      readonly violations: readonly JogakA11yViolation[]
+      /** axe-core 미설치 시 true — chrome UI가 install 안내 표시 */
+      readonly notInstalled?: boolean
+    }
