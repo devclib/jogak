@@ -5,6 +5,21 @@ All notable changes to Jogak packages are documented here. The repository follow
 
 Version numbers apply to all packages in the workspace (synchronized release).
 
+## [1.0.0-beta.7] — 2026-07-01
+
+### Fixed
+
+- **[안정성] Next 어댑터의 `spawn('next', ...)` ENOENT 회귀** — `packages/core/src/adapters/next/spawn-dev.ts`가 `next` binary를 shell PATH에 의존해서 spawn했음. 사용자 shell에 `next`가 global install 안 되어 있으면 `spawn next ENOENT` fail. 사용자 프로젝트의 `node_modules/.bin/next`를 우선 resolve하고 없으면 shell PATH fallback. CI framework smoke Next 편입 과정에서 catch.
+
+### Added
+
+- **[편의성] Parser silent skip warning** (P2-1 full min) — `extractor-child.ts`가 `extractor.extractMeta(filePath) === undefined`이면 `process.stderr.write`로 warning 출력. subprocess의 stderr는 부모 CLI로 pipe되어 사용자 터미널에 즉시 표시. `.vue` / `.svelte`는 정상 undefined이라 파일명으로 제외. 초심자가 `export default` / `title` 누락 시 sidebar에 entry가 안 뜨는 원인을 즉시 파악 가능.
+
+  ```
+  [jogak] skipped src/components/Button.jogak.tsx: no jogak meta detected.
+  Check that the file has 'export default meta' with a 'title' string.
+  ```
+
 ## [1.0.0-beta.6] — 2026-07-01
 
 ### Added

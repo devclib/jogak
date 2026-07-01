@@ -1,6 +1,6 @@
 {
   "name": "@jogak/cli",
-  "version": "1.0.0-beta.6",
+  "version": "1.0.0-beta.7",
   "description": "jogak dev / build / generate — CLI for the Jogak component showcase.",
   "keywords": [
     "jogak",
