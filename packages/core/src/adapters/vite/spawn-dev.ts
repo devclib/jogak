@@ -67,6 +67,19 @@ export async function spawnViteDev(opts: SpawnDevOptions): Promise<DevHandle> {
       strictPort: false,
       cors: true,
     },
+    // 1.0.0-beta.5: react-dom/client 등을 미리 optimizeDeps에 포함 — 첫 iframe mount에서
+    // vite가 dynamically discover → "optimized dependencies changed. reloading" 반복
+    // 회귀 방지. jogak-vite-test smoke가 이 이슈로 CI 60s+ timeout (fix 전).
+    // 다른 framework(vue/svelte)은 plugin이 discovery 완료 후 등록해서 무영향.
+    optimizeDeps: {
+      include: [
+        'react',
+        'react-dom',
+        'react-dom/client',
+        '@jogak/core',
+        '@jogak/core/renderers/react',
+      ],
+    },
     appType: 'mpa',
     configFile: false,
   })
