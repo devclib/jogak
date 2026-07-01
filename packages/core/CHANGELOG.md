@@ -5,6 +5,20 @@ All notable changes to Jogak packages are documented here. The repository follow
 
 Version numbers apply to all packages in the workspace (synchronized release).
 
+## [1.0.0-beta.3] — 2026-07-01
+
+### Added
+
+- **A11y addon (axe-core 자동 스캔)** — Storybook `addon-a11y` 대응. iframe scope의 preview entry가 render 완료 후 `axe.run(document.body)` 자동 실행 → `postMessage 'jogak:a11y'`로 부모(chrome scope)에 violations 전송. 300ms 디바운스. 4 iframe scope 지원: `preview-entry/source.ts` (default), `preview-frame.tsx` (fallback), `adapters/vite/scaffold.ts`, `adapters/webpack/scaffold.ts`. Next 어댑터는 followup.
+  - `axe-core@^4.10.0`을 `peerDependencies` + `optionalDependency`로 추가. Jogak 자체는 axe-core를 번들 안 함 (install size 최소화). 사용자가 `pnpm add -D axe-core` 설치 시 활성화, 미설치 시 chrome A11y 패널에 install 안내 표시.
+  - 공통 `A11Y_SNIPPET` string constant (`preview-entry/a11y-snippet.ts`)를 각 scaffold의 SOURCE template에 삽입 — 코드 중복 회피.
+  - 신규 export: `JogakA11yViolation`, `JogakA11yViolationNode` 타입 (`@jogak/core`).
+  - `JogakMessageFromFrame` 확장: `'jogak:height'`, `'jogak:a11y'` 추가.
+
+### Changed
+
+- **`peerDependencies.next`** 범위 확장: `^14 || ^15` → `^14 || ^15 || ^16`. beta.1의 scaffold 상대 경로 fix로 Next 16 이미 지원 중이던 실질 범위를 명시.
+
 ## [1.0.0-beta.2] — 2026-06-30
 
 ### Fixed

@@ -1,6 +1,6 @@
 {
   "name": "@jogak/core",
-  "version": "1.0.0-beta.2",
+  "version": "1.0.0-beta.3",
   "description": "Core types, registry, and Vite plugin for Jogak — a lightweight Storybook alternative.",
   "keywords": [
     "jogak",

@@ -5,6 +5,15 @@ All notable changes to Jogak packages are documented here. The repository follow
 
 Version numbers apply to all packages in the workspace (synchronized release).
 
+## [1.0.0-beta.3] — 2026-07-01
+
+### Added
+
+- **A11y bottom tab + `A11yPanel` 컴포넌트** — Preview의 하단 탭에 Controls / Actions 옆 `A11y` 항목 추가. `A11yPanel`이 axe-core violations을 impact color-coded card로 표시 (critical/serious/moderate/minor + description + helpUrl + node CSS selector).
+  - `IframeMount`에 `onA11yResult` prop 추가 — iframe scope의 `jogak:a11y` postMessage를 받아 상위로 전달.
+  - `A11yPanel` 상태 4개: loading (result=null) / axe-core 미설치 안내 (notInstalled=true) / 위반 없음 성공 메시지 / violations 목록.
+  - 회귀 가드: `A11yPanel.test.tsx` 신규 5건 (총 ui test 27 → 32).
+
 ## [1.0.0-beta.2] — 2026-06-30
 
 ### Fixed
