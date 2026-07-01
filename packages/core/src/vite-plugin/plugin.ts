@@ -84,6 +84,9 @@ export function jogak(options: JogakPluginOptions = {}): Plugin {
   // alpha.8 호환: userViteUrl alias.
   const userPreviewUrl = options.userPreviewUrl ?? options.userViteUrl ?? ''
   const previewEntryPath = options.previewEntryPath ?? '/__jogak_preview__/index.html'
+  // 1.0.0-beta.6: jogak.config.ts 자동 restart를 위한 절대 경로. CLI가 loadJogakConfig
+  // 결과 전달. configureServer에서 watcher.add + change 감지 → server.restart.
+  const configPath = options.configPath
 
   let devServer: ViteDevServer | undefined
   let extractor: PropsExtractor | undefined
@@ -242,6 +245,21 @@ export function jogak(options: JogakPluginOptions = {}): Plugin {
 
     configureServer(server) {
       devServer = server
+      // 1.0.0-beta.6: jogak.config.ts 변경 시 dev server 자동 restart.
+      // CLI가 configPath를 옵션으로 전달했을 때만 활성화 (previewFrame 모드에서는
+      // CLI가 사용자 vite에 jogak() 두 번 inject 가능성 있어 중복 restart 회피).
+      if (configPath !== undefined && !previewFrame) {
+        server.watcher.add(configPath)
+        server.watcher.on('change', (file) => {
+          if (file === configPath) {
+            server.config.logger.info(
+              `[jogak] jogak.config.ts changed — restarting dev server...`,
+              { timestamp: true },
+            )
+            void server.restart()
+          }
+        })
+      }
     },
 
     buildEnd() {

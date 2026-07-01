@@ -219,7 +219,11 @@ async function runGenerate(args: ParsedArgs, fileConfig: JogakConfig): Promise<v
   )
 }
 
-function parseDevArgs(parsed: ParsedArgs, fileConfig: JogakConfig): DevCliArgs {
+function parseDevArgs(
+  parsed: ParsedArgs,
+  fileConfig: JogakConfig,
+  configPath?: string,
+): DevCliArgs {
   const cwd = resolve(asString(parsed.flags['cwd'], process.cwd()))
 
   const cliPatterns = parsed.flags['patterns']
@@ -283,6 +287,8 @@ function parseDevArgs(parsed: ParsedArgs, fileConfig: JogakConfig): DevCliArgs {
     // 알파.9: builder/builderOptions — jogak.config.ts에만 노출 (CLI flag 미노출).
     ...(fileConfig.builder !== undefined ? { builder: fileConfig.builder } : {}),
     ...(fileConfig.builderOptions !== undefined ? { builderOptions: fileConfig.builderOptions } : {}),
+    // 1.0.0-beta.6: jogak.config.ts 자동 restart용 절대 경로.
+    ...(configPath !== undefined ? { configPath } : {}),
   }
 }
 
@@ -381,12 +387,11 @@ async function main(): Promise<void> {
   )
   if (configPath !== undefined) {
     process.stdout.write(`[jogak] config loaded: ${configPath}\n`)
-    // 1.0.0-beta.5: HMR audit (P2-2) — jogak.config.ts는 CLI가 로드하지 vite가
-    // watch 안 함. 변경 시 자동 restart 안 되고 수동 restart 필요. 사용자가
-    // "왜 반영이 안 되지" 의문 갖지 않게 명확 안내.
+    // 1.0.0-beta.6: jogak.config.ts 자동 restart. plugin의 configureServer가
+    // configPath를 watch → 변경 시 server.restart(). beta.5 안내 메시지 제거.
     if (command === 'dev' || command === 'd') {
       process.stdout.write(
-        `[jogak] note: changes to jogak.config.ts require dev server restart (Ctrl+C then re-run).\n`,
+        `[jogak] watching jogak.config.ts for changes (auto-restart on edit).\n`,
       )
     }
   }
@@ -397,7 +402,7 @@ async function main(): Promise<void> {
   }
 
   if (command === 'dev') {
-    await runDevCommand(parseDevArgs(parsed, fileConfig))
+    await runDevCommand(parseDevArgs(parsed, fileConfig, configPath))
     return
   }
 

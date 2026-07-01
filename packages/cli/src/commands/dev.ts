@@ -37,6 +37,8 @@ export interface DevCliArgs {
   readonly builder?: BuilderName | undefined
   /** 알파.9: 어댑터별 추가 옵션. */
   readonly builderOptions?: Readonly<Record<string, unknown>>
+  /** 1.0.0-beta.6: 로드된 jogak.config 절대 경로 (자동 restart용). */
+  readonly configPath?: string | undefined
 }
 
 export async function runDevCommand(args: DevCliArgs): Promise<void> {
@@ -137,6 +139,7 @@ export async function runDevCommand(args: DevCliArgs): Promise<void> {
     ...(adapterHandle !== undefined
       ? { userPreviewUrl: adapterHandle.url, previewEntryPath }
       : {}),
+    ...(args.configPath !== undefined ? { configPath: args.configPath } : {}),
   }
 
   const handle: DevHandle = await runHost(devOptions)
