@@ -1,0 +1,102 @@
+---
+title: Comparison with Storybook
+---
+
+# Comparison with Storybook
+
+Storybook is the mature, feature-rich default. Jogak is the **lean** alternative — same intent (a place to gather component pieces), smaller stack, less config. This page lays out the concrete tradeoffs so you can decide honestly.
+
+## Config file count and lines
+
+A minimal working setup — a single component with 2 stories, TypeScript, Vite, and Tailwind.
+
+| | Storybook 8 | Jogak |
+|---|---|---|
+| Config files | `.storybook/main.ts` + `.storybook/preview.ts` + `.storybook/manager.ts` (optional) | `jogak.config.ts` (optional) |
+| Typical lines | 40–80 | 5–10 |
+| Explicit `stories: [...]` glob | required | not needed (auto-discover) |
+| `viteFinal` merge for user Vite | required | not needed (Jogak reuses user Vite) |
+| CSS import location | `preview.ts` | `globalCss: '...'` in config |
+| Zero-config first run | ⚠️ generator wizard | ✅ install + `jogak dev` |
+
+If you skip `jogak.config.ts` entirely, Jogak still runs: it auto-detects the framework, picks up `.jogak.tsx` files, and mounts them with sensible defaults.
+
+## CLI commands
+
+| Storybook | Jogak |
+|---|---|
+| `storybook dev -p 6006` | `jogak dev --port 6006` |
+| `storybook build -o storybook-static` | `jogak build --outDir jogak-static` |
+| `storybook build --docs` | — (MDX docs not yet) |
+| `test-storybook` | — (planned) |
+
+## Addon matrix
+
+Storybook ships as a plugin platform — the core UI is small; features come from addons. Jogak takes the opposite bias: **the ~5 things everyone uses are built-in, and there's no addon API.** That's the intentional tradeoff.
+
+| Storybook addon | What it does | Jogak equivalent | Status |
+|---|---|---|---|
+| Controls | Props panel from types | Built-in (auto from TS types via ts-morph) | ✅ |
+| Actions | Log function calls | Built-in (function props auto-spied) | ✅ |
+| Viewport | Mobile / Tablet / Desktop | Built-in | ✅ |
+| Backgrounds | White / dark / transparent | Built-in | ✅ |
+| Source view | Usage snippet from args | Built-in | ✅ |
+| Themes | Toggle theme in toolbar | ❌ pass theme via `args` for now | planned |
+| A11y (axe-core) | Accessibility scan | ❌ run `axe-core` in Vitest for now | planned |
+| MDX docs | Rich documentation pages | ⚠️ only `argTypes.description` today | planned |
+| Interactions / Play | Runtime scripting per story | ❌ move to Vitest + RTL | not planned for 1.0 |
+| Test runner | Storybook-based Jest runner | ❌ use Vitest | not planned for 1.0 |
+| Design tokens (community) | Custom panel | ❌ no addon API | fork or wait post-1.0 |
+
+**Bottom line:** if your team's Storybook is essentially Controls + Actions + Viewport + Backgrounds, Jogak covers it out of the box. If you rely on MDX docs or A11y, wait for those to land.
+
+## Performance
+
+Numbers from the same 500-component React catalog on the same machine. Full reproduction commands in [Benchmarks](/en/docs/benchmarks).
+
+| Metric | Storybook 8 | Jogak | Ratio |
+|---|---|---|---|
+| Dev cold start | 3.6 s | **2.9 s** | 1.3× |
+| Build time | 7.6 s | **4.1 s** | **1.8×** |
+| Bundle (gzip) | 1.09 MB | **156 KB** | **7.0×** |
+| Idle RSS (dev) | 489 MB | **345 MB** | **1.4×** |
+| HMR latency (warm) | — | **199 ms** | < 200 ms |
+
+The bundle-size gap widens for static deploy — Storybook manager + preview builds carry the addon ecosystem even when unused. Jogak's build is a single Vite output.
+
+## Architectural differences
+
+- **Single Vite instance.** Storybook runs a manager app (React) plus a preview iframe with its own bundler. Jogak's chrome UI and user content share one Vite. User components mount in an iframe that **reuses the host Vite scope**, so your Tailwind / plugins / aliases apply automatically.
+- **Lazy virtual modules.** The index module exposes only entry metadata; component modules are dynamically imported on click. First page load's module graph contains zero user modules — idle RSS barely scales with catalog size.
+- **`child_process`-isolated ts-morph.** Type extraction runs in a subprocess that `SIGTERM`s after 5 s idle. The main process never carries the full ts-morph type checker.
+- **`*.jogak.{ts,tsx}` schema (own).** Similar shape to CSF (`title`, `args`, `argTypes`, `component`) but not source-compatible. Jogak does **not** read `.stories.tsx` files. See [Migration](/en/docs/migration-from-storybook) for the conversion.
+
+## When to stay on Storybook
+
+Jogak is not a superset. Pick Storybook if any of the following applies:
+
+- You depend on **MDX docs** as living documentation (not just prop tables)
+- You rely on **Play functions / Interactions** or the **Test runner** for story-level integration tests
+- Your team maintains **custom addons** — design tokens, i18n switchers, backend mocks — and rewriting them is a non-starter
+- You need **decorators** to wrap every story (theme provider, router context, i18n) and refactoring them into components is impractical
+- Your project uses the Storybook Composition feature to combine multiple sub-storybooks
+
+Rewriting or delaying those is often more expensive than Storybook's overhead.
+
+## When to switch to Jogak
+
+Pick Jogak if:
+
+- Your `.storybook/` is mostly Controls + Actions with a couple of essential addons
+- You care about **cold start / build time / bundle size** more than about the addon ecosystem breadth
+- You want **zero-config first run** — install, write a `.jogak.tsx`, run `jogak dev`
+- You want the **same Vite / Tailwind / plugin stack** you use in production, not a second bundler
+- You're on **Next.js Server Components, Vue 3, Svelte 5, or Web Components** — Jogak supports all five frameworks with the same schema
+
+## Where to next
+
+- [Migration from Storybook](/en/docs/migration-from-storybook) — concrete conversion steps
+- [Quick start](/en/docs) — 5-minute install → first component
+- [Why Jogak](/en/docs/why) — the architecture choices in detail
+- [Benchmarks](/en/docs/benchmarks) — full performance methodology
+- [Roadmap](/en/docs/roadmap) — when will MDX / A11y / Themes land

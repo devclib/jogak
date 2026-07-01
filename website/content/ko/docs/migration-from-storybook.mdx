@@ -1,0 +1,212 @@
+---
+title: Storybook에서 마이그레이션
+---
+
+# Storybook에서 마이그레이션
+
+Jogak은 **drop-in** 대체입니다 — workflow(`dev` / `build` / static deploy)와 story schema(`title`, `args`, `argTypes`, `component`)가 거의 동일합니다. 실제 마이그레이션 소요는 Storybook의 어떤 기능에 얼마나 의존하는지에 따라 갈립니다.
+
+**전형적인 React + Vite Storybook 프로젝트(컴포넌트 50개 내외) 기준 예상 시간:**
+- 단순 케이스 (Controls + Actions만): **30분**
+- 복잡 케이스 (custom addon, MDX docs, decorator): **현재 완전 마이그레이션 불가** — 아래 [작동하지 않는 것](#현재-작동하지-않는-것) 참조
+
+## 시작 전 호환성 체크
+
+현재 Storybook 설정과 대조하세요. 크게 의존하는 ❌ 항목이 있으면 후속 Jogak 릴리스를 기다리거나 Storybook에 머무르세요.
+
+| Storybook 기능 | Jogak 상태 |
+|---|---|
+| Controls addon | ✅ built-in (TS 타입에서 자동) |
+| Actions addon | ✅ built-in (함수 prop 자동 spy) |
+| Viewport addon | ✅ built-in (Mobile / Tablet / Desktop) |
+| Backgrounds addon | ✅ built-in (white / dark / transparent) |
+| Source view | ✅ built-in |
+| MDX docs | ⚠️ 아직 — `argTypes.description`만 |
+| A11y addon (axe) | ❌ 계획 |
+| Themes addon | ❌ 계획 |
+| Interactions / Play 함수 | ❌ 1.0 미계획 |
+| Test runner | ❌ 1.0 미계획 |
+| Custom addon | ❌ Jogak은 addon API를 설계상 제공 안 함 |
+| Decorator | ❌ 미지원 (컴포넌트 조합으로 대체) |
+
+전체 매트릭스는 [Comparison](/ko/docs/comparison) 참조.
+
+## Step 1 — Storybook과 병행 설치
+
+Storybook을 켜둔 채로 마이그레이션합니다. Jogak을 dev dependency로 추가:
+
+```bash
+pnpm add -D @jogak/cli @jogak/core
+```
+
+React 외 프레임워크는 해당 peer plugin 추가 ([Frameworks](/ko/docs/frameworks/react) 참조).
+
+## Step 2 — `.stories.tsx` → `.jogak.tsx` 변환
+
+스키마가 90% 호환됩니다. 파일 이름과 story 형태만 조정합니다.
+
+**Before (Storybook CSF 3):**
+
+```tsx filename="Button.stories.tsx"
+import type { Meta, StoryObj } from '@storybook/react'
+import { Button } from './Button'
+
+const meta = {
+  title: 'Components/Button',
+  component: Button,
+  argTypes: {
+    variant: { control: 'select', options: ['primary', 'secondary'] },
+  },
+} satisfies Meta<typeof Button>
+
+export default meta
+type Story = StoryObj<typeof Button>
+
+export const Primary: Story = {
+  args: { label: 'Click me', variant: 'primary' },
+}
+
+export const Disabled: Story = {
+  args: { label: 'Click me', variant: 'primary', disabled: true },
+}
+```
+
+**After (Jogak):**
+
+```tsx filename="Button.jogak.tsx"
+import type { JogakMeta, Jogak } from '@jogak/core'
+import { Button } from './Button'
+
+const meta = {
+  title: 'Components/Button',
+  component: Button,
+  // argTypes는 대개 생략 — Jogak이 ts-morph로 TS 타입에서 자동 추출
+} satisfies JogakMeta
+
+export default meta
+
+export const Primary: Jogak = {
+  name: 'Primary',
+  args: { label: 'Click me', variant: 'primary' },
+}
+
+export const Disabled: Jogak = {
+  name: 'Disabled',
+  args: { label: 'Click me', variant: 'primary', disabled: true },
+}
+```
+
+**핵심 차이:**
+- 타입 이름: `Meta` → `JogakMeta`, `StoryObj<...>` → `Jogak`
+- 각 story에 `name` 필드 명시
+- `argTypes`는 대개 생략 가능 — Jogak의 ts-morph 추출기가 `variant: 'primary' | 'secondary'`, `disabled?: boolean`, `onClick?: (e) => void`를 자동 처리. 추출기가 추론 못 하는 custom control type만 `argTypes` 명시.
+
+## Step 3 — `.storybook/main.js` + `preview.js`를 `jogak.config.ts`로
+
+Storybook은 보통 3~5개 설정 파일(`main.js`, `preview.js`, `manager.js`, framework config)을 갖습니다. Jogak은 단일 optional 파일로 통합합니다.
+
+**Before (`.storybook/main.js` + `.storybook/preview.js`, 보통 40~80줄):**
+
+```js filename=".storybook/main.js"
+import { mergeConfig } from 'vite'
+
+export default {
+  stories: ['../src/**/*.stories.@(js|jsx|ts|tsx)'],
+  addons: [
+    '@storybook/addon-essentials',
+    '@storybook/addon-interactions',
+    '@storybook/addon-a11y',
+  ],
+  framework: { name: '@storybook/react-vite', options: {} },
+  viteFinal: async (config) => mergeConfig(config, { /* ... */ }),
+}
+```
+
+```js filename=".storybook/preview.js"
+import '../src/styles/globals.css'
+
+export default {
+  parameters: {
+    backgrounds: { default: 'light' },
+    viewport: { viewports: { /* ... */ } },
+  },
+}
+```
+
+**After (`jogak.config.ts`, optional, 보통 5~10줄):**
+
+```ts filename="jogak.config.ts"
+import { defineJogakConfig } from '@jogak/core'
+
+export default defineJogakConfig({
+  globalCss: 'src/styles/globals.css',   // Tailwind / 디자인 시스템
+  framework: 'react',                     // 'react' | 'next' | 'vue' | 'svelte' | 'web-components'
+  // previewIsolation: 'iframe',          // default — 권장
+})
+```
+
+Jogak은 소스 루트 아래 `.jogak.{ts,tsx}` 파일을 자동 발견합니다 — `stories: [...]` glob 불필요. Vite 설정은 그대로 유지 (Jogak이 iframe scope로 재사용).
+
+## Step 4 — CLI 명령어
+
+| Storybook | Jogak |
+|---|---|
+| `storybook dev -p 6006` | `jogak dev --port 6006` |
+| `storybook build -o storybook-static` | `jogak build --outDir jogak-static` |
+| `test-storybook` | — (계획, 1.0 미포함) |
+
+`package.json` script 갱신 후 `jogak-static/`을 기존 `storybook-static/`과 동일한 방식으로 배포 — GitHub Pages, Vercel, Netlify, S3.
+
+## Step 5 — Storybook 삭제
+
+CI + preview deploy가 `jogak build`에서 통과하면:
+
+```bash
+rm -rf .storybook
+pnpm remove @storybook/react @storybook/react-vite @storybook/addon-essentials \
+  @storybook/addon-interactions @storybook/addon-a11y storybook
+```
+
+모두 변환된 후 남은 `.stories.tsx` 파일 삭제 (grep으로 참조 zero 확인 후).
+
+## 현재 작동하지 않는 것
+
+**Blocking 케이스 — 아래에 의존하면 마이그레이션 금지:**
+
+- **MDX docs** — Jogak은 `argTypes.description`을 Props 표에 렌더하지만 MDX 페이지 대응은 아직 없음. [Roadmap](/ko/docs/roadmap) 참조.
+- **Play 함수 / Interactions** — Jogak은 story 레벨 runtime scripting 없음. interaction 테스트는 Vitest + React Testing Library로 이동.
+- **Custom addon** — Jogak은 addon API가 없음. 팀이 유지하는 custom addon(디자인 토큰 패널, i18n switcher 등)이 있다면 Jogak fork 또는 1.0 이후 plugin story 대기.
+- **Decorator** — wrapper/decorator 개념 없음. wrapper를 컴포넌트에 내장하거나, wrapper 컴포넌트를 별도 export 후 `.jogak.tsx`에서 참조.
+
+**Workaround 가능 케이스:**
+
+- **Themes addon** — theme을 `args`로 넘겨 컴포넌트에서 읽거나, `globalCss`가 attribute selector로 토글하는 CSS variable 사용.
+- **A11y addon** — Jogak a11y addon이 나올 때까지 `axe-core`를 Vitest suite에서 실행.
+
+## 자동 변환 — codemod가 있나요?
+
+아직 없습니다. 구문 차이가 작아 `sed` 스크립트로 대부분 커버:
+
+```bash
+# 파일 이름 변경
+find src -name '*.stories.tsx' -exec sh -c 'mv "$1" "${1%.stories.tsx}.jogak.tsx"' _ {} \;
+
+# import 교체
+find src -name '*.jogak.tsx' -exec sed -i.bak \
+  -e "s|from '@storybook/react'|from '@jogak/core'|g" \
+  -e 's|type Meta,|type JogakMeta,|g' \
+  -e 's|Meta<typeof [A-Za-z]*>|JogakMeta|g' \
+  -e 's|type StoryObj,||g' \
+  {} \;
+
+# 수동 pass: 각 story에 `name: 'X'` 필드 추가; StoryObj → Jogak.
+```
+
+공식 `@jogak/codemod` 패키지는 1.0 로드맵에 있습니다.
+
+## 다음
+
+- [Comparison](/ko/docs/comparison) — 전체 addon 매트릭스, 설정 줄수 비교
+- [Configuration](/ko/docs/configuration) — 모든 `jogak.config.ts` 옵션
+- [Benchmarks](/ko/docs/benchmarks) — Storybook 8 대비 성능
+- [Roadmap](/ko/docs/roadmap) — MDX / A11y / Themes 언제 오나
