@@ -1,0 +1,212 @@
+---
+title: Migration from Storybook
+---
+
+# Migration from Storybook
+
+Jogak is a **drop-in** alternative — the workflow (`dev` / `build` / static deploy) and the story schema (`title`, `args`, `argTypes`, `component`) look identical. The concrete migration path depends on how much of the Storybook addon ecosystem you rely on.
+
+**Rough estimate for a typical React + Vite Storybook project (~50 components):**
+- Simple case (Controls + Actions only): **30 minutes**
+- Complex case (custom addons, MDX docs, decorators): **not fully migratable yet** — see [what won't work](#what-wont-work-yet) below
+
+## Before you start — check compatibility
+
+Run this checklist against your current Storybook setup. If you hit ❌ items you rely on heavily, wait for later Jogak releases or stay on Storybook for now.
+
+| Storybook feature | Jogak status |
+|---|---|
+| Controls addon | ✅ built-in (auto from TS types) |
+| Actions addon | ✅ built-in (function props auto-spied) |
+| Viewport addon | ✅ built-in (Mobile / Tablet / Desktop) |
+| Backgrounds addon | ✅ built-in (white / dark / transparent) |
+| Source view | ✅ built-in |
+| MDX docs | ⚠️ not yet — only `argTypes.description` |
+| A11y addon (axe) | ❌ planned |
+| Themes addon | ❌ planned |
+| Interactions / Play functions | ❌ not planned for 1.0 |
+| Test runner | ❌ not planned for 1.0 |
+| Custom addons | ❌ Jogak has no addon API by design |
+| Decorators | ❌ not supported (use component composition) |
+
+See [Comparison](/en/docs/comparison) for the full matrix.
+
+## Step 1 — Install Jogak alongside Storybook
+
+Keep Storybook running while you migrate. Add Jogak as a dev dependency:
+
+```bash
+pnpm add -D @jogak/cli @jogak/core
+```
+
+For non-React frameworks add the peer plugin (see [Frameworks](/en/docs/frameworks/react)).
+
+## Step 2 — Convert `.stories.tsx` → `.jogak.tsx`
+
+The schemas are 90% compatible. Rename the file and adjust the story shape.
+
+**Before (Storybook CSF 3):**
+
+```tsx filename="Button.stories.tsx"
+import type { Meta, StoryObj } from '@storybook/react'
+import { Button } from './Button'
+
+const meta = {
+  title: 'Components/Button',
+  component: Button,
+  argTypes: {
+    variant: { control: 'select', options: ['primary', 'secondary'] },
+  },
+} satisfies Meta<typeof Button>
+
+export default meta
+type Story = StoryObj<typeof Button>
+
+export const Primary: Story = {
+  args: { label: 'Click me', variant: 'primary' },
+}
+
+export const Disabled: Story = {
+  args: { label: 'Click me', variant: 'primary', disabled: true },
+}
+```
+
+**After (Jogak):**
+
+```tsx filename="Button.jogak.tsx"
+import type { JogakMeta, Jogak } from '@jogak/core'
+import { Button } from './Button'
+
+const meta = {
+  title: 'Components/Button',
+  component: Button,
+  // argTypes optional — Jogak auto-extracts from TS types via ts-morph
+} satisfies JogakMeta
+
+export default meta
+
+export const Primary: Jogak = {
+  name: 'Primary',
+  args: { label: 'Click me', variant: 'primary' },
+}
+
+export const Disabled: Jogak = {
+  name: 'Disabled',
+  args: { label: 'Click me', variant: 'primary', disabled: true },
+}
+```
+
+**Key differences:**
+- Type names: `Meta` → `JogakMeta`, `StoryObj<...>` → `Jogak`
+- Each story needs an explicit `name` field
+- `argTypes` is usually optional — Jogak's ts-morph extractor handles `variant: 'primary' | 'secondary'`, `disabled?: boolean`, `onClick?: (e) => void` automatically. Keep `argTypes` only when you need custom control types the extractor can't infer.
+
+## Step 3 — Replace `.storybook/main.js` + `preview.js` with `jogak.config.ts`
+
+Storybook typically has 3-5 configuration files (`main.js`, `preview.js`, `manager.js`, plus framework config). Jogak collapses them into a single optional file.
+
+**Before (`.storybook/main.js` + `.storybook/preview.js`, typically 40-80 lines):**
+
+```js filename=".storybook/main.js"
+import { mergeConfig } from 'vite'
+
+export default {
+  stories: ['../src/**/*.stories.@(js|jsx|ts|tsx)'],
+  addons: [
+    '@storybook/addon-essentials',
+    '@storybook/addon-interactions',
+    '@storybook/addon-a11y',
+  ],
+  framework: { name: '@storybook/react-vite', options: {} },
+  viteFinal: async (config) => mergeConfig(config, { /* ... */ }),
+}
+```
+
+```js filename=".storybook/preview.js"
+import '../src/styles/globals.css'
+
+export default {
+  parameters: {
+    backgrounds: { default: 'light' },
+    viewport: { viewports: { /* ... */ } },
+  },
+}
+```
+
+**After (`jogak.config.ts`, optional, typically 5-10 lines):**
+
+```ts filename="jogak.config.ts"
+import { defineJogakConfig } from '@jogak/core'
+
+export default defineJogakConfig({
+  globalCss: 'src/styles/globals.css',   // your Tailwind / design system
+  framework: 'react',                     // 'react' | 'next' | 'vue' | 'svelte' | 'web-components'
+  // previewIsolation: 'iframe',          // default — recommended
+})
+```
+
+Jogak auto-detects `.jogak.{ts,tsx}` files under your source root — no `stories: [...]` glob needed. Your Vite config stays yours (Jogak reuses it via the iframe scope).
+
+## Step 4 — CLI commands
+
+| Storybook | Jogak |
+|---|---|
+| `storybook dev -p 6006` | `jogak dev --port 6006` |
+| `storybook build -o storybook-static` | `jogak build --outDir jogak-static` |
+| `test-storybook` | — (planned, not in 1.0) |
+
+Update `package.json` scripts, then deploy `jogak-static/` the same way you deployed `storybook-static/` — GitHub Pages, Vercel, Netlify, S3.
+
+## Step 5 — Delete Storybook
+
+Once your CI + preview deploy pass on `jogak build`:
+
+```bash
+rm -rf .storybook
+pnpm remove @storybook/react @storybook/react-vite @storybook/addon-essentials \
+  @storybook/addon-interactions @storybook/addon-a11y storybook
+```
+
+Delete stale `.stories.tsx` files after all are converted (or grep them and confirm zero references).
+
+## What won't work yet
+
+**Blocking cases — do NOT migrate if you rely on any of these:**
+
+- **MDX docs** — Jogak reads `argTypes.description` for a Props table, but there's no MDX page equivalent yet. Track in [Roadmap](/en/docs/roadmap).
+- **Play functions / Interactions** — Jogak has no story-level runtime scripting. Move interaction tests to Vitest + React Testing Library.
+- **Custom addons** — Jogak has no addon API. If your team maintains a custom addon (e.g. design token panel, i18n switcher), you'll need to fork Jogak or wait for a plugin story post-1.0.
+- **Decorators** — no wrapper/decorator concept. Compose the wrapper into the component itself, or export a wrapper component and reference it from `.jogak.tsx`.
+
+**Workaround-able cases:**
+
+- **Themes addon** — pass theme via `args` and read it in the component, or use CSS variables that your `globalCss` toggles by attribute selector.
+- **A11y addon** — run `axe-core` in your Vitest suite instead of the Storybook panel until Jogak's a11y addon lands.
+
+## Automated conversion — is there a codemod?
+
+Not yet. The syntax difference is small enough that a `sed` script covers most cases:
+
+```bash
+# Rename files
+find src -name '*.stories.tsx' -exec sh -c 'mv "$1" "${1%.stories.tsx}.jogak.tsx"' _ {} \;
+
+# Replace imports
+find src -name '*.jogak.tsx' -exec sed -i.bak \
+  -e "s|from '@storybook/react'|from '@jogak/core'|g" \
+  -e 's|type Meta,|type JogakMeta,|g' \
+  -e 's|Meta<typeof [A-Za-z]*>|JogakMeta|g' \
+  -e 's|type StoryObj,||g' \
+  {} \;
+
+# Manual pass: each story needs a `name: 'X'` field; StoryObj → Jogak.
+```
+
+An official `@jogak/codemod` package is on the roadmap for 1.0.
+
+## Where to next
+
+- [Comparison](/en/docs/comparison) — full addon matrix, config-line-count comparison
+- [Configuration](/en/docs/configuration) — all `jogak.config.ts` options
+- [Benchmarks](/en/docs/benchmarks) — performance vs Storybook 8
+- [Roadmap](/en/docs/roadmap) — when will MDX / A11y / Themes land

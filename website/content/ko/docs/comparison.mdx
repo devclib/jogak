@@ -1,0 +1,102 @@
+---
+title: Storybook과 비교
+---
+
+# Storybook과 비교
+
+Storybook은 성숙하고 기능 풍부한 기본값. Jogak은 **경량** 대체 — 같은 의도(컴포넌트 조각들을 모으는 곳), 더 작은 스택, 더 적은 설정. 이 페이지가 정직한 tradeoff를 정리합니다.
+
+## 설정 파일 수와 줄수
+
+최소 동작 환경 — 1개 컴포넌트에 2개 story, TypeScript, Vite, Tailwind.
+
+| | Storybook 8 | Jogak |
+|---|---|---|
+| 설정 파일 | `.storybook/main.ts` + `.storybook/preview.ts` + `.storybook/manager.ts` (선택) | `jogak.config.ts` (선택) |
+| 보통 줄수 | 40~80 | 5~10 |
+| 명시 `stories: [...]` glob | 필수 | 불필요 (자동 발견) |
+| user Vite 병합 `viteFinal` | 필수 | 불필요 (Jogak이 user Vite 재사용) |
+| CSS import 위치 | `preview.ts` | config의 `globalCss: '...'` |
+| Zero-config 첫 실행 | ⚠️ generator wizard | ✅ install + `jogak dev` |
+
+`jogak.config.ts`를 아예 생략해도 Jogak은 동작합니다 — framework 자동 감지, `.jogak.tsx` 파일 pickup, 적절한 default로 mount.
+
+## CLI 명령어
+
+| Storybook | Jogak |
+|---|---|
+| `storybook dev -p 6006` | `jogak dev --port 6006` |
+| `storybook build -o storybook-static` | `jogak build --outDir jogak-static` |
+| `storybook build --docs` | — (MDX docs 미지원) |
+| `test-storybook` | — (계획) |
+
+## Addon 매트릭스
+
+Storybook은 plugin 플랫폼으로 배포 — 코어 UI는 작고 기능은 addon에서. Jogak은 반대 방침: **모두가 쓰는 ~5개 기능은 built-in, addon API는 없음.** 의도된 tradeoff.
+
+| Storybook addon | 역할 | Jogak 대응 | 상태 |
+|---|---|---|---|
+| Controls | 타입에서 Props 패널 | Built-in (ts-morph TS 타입 자동) | ✅ |
+| Actions | 함수 호출 log | Built-in (함수 prop 자동 spy) | ✅ |
+| Viewport | Mobile / Tablet / Desktop | Built-in | ✅ |
+| Backgrounds | White / dark / transparent | Built-in | ✅ |
+| Source view | args에서 사용 snippet | Built-in | ✅ |
+| Themes | 툴바에서 theme 전환 | ❌ 현재는 `args`로 theme 전달 | 계획 |
+| A11y (axe-core) | 접근성 스캔 | ❌ 현재는 Vitest에서 `axe-core` | 계획 |
+| MDX docs | 풍부한 문서 페이지 | ⚠️ 현재 `argTypes.description`만 | 계획 |
+| Interactions / Play | story별 runtime scripting | ❌ Vitest + RTL로 이동 | 1.0 미계획 |
+| Test runner | Storybook 기반 Jest runner | ❌ Vitest 사용 | 1.0 미계획 |
+| Design tokens (community) | Custom 패널 | ❌ addon API 없음 | 1.0 이후 fork 또는 대기 |
+
+**요약:** 팀 Storybook이 사실상 Controls + Actions + Viewport + Backgrounds 조합이면 Jogak이 그대로 커버합니다. MDX docs / A11y에 의존하면 지원 도착 대기.
+
+## 성능
+
+같은 500 컴포넌트 React 카탈로그, 같은 머신 수치. 전체 재현 명령은 [Benchmarks](/ko/docs/benchmarks).
+
+| 지표 | Storybook 8 | Jogak | 비율 |
+|---|---|---|---|
+| Dev cold start | 3.6 s | **2.9 s** | 1.3× |
+| Build time | 7.6 s | **4.1 s** | **1.8×** |
+| Bundle (gzip) | 1.09 MB | **156 KB** | **7.0×** |
+| Idle RSS (dev) | 489 MB | **345 MB** | **1.4×** |
+| HMR latency (warm) | — | **199 ms** | < 200 ms |
+
+Bundle 사이즈 격차는 static deploy에서 더 커집니다 — Storybook manager + preview build는 미사용 addon 생태계도 포함. Jogak build는 단일 Vite output.
+
+## 아키텍처 차이
+
+- **단일 Vite 인스턴스.** Storybook은 manager 앱(React)과 preview iframe(별도 번들러 런타임)을 함께 실행. Jogak의 chrome UI와 user content는 하나의 Vite를 공유. user 컴포넌트는 **host Vite scope를 재사용**하는 iframe에서 mount되어 Tailwind / plugin / alias가 자동 적용됩니다.
+- **Lazy 가상 모듈.** index 모듈은 entry metadata만 노출; 컴포넌트 모듈은 click 시 dynamic import. 첫 페이지 load 시 module graph에 user 모듈 zero — idle RSS가 카탈로그 크기에 거의 비례하지 않음.
+- **`child_process` 격리 ts-morph.** 타입 추출이 subprocess에서 실행, 5초 idle 후 `SIGTERM`. main process는 전체 ts-morph 타입 checker를 절대 안 들고 있음.
+- **`*.jogak.{ts,tsx}` 자체 schema.** CSF와 유사한 형태(`title`, `args`, `argTypes`, `component`)이나 source 호환 아님. Jogak은 `.stories.tsx` 파일을 **읽지 않음**. 변환은 [Migration](/ko/docs/migration-from-storybook) 참조.
+
+## Storybook에 머무를 때
+
+Jogak은 superset이 아닙니다. 아래 중 하나라도 해당되면 Storybook 유지:
+
+- **MDX docs**를 살아있는 문서(단순 prop 표가 아닌)로 의존
+- **Play 함수 / Interactions** 또는 **Test runner**로 story 레벨 통합 테스트에 의존
+- 팀이 **custom addon** 유지 — design token, i18n switcher, backend mock — 재작성이 비현실적
+- 모든 story를 감싸는 **decorator** 필요 (theme provider, router context, i18n) 및 컴포넌트로 리팩터가 비현실적
+- Storybook Composition으로 여러 sub-storybook을 결합하는 프로젝트
+
+위를 재작성/지연하는 비용이 Storybook overhead보다 크면 굳이 이주하지 마세요.
+
+## Jogak으로 갈아탈 때
+
+아래에 해당되면 Jogak:
+
+- `.storybook/`이 대부분 Controls + Actions + 몇 가지 essential addon
+- **cold start / build time / bundle size**를 addon 생태계 넓이보다 더 중시
+- **Zero-config 첫 실행** 원함 — install, `.jogak.tsx` 작성, `jogak dev`
+- production에서 쓰는 **동일한 Vite / Tailwind / plugin 스택** 그대로 사용, 별도 번들러 원치 않음
+- **Next.js Server Components, Vue 3, Svelte 5, Web Components** 사용 — Jogak은 5개 framework를 같은 schema로 지원
+
+## 다음
+
+- [Storybook에서 마이그레이션](/ko/docs/migration-from-storybook) — 구체 변환 단계
+- [Quick start](/ko/docs) — 5분 install → 첫 컴포넌트
+- [Why Jogak](/ko/docs/why) — 아키텍처 선택 상세
+- [Benchmarks](/ko/docs/benchmarks) — 전체 성능 방법론
+- [Roadmap](/ko/docs/roadmap) — MDX / A11y / Themes 언제 오나
