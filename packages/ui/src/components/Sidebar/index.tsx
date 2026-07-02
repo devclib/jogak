@@ -348,6 +348,37 @@ function EntryGroup({
               </li>
             )
           })}
+          {/* 1.1.0 post-1.0: MDX docs sub-entry — meta.docs 있을 때만. 클릭 시 mode=docs로 이동. */}
+          {typeof meta.docs === 'string' && meta.docs.length > 0 && (
+            <li>
+              <button
+                type="button"
+                data-testid="sidebar-docs-entry"
+                onClick={() => {
+                  // meta.jogakNames[0]와 mode=docs를 함께 전달 — Preview의 useEffect가 URL에서 mode 읽음.
+                  const first = meta.jogakNames[0]
+                  if (typeof first === 'string') onSelect(meta.id, first)
+                  if (typeof window !== 'undefined') {
+                    const params = new URLSearchParams(window.location.search)
+                    params.set('mode', 'docs')
+                    window.history.replaceState({}, '', `?${params.toString()}`)
+                    // Preview가 popstate/mount 시 URL 재파싱하도록 이벤트 발생.
+                    window.dispatchEvent(new PopStateEvent('popstate'))
+                  }
+                }}
+                className={clsx(
+                  'jogak:block jogak:w-full jogak:text-left jogak:pr-3 jogak:py-1',
+                  'jogak:pl-[var(--jogak-jogak-pl)]',
+                  'jogak:border-none jogak:cursor-pointer jogak:text-[12px] jogak:italic',
+                  'jogak:bg-transparent jogak:text-[var(--jogak-color-fg-subtle)] jogak:font-normal',
+                )}
+                // eslint-disable-next-line no-restricted-syntax -- jogak: CSS var inject
+                style={{ '--jogak-jogak-pl': `${paddingLeft + 18}px` } as CSSVarStyle}
+              >
+                Docs
+              </button>
+            </li>
+          )}
         </ul>
       )}
     </div>
