@@ -1,0 +1,59 @@
+{
+  "name": "@jogak/codemod",
+  "version": "1.2.0",
+  "description": "AST-based codemod to migrate Storybook CSF3 stories (.stories.tsx) to jogak entries (.jogak.tsx).",
+  "keywords": [
+    "jogak",
+    "storybook",
+    "codemod",
+    "migration",
+    "ast",
+    "ts-morph",
+    "csf3",
+    "storybook-to-jogak"
+  ],
+  "author": {
+    "name": "devclib",
+    "url": "https://github.com/devclib"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/devclib/jogak#readme",
+  "bugs": "https://github.com/devclib/jogak/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/devclib/jogak.git",
+    "directory": "packages/codemod"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "jogak-codemod": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "ts-morph": "^24.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0",
+    "vitest": "^3.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
