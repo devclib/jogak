@@ -51,13 +51,20 @@ export interface JogakAppProps {
   readonly themes?: readonly string[] | undefined
 }
 
-function readUrlParams(): { entryId: string; jogakName: string | null } | null {
+function readUrlParams(): {
+  entryId: string
+  jogakName: string | null
+  mode: 'component' | 'docs' | null
+} | null {
   if (typeof window === 'undefined') return null
   const params = new URLSearchParams(window.location.search)
   const entryId = params.get('entry')
   if (entryId === null) return null
   const jogakName = params.get('jogak')
-  return { entryId, jogakName }
+  // 1.2.0 post-1.2: sidebar docs sub-entry가 mode=docs를 URL에 심음. Preview initial viewMode 결정.
+  const modeParam = params.get('mode')
+  const mode = modeParam === 'docs' || modeParam === 'component' ? modeParam : null
+  return { entryId, jogakName, mode }
 }
 
 function pushUrl(entryId: string, jogakName: string): void {
@@ -113,6 +120,10 @@ export function JogakApp({
     initial?.jogakName ?? null,
   )
   const [overrideArgs, setOverrideArgs] = useState<Readonly<Record<string, unknown>>>({})
+  // 1.2.0 post-1.2: sidebar docs sub-entry가 mode=docs를 URL에 심음 → Preview가 초기 viewMode 반영.
+  const [initialViewMode, setInitialViewMode] = useState<'component' | 'docs' | null>(
+    initial?.mode ?? null,
+  )
 
   useEffect(() => {
     const handlePopState = (): void => {
@@ -121,6 +132,7 @@ export function JogakApp({
         setSelectedEntryId(parsed.entryId)
         setSelectedJogakName(parsed.jogakName)
         setOverrideArgs({})
+        setInitialViewMode(parsed.mode)
       } else {
         setSelectedEntryId(null)
         setSelectedJogakName(null)
@@ -184,6 +196,7 @@ export function JogakApp({
               userPreviewUrl={resolvedPreviewUrl}
               previewEntryPath={previewEntryPath}
               themes={themes}
+              initialViewMode={initialViewMode ?? undefined}
             />
           ) : (
             <div className="jogak:flex jogak:items-center jogak:justify-center jogak:h-full jogak:text-[var(--jogak-color-fg-subtle)]">
