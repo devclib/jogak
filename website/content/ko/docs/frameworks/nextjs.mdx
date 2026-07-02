@@ -89,6 +89,36 @@ export default {
 }
 ```
 
+## MDX docs (1.2.0+)
+
+Jogak 내장 MDX docs (`meta.docs = './Button.mdx'` + sibling 자동 감지)는 Vite 어댑터에서 즉시 렌더됩니다. Next는 app router가 자체 라우팅을 제어하므로 추가 세팅이 필요합니다.
+
+**셋업:**
+
+```bash
+pnpm add @next/mdx @mdx-js/loader @mdx-js/react
+```
+
+`next.config.js`:
+
+```js
+import createMDX from '@next/mdx'
+
+const withMDX = createMDX({
+  options: { remarkPlugins: [], rehypePlugins: [] },
+})
+
+export default withMDX({
+  pageExtensions: ['ts', 'tsx', 'md', 'mdx'],
+})
+```
+
+dynamic catch-all 라우트를 `app/jogak-docs/[…slug]/page.tsx`에 추가합니다 (즉 Next 파일 규약의 `[three-dots-slug]`). `props.params.slug`를 await → path로 join → 사용자 MDX 파일을 dynamic import → `default` export 렌더. 전체 구현(TypeScript 타입 포함)은 [GitHub 예제](https://github.com/devclib/jogak/tree/main/examples/nextjs)를 참고하세요.
+
+Preview 툴바의 "docs" toggle이 활성일 때, jogak Next scaffold는 사용자 MDX 페이지가 아직 설정되지 않았다면 이 셋업 가이드를 iframe 안에 직접 표시합니다. 위 라우트가 요청된 `docsPath`를 resolve하면 docs가 정상 렌더됩니다.
+
+**참고:** Vite 어댑터는 사용자 Vite scope에서 `.mdx`를 컴파일하고 prose 스타일을 자동 inject합니다. Next의 `@next/mdx`는 컴파일을 자체 처리 — MDX 페이지 스타일은 사용자 `globals.css`에서 담당하세요.
+
 ## 동작 예제
 
 [`examples/nextjs/`](https://github.com/devclib/jogak/tree/main/examples/nextjs) 참고 — Next.js 15 App Router, Server `Badge` + Client `Button`이 나란히.

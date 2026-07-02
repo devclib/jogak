@@ -354,13 +354,20 @@ export function JogakIframeBridge() {
         // 1.2.0 post-1.1: Themes addon.
         document.documentElement.setAttribute('data-theme', data.theme)
       } else if (data.type === 'jogak:renderDocs' && typeof data.docsPath === 'string') {
-        // 1.2.0 post-1.1: MDX docs — Next scaffold는 SSR path 기반이므로 chrome scope에서 안내.
+        // 1.2.0 post-1.2: MDX docs 세팅 안내 (구체 예시).
         const rootEl = document.getElementById('jogak-preview-root')
         if (rootEl !== null) {
+          const escape = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+          const docsPath = escape(String(data.docsPath))
           rootEl.innerHTML =
-            '<div style="padding:24px;font:13px system-ui;color:#57534e;">'
-            + '<strong>MDX docs mode</strong><br><br>'
-            + 'Next adapter routes docs through the app router. To render .mdx in Next, add a docs page under /jogak-docs/[slug] and use @next/mdx.'
+            '<div style="padding:24px;font:13px/1.6 system-ui;color:#292524;max-width:640px;">'
+            + '<h2 style="margin:0 0 12px;font-size:16px;font-weight:600;">MDX docs setup for Next</h2>'
+            + '<p style="margin:0 0 16px;color:#57534e;">Requested docs: <code style="background:#f5f5f4;padding:1px 6px;border-radius:4px;">' + docsPath + '</code></p>'
+            + '<p style="margin:0 0 12px;">Add these to your Next project:</p>'
+            + '<pre style="background:#fafaf9;border:1px solid #e7e5e4;border-radius:6px;padding:12px 14px;overflow-x:auto;margin:0 0 16px;font:12px/1.4 ui-monospace,Menlo,monospace;">'
+            + escape('# 1. Install\\npnpm add @next/mdx @mdx-js/loader @mdx-js/react\\n\\n# 2. next.config.js\\nimport createMDX from "@next/mdx"\\nexport default createMDX()({ pageExtensions: ["ts","tsx","md","mdx"] })\\n\\n# 3. app/jogak-docs/[...slug]/page.tsx\\n// See https://jogak.dev/en/docs/frameworks/next#mdx for the full example')
+            + '</pre>'
+            + '<p style="margin:0;color:#57534e;font-size:12.5px;">Full guide: <a href="https://jogak.dev/en/docs/frameworks/next#mdx" target="_blank" rel="noopener" style="color:#2563eb;">jogak.dev/en/docs/frameworks/next#mdx</a></p>'
             + '</div>'
         }
         window.parent.postMessage({ type: 'jogak:rendered', entryId: '__docs__' }, '*')
