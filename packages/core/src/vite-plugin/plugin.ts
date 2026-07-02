@@ -87,6 +87,8 @@ export function jogak(options: JogakPluginOptions = {}): Plugin {
   // 1.0.0-beta.6: jogak.config.ts 자동 restart를 위한 절대 경로. CLI가 loadJogakConfig
   // 결과 전달. configureServer에서 watcher.add + change 감지 → server.restart.
   const configPath = options.configPath
+  // 1.1.0 post-1.0: Themes addon. chrome scope에 emit → App.tsx가 Preview에 pass.
+  const themes = options.themes
 
   let devServer: ViteDevServer | undefined
   let extractor: PropsExtractor | undefined
@@ -328,6 +330,7 @@ export const _jogakPreviewIsolation = ${JSON.stringify(previewIsolation)}
 export const _jogakUserPreviewUrl = ${JSON.stringify(userPreviewUrl)}
 export const _jogakPreviewEntryPath = ${JSON.stringify(previewEntryPath)}
 export const _jogakUserViteUrl = ${JSON.stringify(userPreviewUrl)}
+export const _jogakThemes = ${JSON.stringify(themes ?? null)}
 export const _jogakMetas = _metas
 `
 

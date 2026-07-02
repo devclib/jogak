@@ -43,6 +43,12 @@ export interface JogakAppProps {
    * @deprecated 알파.10 제거 예정. `userPreviewUrl` 사용.
    */
   readonly userViteUrl?: string
+  /**
+   * 1.1.0: Themes addon. plugin이 config에서 emit → main.tsx가 여기로 pass →
+   * Preview로 전달. 사용자가 jogak.config.ts에 `themes: ['light', 'dark']`
+   * 명시하면 자동으로 Preview toolbar에 selector 노출.
+   */
+  readonly themes?: readonly string[] | undefined
 }
 
 function readUrlParams(): { entryId: string; jogakName: string | null } | null {
@@ -69,6 +75,7 @@ export function JogakApp({
   userPreviewUrl = '',
   previewEntryPath = '/__jogak_preview__/index.html',
   userViteUrl,
+  themes,
 }: JogakAppProps = {}): ReactElement {
   // 알파.9: userViteUrl alias (deprecated). userPreviewUrl 우선.
   const resolvedPreviewUrl = userPreviewUrl !== '' ? userPreviewUrl : (userViteUrl ?? '')
@@ -176,6 +183,7 @@ export function JogakApp({
               previewIsolation={previewIsolation}
               userPreviewUrl={resolvedPreviewUrl}
               previewEntryPath={previewEntryPath}
+              themes={themes}
             />
           ) : (
             <div className="jogak:flex jogak:items-center jogak:justify-center jogak:h-full jogak:text-[var(--jogak-color-fg-subtle)]">
