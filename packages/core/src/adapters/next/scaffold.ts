@@ -283,8 +283,43 @@ function renderRscBridgeSource(): string {
   return `'use client'
 import { useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { defaultRegistry } from '@jogak/core'
 
 ${A11Y_SNIPPET}
+
+// 1.2.0 post-1.2: Play 함수 실행 컨텍스트 — RSC bridge는 URL replace 방식이라
+// server component가 사용자 컴포넌트를 렌더한다. play는 client boundary에서 실행되며
+// canvasElement는 document.body (전체) 또는 사용자 mount root를 pass.
+let currentEntryId: string | null = null
+let currentJogakName: string | null = null
+let currentArgs: Record<string, unknown> = {}
+
+async function runPlay() {
+  if (currentEntryId === null) {
+    window.parent.postMessage({ type: 'jogak:playResult', status: 'no-play' }, '*')
+    return
+  }
+  const start = performance.now()
+  try {
+    const entry = await defaultRegistry.requestEntry(currentEntryId)
+    const jogak = (entry?.jogaks ?? []).find((j: { name: string }) => j.name === currentJogakName) ?? entry?.jogaks?.[0]
+    if (jogak === undefined || typeof (jogak as { play?: unknown }).play !== 'function') {
+      window.parent.postMessage({ type: 'jogak:playResult', status: 'no-play' }, '*')
+      return
+    }
+    // RSC 모드는 사용자 mount root가 별도 지정되지 않아 document.body를 canvasElement로.
+    await (jogak as { play: (ctx: { canvasElement: HTMLElement; args: Record<string, unknown> }) => Promise<void> | void }).play({
+      canvasElement: document.body,
+      args: currentArgs,
+    })
+    const durationMs = Math.round(performance.now() - start)
+    window.parent.postMessage({ type: 'jogak:playResult', status: 'ok', durationMs }, '*')
+  } catch (err) {
+    const durationMs = Math.round(performance.now() - start)
+    const message = err instanceof Error ? err.message : String(err)
+    window.parent.postMessage({ type: 'jogak:playResult', status: 'error', message, durationMs }, '*')
+  }
+}
 
 export function JogakIframeBridge() {
   const router = useRouter()
@@ -305,8 +340,14 @@ export function JogakIframeBridge() {
         params.set('entryId', entryId)
         params.set('args', args)
         router.replace('?' + params.toString(), { scroll: false })
+        // 1.2.0 post-1.2: Play 컨텍스트 저장.
+        currentEntryId = entryId
+        currentJogakName = typeof data.jogakName === 'string' ? data.jogakName : null
+        currentArgs = (data.args ?? {}) as Record<string, unknown>
       } else if (data.type === 'jogak:unmount') {
         router.replace('?', { scroll: false })
+        currentEntryId = null
+        currentJogakName = null
       } else if (data.type === 'jogak:runA11y') {
         scheduleA11y()
       } else if (data.type === 'jogak:setTheme' && typeof data.theme === 'string') {
@@ -324,9 +365,8 @@ export function JogakIframeBridge() {
         }
         window.parent.postMessage({ type: 'jogak:rendered', entryId: '__docs__' }, '*')
       } else if (data.type === 'jogak:runPlay') {
-        // 1.2.0 post-1.1: Play 함수 — Next scaffold는 RSC/SSR path 기반이므로 play는 client 컴포넌트만 지원.
-        // 실행 컨텍스트가 별도 저장되지 않은 상태에서 no-play 회신 (사용자에게 Next 특유 안내).
-        window.parent.postMessage({ type: 'jogak:playResult', status: 'no-play' }, '*')
+        // 1.2.0 post-1.2: RSC bridge Play 실 실행 완결.
+        void runPlay()
       }
     }
     window.addEventListener('message', handler)
@@ -402,12 +442,13 @@ export default function ${componentName}() {
       currentJogakName = null
     }
 
-    // 1.2.0 post-1.2: Play 함수 실 실행 (jogakName + args 컨텍스트 활용).
+    // 1.2.0 post-1.2: Play 함수 실 실행 (jogakName + args 컨텍스트 활용) + duration 측정.
     const runPlay = async () => {
       if (currentEntryId === null || currentContainer === null) {
         window.parent.postMessage({ type: 'jogak:playResult', status: 'no-play' }, '*')
         return
       }
+      const start = performance.now()
       try {
         const entry = await defaultRegistry.requestEntry(currentEntryId)
         const jogak =
@@ -421,10 +462,12 @@ export default function ${componentName}() {
           canvasElement: currentContainer,
           args: currentArgs,
         })
-        window.parent.postMessage({ type: 'jogak:playResult', status: 'ok' }, '*')
+        const durationMs = Math.round(performance.now() - start)
+        window.parent.postMessage({ type: 'jogak:playResult', status: 'ok', durationMs }, '*')
       } catch (err) {
+        const durationMs = Math.round(performance.now() - start)
         const message = err instanceof Error ? err.message : String(err)
-        window.parent.postMessage({ type: 'jogak:playResult', status: 'error', message }, '*')
+        window.parent.postMessage({ type: 'jogak:playResult', status: 'error', message, durationMs }, '*')
       }
     }
 
