@@ -49,6 +49,8 @@ export interface PreviewProps {
    * 미지정/빈 배열이면 selector 미표시. 첫 요소가 default theme.
    */
   readonly themes?: readonly string[] | undefined
+  /** 1.2.0 post-1.2: URL query 기반 초기 viewMode (sidebar docs sub-entry 클릭 완결). */
+  readonly initialViewMode?: 'component' | 'docs' | undefined
 }
 
 type ViewportKey = 'mobile' | 'tablet' | 'desktop'
@@ -142,6 +144,7 @@ export function Preview({
   userPreviewUrl = '',
   previewEntryPath = '/__jogak_preview__/index.html',
   themes,
+  initialViewMode,
 }: PreviewProps): ReactElement {
   // 알파.14.1: iframe isolation 모드에서는 chrome 측에 component 모듈을 import하지 않는다
   // (chrome vite scope에 .vue/.svelte가 들어오면 plugin-vue/svelte 부재로 transform 실패).
@@ -156,7 +159,8 @@ export function Preview({
   // 1.0.0 post-1.0: Themes addon. 첫 요소를 default. themes 미지정 시 null → selector 미표시.
   const [theme, setTheme] = useState<string | null>(themes && themes.length > 0 ? themes[0]! : null)
   // 1.0.0 post-1.0: MDX docs view mode. meta.docs 있을 때만 tab 노출.
-  const [viewMode, setViewMode] = useState<'component' | 'docs'>('component')
+  // 1.2.0 post-1.2: initialViewMode (URL query 기반)가 있으면 초기값으로 반영.
+  const [viewMode, setViewMode] = useState<'component' | 'docs'>(initialViewMode ?? 'component')
   // 1.1.0 post-1.0: Play 함수 실행 트리거 + 결과 (Storybook addon-interactions 대응).
   const [playTrigger, setPlayTrigger] = useState<number>(0)
   const [playResult, setPlayResult] = useState<{ status: 'ok' | 'error' | 'no-play'; message?: string } | null>(null)

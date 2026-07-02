@@ -239,6 +239,9 @@ async function renderDocs(docsPath) {
     }
     currentContainer = document.createElement('div')
     currentContainer.setAttribute('data-jogak-docs', '')
+    // 1.2.0 post-1.2: prose 스타일 inject — heading/paragraph/list/code 최소 스타일.
+    // 사용자 컴포넌트 스타일 미간섭 위해 [data-jogak-docs] 스코프 유지.
+    injectDocsProseStyle()
     rootEl.replaceChildren(currentContainer)
     const entryLike = {
       id: '__docs__',
@@ -252,6 +255,32 @@ async function renderDocs(docsPath) {
   } catch (err) {
     renderDocsError(String(err && err.message ? err.message : err))
   }
+}
+
+// 1.2.0 post-1.2: docs prose 스타일 (한 번만 inject).
+function injectDocsProseStyle() {
+  if (document.getElementById('jogak-docs-prose-style') !== null) return
+  const style = document.createElement('style')
+  style.id = 'jogak-docs-prose-style'
+  style.textContent = [
+    '[data-jogak-docs] { font: 14px/1.7 system-ui, -apple-system, "Segoe UI", sans-serif; color: #1c1917; max-width: 68ch; padding: 24px; }',
+    '[data-jogak-docs] h1 { font-size: 28px; font-weight: 700; margin: 0 0 16px; letter-spacing: -0.02em; }',
+    '[data-jogak-docs] h2 { font-size: 22px; font-weight: 600; margin: 32px 0 12px; letter-spacing: -0.01em; }',
+    '[data-jogak-docs] h3 { font-size: 17px; font-weight: 600; margin: 24px 0 8px; }',
+    '[data-jogak-docs] p { margin: 0 0 12px; }',
+    '[data-jogak-docs] ul, [data-jogak-docs] ol { margin: 0 0 12px; padding-left: 20px; }',
+    '[data-jogak-docs] li { margin: 4px 0; }',
+    '[data-jogak-docs] code { background: #f5f5f4; padding: 1px 6px; border-radius: 4px; font: 13px/1.4 ui-monospace, "SF Mono", Menlo, monospace; }',
+    '[data-jogak-docs] pre { background: #fafaf9; border: 1px solid #e7e5e4; border-radius: 6px; padding: 12px 14px; overflow-x: auto; margin: 0 0 16px; }',
+    '[data-jogak-docs] pre code { background: none; padding: 0; font-size: 13px; }',
+    '[data-jogak-docs] a { color: #2563eb; text-decoration: underline; text-underline-offset: 2px; }',
+    '[data-jogak-docs] blockquote { margin: 0 0 16px; padding: 8px 16px; border-left: 3px solid #a8a29e; color: #57534e; }',
+    '[data-jogak-docs] hr { border: none; border-top: 1px solid #e7e5e4; margin: 24px 0; }',
+    '[data-jogak-docs] table { border-collapse: collapse; margin: 0 0 16px; font-size: 13px; }',
+    '[data-jogak-docs] th, [data-jogak-docs] td { border: 1px solid #e7e5e4; padding: 6px 10px; text-align: left; }',
+    '[data-jogak-docs] th { background: #fafaf9; font-weight: 600; }',
+  ].join('\n')
+  document.head.appendChild(style)
 }
 
 function renderDocsError(message) {
