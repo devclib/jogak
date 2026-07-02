@@ -372,14 +372,25 @@ export default function ${componentName}() {
 
   useEffect(() => {
     let currentContainer: HTMLDivElement | null = null
+    // 1.2.0 post-1.2: Play 함수 실행 컨텍스트.
+    let currentEntryId: string | null = null
+    let currentJogakName: string | null = null
+    let currentArgs: Record<string, unknown> = {}
 
-    const renderEntry = async (entryId: string, args: Record<string, unknown>) => {
+    const renderEntry = async (
+      entryId: string,
+      args: Record<string, unknown>,
+      jogakName: string | null,
+    ) => {
       const entry = await defaultRegistry.requestEntry(entryId)
       if (currentContainer === null) {
         currentContainer = document.createElement('div')
         ref.current?.replaceChildren(currentContainer)
       }
       reactAdapter.render(entry, args, currentContainer)
+      currentEntryId = entryId
+      currentJogakName = jogakName
+      currentArgs = args
     }
 
     const unmount = () => {
@@ -387,13 +398,42 @@ export default function ${componentName}() {
         reactAdapter.unmount(currentContainer)
         currentContainer = null
       }
+      currentEntryId = null
+      currentJogakName = null
+    }
+
+    // 1.2.0 post-1.2: Play 함수 실 실행 (jogakName + args 컨텍스트 활용).
+    const runPlay = async () => {
+      if (currentEntryId === null || currentContainer === null) {
+        window.parent.postMessage({ type: 'jogak:playResult', status: 'no-play' }, '*')
+        return
+      }
+      try {
+        const entry = await defaultRegistry.requestEntry(currentEntryId)
+        const jogak =
+          (entry?.jogaks ?? []).find((j) => j.name === currentJogakName) ??
+          entry?.jogaks?.[0]
+        if (jogak === undefined || typeof (jogak as { play?: unknown }).play !== 'function') {
+          window.parent.postMessage({ type: 'jogak:playResult', status: 'no-play' }, '*')
+          return
+        }
+        await (jogak as { play: (ctx: { canvasElement: HTMLElement; args: Record<string, unknown> }) => Promise<void> | void }).play({
+          canvasElement: currentContainer,
+          args: currentArgs,
+        })
+        window.parent.postMessage({ type: 'jogak:playResult', status: 'ok' }, '*')
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err)
+        window.parent.postMessage({ type: 'jogak:playResult', status: 'error', message }, '*')
+      }
     }
 
     const handler = (event: MessageEvent) => {
       const data = event.data
       if (data == null || typeof data !== 'object') return
       if (data.type === 'jogak:setProps') {
-        void renderEntry(data.entryId, data.args ?? {}).then(() => {
+        const jogakName = typeof data.jogakName === 'string' ? data.jogakName : null
+        void renderEntry(data.entryId, data.args ?? {}, jogakName).then(() => {
           window.parent.postMessage({ type: 'jogak:rendered', entryId: data.entryId }, '*')
           scheduleA11y()
         }).catch((err) => {
@@ -407,9 +447,8 @@ export default function ${componentName}() {
         // 1.2.0 post-1.1: Themes addon.
         document.documentElement.setAttribute('data-theme', data.theme)
       } else if (data.type === 'jogak:runPlay') {
-        // 1.2.0 post-1.1: Next client mount scaffold의 Play — jogakName 컨텍스트 없어 no-play 회신.
-        // Vite scope와 달리 Next path는 chrome이 currentJogakName을 아직 pass하지 않음 (followup).
-        window.parent.postMessage({ type: 'jogak:playResult', status: 'no-play' }, '*')
+        // 1.2.0 post-1.2: 실 실행 — jogakName + args 컨텍스트 저장 완결.
+        void runPlay()
       }
     }
 
