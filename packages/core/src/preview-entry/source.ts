@@ -100,8 +100,12 @@ if (rootEl === null) throw new Error('[jogak] #jogak-preview-root not found')
 
 let currentContainer = null
 let currentAdapter = null
+// 1.1.0 post-1.0: Play 함수 실행 컨텍스트 — 현재 mount된 entry/jogak/args.
+let currentEntryId = null
+let currentJogakName = null
+let currentArgs = {}
 
-async function renderEntry(entryId, args) {
+async function renderEntry(entryId, args, jogakName) {
   const entry = await defaultRegistry.requestEntry(entryId)
   const framework = entry?.meta?.framework ?? 'react'
   const adapter = await loadAdapter(framework)
@@ -116,6 +120,30 @@ async function renderEntry(entryId, args) {
   }
   await adapter.render(entry, args, currentContainer)
   currentAdapter = adapter
+  currentEntryId = entryId
+  currentJogakName = jogakName ?? null
+  currentArgs = args ?? {}
+}
+
+// 1.1.0 post-1.0: Play 함수 실행 — jogak.play를 async로 호출.
+async function runPlay() {
+  if (currentEntryId === null || currentContainer === null) {
+    window.parent.postMessage({ type: 'jogak:playResult', status: 'no-play' }, '*')
+    return
+  }
+  try {
+    const entry = await defaultRegistry.requestEntry(currentEntryId)
+    const jogak = (entry?.jogaks ?? []).find((j) => j.name === currentJogakName) ?? entry?.jogaks?.[0]
+    if (!jogak || typeof jogak.play !== 'function') {
+      window.parent.postMessage({ type: 'jogak:playResult', status: 'no-play' }, '*')
+      return
+    }
+    await jogak.play({ canvasElement: currentContainer, args: currentArgs })
+    window.parent.postMessage({ type: 'jogak:playResult', status: 'ok' }, '*')
+  } catch (err) {
+    const message = err && err.message ? String(err.message) : String(err)
+    window.parent.postMessage({ type: 'jogak:playResult', status: 'error', message }, '*')
+  }
 }
 
 function unmount() {
@@ -170,7 +198,7 @@ window.addEventListener('message', (event) => {
   const data = event.data
   if (data == null || typeof data !== 'object') return
   if (data.type === 'jogak:setProps') {
-    renderEntry(data.entryId, data.args ?? {}).then(() => {
+    renderEntry(data.entryId, data.args ?? {}, data.jogakName).then(() => {
       window.parent.postMessage({ type: 'jogak:rendered', entryId: data.entryId }, '*')
       scheduleA11y()
     }).catch((err) => {
@@ -186,6 +214,8 @@ window.addEventListener('message', (event) => {
     renderDocs(data.docsPath)
   } else if (data.type === 'jogak:renderComponent') {
     unmount()
+  } else if (data.type === 'jogak:runPlay') {
+    runPlay()
   }
 })
 
