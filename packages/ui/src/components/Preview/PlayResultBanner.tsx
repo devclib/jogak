@@ -14,6 +14,8 @@ import clsx from 'clsx'
 export interface PlayResult {
   readonly status: 'ok' | 'error' | 'no-play'
   readonly message?: string
+  /** 1.2.0 post-1.2: play 함수 실행 소요 시간 (ms). */
+  readonly durationMs?: number
 }
 
 export interface PlayResultBannerProps {
@@ -37,6 +39,14 @@ export function PlayResultBanner({ result, onDismiss }: PlayResultBannerProps): 
     >
       <span className="jogak:font-semibold jogak:shrink-0">
         {isOk ? '✓ Play passed' : '✗ Play failed'}
+        {typeof result.durationMs === 'number' && (
+          <span
+            data-testid="play-result-duration"
+            className="jogak:ml-1.5 jogak:font-normal jogak:opacity-70"
+          >
+            ({result.durationMs}ms)
+          </span>
+        )}
       </span>
       {!isOk && result.message !== undefined && result.message.length > 0 && (
         <code

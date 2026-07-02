@@ -54,6 +54,7 @@ export function Sidebar({
               selectedEntryId={selectedEntryId}
               selectedJogakName={selectedJogakName}
               onSelect={onSelect}
+              query={query.trim()}
             />
           ) : (
             <SearchEmptyState query={query} />
@@ -142,6 +143,8 @@ interface FlatListProps {
   readonly selectedEntryId: string | null
   readonly selectedJogakName: string | null
   readonly onSelect: (entryId: string, jogakName: string) => void
+  /** 1.2.0 post-1.2: 검색 query — 매치 부분 highlight용. */
+  readonly query?: string
 }
 
 function FlatList({
@@ -149,6 +152,7 @@ function FlatList({
   selectedEntryId,
   selectedJogakName,
   onSelect,
+  query,
 }: FlatListProps): ReactElement {
   if (metas.length === 0) {
     return (
@@ -167,11 +171,42 @@ function FlatList({
             selectedJogakName={selectedJogakName}
             onSelect={onSelect}
             indent={0}
+            highlightQuery={query}
           />
         </li>
       ))}
     </ul>
   )
+}
+
+/**
+ * 1.2.0 post-1.2: 검색어 매치 부분을 <mark>로 감싸 반환.
+ * 여러 매치 지원, case-insensitive. 없거나 빈 query면 그대로 반환.
+ */
+function highlightMatch(text: string, query: string | undefined): ReactElement | string {
+  if (query === undefined || query.length === 0) return text
+  const lowerText = text.toLowerCase()
+  const lowerQuery = query.toLowerCase()
+  if (!lowerText.includes(lowerQuery)) return text
+  const parts: ReactElement[] = []
+  let cursor = 0
+  let idx = lowerText.indexOf(lowerQuery, cursor)
+  let key = 0
+  while (idx !== -1) {
+    if (idx > cursor) parts.push(<span key={`p${key++}`}>{text.slice(cursor, idx)}</span>)
+    parts.push(
+      <mark
+        key={`m${key++}`}
+        className="jogak:bg-[color:rgb(254_240_138)] jogak:text-inherit jogak:font-semibold jogak:rounded jogak:px-0.5"
+      >
+        {text.slice(idx, idx + lowerQuery.length)}
+      </mark>,
+    )
+    cursor = idx + lowerQuery.length
+    idx = lowerText.indexOf(lowerQuery, cursor)
+  }
+  if (cursor < text.length) parts.push(<span key={`p${key++}`}>{text.slice(cursor)}</span>)
+  return <>{parts}</>
 }
 
 interface TreeViewProps {
@@ -271,6 +306,8 @@ interface EntryGroupProps {
   readonly selectedJogakName: string | null
   readonly onSelect: (entryId: string, jogakName: string) => void
   readonly indent: number
+  /** 1.2.0 post-1.2: 검색 매치 highlight query. */
+  readonly highlightQuery?: string | undefined
 }
 
 function EntryGroup({
@@ -279,6 +316,7 @@ function EntryGroup({
   selectedJogakName,
   onSelect,
   indent,
+  highlightQuery,
 }: EntryGroupProps): ReactElement {
   const isCurrentEntry = meta.id === selectedEntryId
   const [open, setOpen] = useState(isCurrentEntry)
@@ -318,7 +356,7 @@ function EntryGroup({
         <span className="jogak:text-[10px] jogak:shrink-0 jogak:leading-none">
           {open ? '▾' : '▸'}
         </span>
-        {label}
+        {highlightMatch(label, highlightQuery)}
       </button>
       {open && (
         <ul className="jogak:list-none jogak:m-0 jogak:p-0">

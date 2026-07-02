@@ -164,7 +164,27 @@ export function Preview({
   const [viewMode, setViewMode] = useState<'component' | 'docs'>(initialViewMode ?? 'component')
   // 1.1.0 post-1.0: Play 함수 실행 트리거 + 결과 (Storybook addon-interactions 대응).
   const [playTrigger, setPlayTrigger] = useState<number>(0)
-  const [playResult, setPlayResult] = useState<{ status: 'ok' | 'error' | 'no-play'; message?: string } | null>(null)
+  const [playResult, setPlayResult] = useState<{ status: 'ok' | 'error' | 'no-play'; message?: string; durationMs?: number } | null>(null)
+
+  // 1.2.0 post-1.2: Keyboard shortcut — Ctrl/Cmd+Enter로 Play 실행, Esc로 dismiss.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const handleKeydown = (e: KeyboardEvent): void => {
+      // input/textarea 안에서는 무시.
+      const target = e.target as HTMLElement | null
+      const tag = target?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || target?.isContentEditable === true) return
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault()
+        setPlayResult(null)
+        setPlayTrigger((n) => n + 1)
+      } else if (e.key === 'Escape' && playResult !== null) {
+        setPlayResult(null)
+      }
+    }
+    window.addEventListener('keydown', handleKeydown)
+    return () => { window.removeEventListener('keydown', handleKeydown) }
+  }, [playResult])
 
   const prismTheme = resolvePrismTheme(codeTheme)
 
@@ -338,8 +358,8 @@ interface ReadyFrameProps {
   readonly onViewModeChange: (mode: 'component' | 'docs') => void
   readonly playTrigger: number
   readonly onPlayClick: () => void
-  readonly playResult: { status: 'ok' | 'error' | 'no-play'; message?: string } | null
-  readonly onPlayResult: (result: { status: 'ok' | 'error' | 'no-play'; message?: string }) => void
+  readonly playResult: { status: 'ok' | 'error' | 'no-play'; message?: string; durationMs?: number } | null
+  readonly onPlayResult: (result: { status: 'ok' | 'error' | 'no-play'; message?: string; durationMs?: number }) => void
 }
 
 function ReadyFrame({
@@ -539,7 +559,7 @@ interface ToolbarProps {
   readonly onViewModeChange?: (mode: 'component' | 'docs') => void
   readonly playAvailable?: boolean
   readonly onPlayClick?: () => void
-  readonly playResult?: { status: 'ok' | 'error' | 'no-play'; message?: string } | null
+  readonly playResult?: { status: 'ok' | 'error' | 'no-play'; message?: string; durationMs?: number } | null
 }
 
 function Toolbar({
@@ -599,7 +619,7 @@ function Toolbar({
           type="button"
           data-testid="toolbar-play"
           onClick={onPlayClick}
-          title="Run play function"
+          title="Run play function (⌘/Ctrl+Enter)"
           className={clsx(
             'jogak:px-2 jogak:py-[3px] jogak:text-[12px] jogak:border-none jogak:rounded-[var(--jogak-radius-md)] jogak:cursor-pointer jogak:transition-all jogak:duration-100',
             playResult?.status === 'ok'
@@ -717,7 +737,7 @@ interface JogakRendererProps {
   readonly docsPath?: string | null | undefined
   readonly jogakName?: string | undefined
   readonly playTrigger?: number | undefined
-  readonly onPlayResult?: ((result: { status: 'ok' | 'error' | 'no-play'; message?: string }) => void) | undefined
+  readonly onPlayResult?: ((result: { status: 'ok' | 'error' | 'no-play'; message?: string; durationMs?: number }) => void) | undefined
 }
 
 /**
@@ -796,7 +816,7 @@ interface PreviewMountProps {
   readonly docsPath?: string | null | undefined
   readonly jogakName?: string | undefined
   readonly playTrigger?: number | undefined
-  readonly onPlayResult?: ((result: { status: 'ok' | 'error' | 'no-play'; message?: string }) => void) | undefined
+  readonly onPlayResult?: ((result: { status: 'ok' | 'error' | 'no-play'; message?: string; durationMs?: number }) => void) | undefined
 }
 
 const PREVIEW_HOST_CLASS =

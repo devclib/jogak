@@ -126,11 +126,13 @@ async function renderEntry(entryId, args, jogakName) {
 }
 
 // 1.1.0 post-1.0: Play 함수 실행 — jogak.play를 async로 호출.
+// 1.2.0 post-1.2: duration 측정 추가 (start/end perf.now).
 async function runPlay() {
   if (currentEntryId === null || currentContainer === null) {
     window.parent.postMessage({ type: 'jogak:playResult', status: 'no-play' }, '*')
     return
   }
+  const start = performance.now()
   try {
     const entry = await defaultRegistry.requestEntry(currentEntryId)
     const jogak = (entry?.jogaks ?? []).find((j) => j.name === currentJogakName) ?? entry?.jogaks?.[0]
@@ -139,10 +141,12 @@ async function runPlay() {
       return
     }
     await jogak.play({ canvasElement: currentContainer, args: currentArgs })
-    window.parent.postMessage({ type: 'jogak:playResult', status: 'ok' }, '*')
+    const durationMs = Math.round(performance.now() - start)
+    window.parent.postMessage({ type: 'jogak:playResult', status: 'ok', durationMs }, '*')
   } catch (err) {
+    const durationMs = Math.round(performance.now() - start)
     const message = err && err.message ? String(err.message) : String(err)
-    window.parent.postMessage({ type: 'jogak:playResult', status: 'error', message }, '*')
+    window.parent.postMessage({ type: 'jogak:playResult', status: 'error', message, durationMs }, '*')
   }
 }
 

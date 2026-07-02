@@ -36,8 +36,8 @@ export interface IframeMountProps {
   readonly playTrigger?: number | undefined
   /** 1.1.0 post-1.0: 현재 선택된 jogak variant name — setProps에 함께 전달. */
   readonly jogakName?: string | null | undefined
-  /** 1.1.0 post-1.0: Play 결과 콜백. */
-  readonly onPlayResult?: ((result: { status: 'ok' | 'error' | 'no-play'; message?: string }) => void) | undefined
+  /** 1.1.0 post-1.0: Play 결과 콜백. `durationMs`는 1.2.0 post-1.2. */
+  readonly onPlayResult?: ((result: { status: 'ok' | 'error' | 'no-play'; message?: string; durationMs?: number }) => void) | undefined
   readonly className?: string
   readonly 'data-testid'?: string
 }
@@ -121,6 +121,7 @@ export function IframeMount({
         onPlayResult?.({
           status: data.status as 'ok' | 'error' | 'no-play',
           message: typeof data.message === 'string' ? data.message : undefined,
+          durationMs: typeof data.durationMs === 'number' ? data.durationMs : undefined,
         })
       }
     }
