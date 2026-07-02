@@ -184,26 +184,44 @@ pnpm remove @storybook/react @storybook/react-vite @storybook/addon-essentials \
 - **Themes addon** — theme을 `args`로 넘겨 컴포넌트에서 읽거나, `globalCss`가 attribute selector로 토글하는 CSS variable 사용.
 - **A11y addon** — Jogak a11y addon이 나올 때까지 `axe-core`를 Vitest suite에서 실행.
 
-## 자동 변환 — codemod가 있나요?
+## 자동 변환 — `@jogak/codemod`
 
-아직 없습니다. 구문 차이가 작아 `sed` 스크립트로 대부분 커버:
+AST 기반 codemod가 [`@jogak/codemod`](https://www.npmjs.com/package/@jogak/codemod)로 배포됩니다. 기본은 preview 모드, `--write`로 실제 변경 opt-in.
 
 ```bash
-# 파일 이름 변경
-find src -name '*.stories.tsx' -exec sh -c 'mv "$1" "${1%.stories.tsx}.jogak.tsx"' _ {} \;
+# Preview — 파일 미변경
+npx @jogak/codemod 'src/**/*.stories.tsx'
 
-# import 교체
+# Apply — 소스 재작성 + .stories.tsx → .jogak.tsx 이름 변경
+npx @jogak/codemod --write 'src/**/*.stories.tsx'
+```
+
+codemod가 처리하는 것:
+
+- Import 경로 (`@storybook/react|vue3|svelte|nextjs|web-components` → `@jogak/core`)
+- `Meta<typeof X>` → `JogakMeta`
+- `StoryObj<typeof X>` → `Jogak`
+- `satisfies Meta<...>` → `satisfies JogakMeta`
+- `export const Primary: Story = { args }` → `name: 'Primary'` 자동 삽입
+
+codemod가 건드리지 않는 것 (수동 pass):
+
+- **Play 함수 시그니처** — Storybook `{ canvasElement, args, step }` vs Jogak `{ canvasElement, args }`. 기존 `play:` 구현 확인 필요.
+- **Decorator** — Jogak은 decorator 개념이 없습니다.
+- **`render` / `loaders` / addon 특수 `parameters`** — out of scope.
+
+작은 프로젝트라면 `sed` 한 줄도 옵션:
+
+```bash
+find src -name '*.stories.tsx' -exec sh -c 'mv "$1" "${1%.stories.tsx}.jogak.tsx"' _ {} \;
 find src -name '*.jogak.tsx' -exec sed -i.bak \
   -e "s|from '@storybook/react'|from '@jogak/core'|g" \
   -e 's|type Meta,|type JogakMeta,|g' \
   -e 's|Meta<typeof [A-Za-z]*>|JogakMeta|g' \
   -e 's|type StoryObj,||g' \
   {} \;
-
-# 수동 pass: 각 story에 `name: 'X'` 필드 추가; StoryObj → Jogak.
+# 수동 pass: 각 story에 `name: 'X'` 필드 추가.
 ```
-
-공식 `@jogak/codemod` 패키지는 1.0 로드맵에 있습니다.
 
 ## 다음
 

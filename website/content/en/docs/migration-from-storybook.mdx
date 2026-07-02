@@ -184,26 +184,44 @@ Delete stale `.stories.tsx` files after all are converted (or grep them and conf
 - **Themes addon** — pass theme via `args` and read it in the component, or use CSS variables that your `globalCss` toggles by attribute selector.
 - **A11y addon** — run `axe-core` in your Vitest suite instead of the Storybook panel until Jogak's a11y addon lands.
 
-## Automated conversion — is there a codemod?
+## Automated conversion — `@jogak/codemod`
 
-Not yet. The syntax difference is small enough that a `sed` script covers most cases:
+An AST-based codemod ships as [`@jogak/codemod`](https://www.npmjs.com/package/@jogak/codemod). Preview mode by default, opt into destructive changes with `--write`.
 
 ```bash
-# Rename files
-find src -name '*.stories.tsx' -exec sh -c 'mv "$1" "${1%.stories.tsx}.jogak.tsx"' _ {} \;
+# Preview — no file writes
+npx @jogak/codemod 'src/**/*.stories.tsx'
 
-# Replace imports
+# Apply — rewrite sources + rename .stories.tsx → .jogak.tsx
+npx @jogak/codemod --write 'src/**/*.stories.tsx'
+```
+
+What the codemod handles:
+
+- Import path (`@storybook/react|vue3|svelte|nextjs|web-components` → `@jogak/core`)
+- `Meta<typeof X>` → `JogakMeta`
+- `StoryObj<typeof X>` → `Jogak`
+- `satisfies Meta<...>` → `satisfies JogakMeta`
+- `export const Primary: Story = { args }` → auto-inserts `name: 'Primary'`
+
+What it does NOT touch (manual pass required):
+
+- **Play function signature** — Storybook's `{ canvasElement, args, step }` vs Jogak's `{ canvasElement, args }`. Review any `play:` implementations.
+- **Decorators** — Jogak has no decorator concept.
+- **`render` / `loaders` / addon-specific `parameters`** — out of scope.
+
+If you'd prefer a `sed` one-liner for a small project:
+
+```bash
+find src -name '*.stories.tsx' -exec sh -c 'mv "$1" "${1%.stories.tsx}.jogak.tsx"' _ {} \;
 find src -name '*.jogak.tsx' -exec sed -i.bak \
   -e "s|from '@storybook/react'|from '@jogak/core'|g" \
   -e 's|type Meta,|type JogakMeta,|g' \
   -e 's|Meta<typeof [A-Za-z]*>|JogakMeta|g' \
   -e 's|type StoryObj,||g' \
   {} \;
-
-# Manual pass: each story needs a `name: 'X'` field; StoryObj → Jogak.
+# Manual pass: each story needs a `name: 'X'` field.
 ```
-
-An official `@jogak/codemod` package is on the roadmap for 1.0.
 
 ## Where to next
 
