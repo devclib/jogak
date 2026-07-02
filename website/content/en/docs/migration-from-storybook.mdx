@@ -25,8 +25,8 @@ Run this checklist against your current Storybook setup. If you hit ❌ items yo
 | A11y addon (axe) | ✅ Built-in 1.0.0-beta.3+ (`pnpm add -D axe-core`) |
 | Themes addon | ✅ Built-in 1.1.0+ (`themes: ['light', 'dark']` in `jogak.config.ts`) |
 | MDX docs | ✅ Built-in 1.1.0+ (`Button.mdx` beside `Button.jogak.tsx`; `@mdx-js/rollup` in vite.config) |
-| Interactions / Play functions | ❌ not planned for 1.0 |
-| Test runner | ❌ not planned for 1.0 |
+| Interactions / Play functions | ✅ Built-in 1.2.0+ (`play: async ({ canvasElement }) => ...` field + toolbar ▶ button) |
+| Test runner | ❌ out-of-scope (use Vitest + Playwright directly) |
 | Custom addons | ❌ Jogak has no addon API by design |
 | Decorators | ❌ not supported (use component composition) |
 
@@ -175,7 +175,7 @@ Delete stale `.stories.tsx` files after all are converted (or grep them and conf
 **Blocking cases — do NOT migrate if you rely on any of these:**
 
 - **MDX docs** — Jogak reads `argTypes.description` for a Props table, but there's no MDX page equivalent yet. Track in [Roadmap](/en/docs/roadmap).
-- **Play functions / Interactions** — Jogak has no story-level runtime scripting. Move interaction tests to Vitest + React Testing Library.
+- **Play functions / Interactions** — ✅ Built-in as of 1.2.0. Add `play: async ({ canvasElement }) => { ... }` to your `Jogak` variant; the toolbar ▶ button runs it in the iframe scope. Install `@testing-library/user-event` as a devDep to script user interactions.
 - **Custom addons** — Jogak has no addon API. If your team maintains a custom addon (e.g. design token panel, i18n switcher), you'll need to fork Jogak or wait for a plugin story post-1.0.
 - **Decorators** — no wrapper/decorator concept. Compose the wrapper into the component itself, or export a wrapper component and reference it from `.jogak.tsx`.
 

@@ -25,8 +25,8 @@ Jogak은 **drop-in** 대체입니다 — workflow(`dev` / `build` / static deplo
 | A11y addon (axe) | ✅ Built-in 1.0.0-beta.3+ (`pnpm add -D axe-core`) |
 | Themes addon | ✅ Built-in 1.1.0+ (`themes: ['light', 'dark']` in `jogak.config.ts`) |
 | MDX docs | ✅ Built-in 1.1.0+ (`Button.mdx` beside `Button.jogak.tsx`; `@mdx-js/rollup` in vite.config) |
-| Interactions / Play 함수 | ❌ 1.0 미계획 |
-| Test runner | ❌ 1.0 미계획 |
+| Interactions / Play 함수 | ✅ Built-in 1.2.0+ (`play: async ({ canvasElement }) => ...` 필드 + 툴바 ▶ 버튼) |
+| Test runner | ❌ out-of-scope (Vitest + Playwright 직접 사용) |
 | Custom addon | ❌ Jogak은 addon API를 설계상 제공 안 함 |
 | Decorator | ❌ 미지원 (컴포넌트 조합으로 대체) |
 
@@ -175,7 +175,7 @@ pnpm remove @storybook/react @storybook/react-vite @storybook/addon-essentials \
 **Blocking 케이스 — 아래에 의존하면 마이그레이션 금지:**
 
 - **MDX docs** — Jogak은 `argTypes.description`을 Props 표에 렌더하지만 MDX 페이지 대응은 아직 없음. [Roadmap](/ko/docs/roadmap) 참조.
-- **Play 함수 / Interactions** — Jogak은 story 레벨 runtime scripting 없음. interaction 테스트는 Vitest + React Testing Library로 이동.
+- **Play 함수 / Interactions** — ✅ 1.2.0부터 Built-in. `Jogak` variant에 `play: async ({ canvasElement }) => { ... }` 추가하면 툴바 ▶ 버튼이 iframe scope에서 실행. `@testing-library/user-event`를 devDep으로 설치해 상호작용 script 작성.
 - **Custom addon** — Jogak은 addon API가 없음. 팀이 유지하는 custom addon(디자인 토큰 패널, i18n switcher 등)이 있다면 Jogak fork 또는 1.0 이후 plugin story 대기.
 - **Decorator** — wrapper/decorator 개념 없음. wrapper를 컴포넌트에 내장하거나, wrapper 컴포넌트를 별도 export 후 `.jogak.tsx`에서 참조.
 
