@@ -16,6 +16,16 @@ export type JogakMessageToFrame =
       readonly args: Readonly<Record<string, unknown>>
     }
   | { readonly type: 'jogak:unmount' }
+  | {
+      /**
+       * 1.0.0 post-1.0: Themes addon. chrome 툴바에서 theme 변경 시 iframe에 전송.
+       * iframe scope handler가 `document.documentElement.setAttribute('data-theme', theme)`
+       * 실행. Storybook `addon-themes` 대응.
+       */
+      readonly type: 'jogak:setTheme'
+      readonly theme: string
+    }
+  | { readonly type: 'jogak:runA11y' }
 
 /**
  * 1.0.0-beta.3: A11y (axe-core) violation. iframe scope에서 실행 후 부모에 전송.

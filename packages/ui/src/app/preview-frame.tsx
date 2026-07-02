@@ -167,7 +167,7 @@ function scheduleA11y(): void {
 }
 
 window.addEventListener('message', (event: MessageEvent) => {
-  const data = event.data as { type?: unknown; entryId?: unknown; args?: unknown } | null
+  const data = event.data as { type?: unknown; entryId?: unknown; args?: unknown; theme?: unknown } | null
   if (data === null || typeof data !== 'object') return
   if (data.type === 'jogak:setProps' && typeof data.entryId === 'string') {
     const args = (data.args ?? {}) as Readonly<Record<string, unknown>>
@@ -187,6 +187,9 @@ window.addEventListener('message', (event: MessageEvent) => {
     unmount()
   } else if (data.type === 'jogak:runA11y') {
     scheduleA11y()
+  } else if (data.type === 'jogak:setTheme' && typeof data.theme === 'string') {
+    // 1.0.0 post-1.0: Themes addon — CSS attribute selector 기반.
+    document.documentElement.setAttribute('data-theme', data.theme)
   }
 })
 
