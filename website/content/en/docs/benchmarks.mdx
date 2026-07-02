@@ -10,11 +10,11 @@ Numbers vs Storybook 8 (Vite builder). Same React catalog (N components, 3 entri
 
 | Metric | size 100 | size 500 | Notes |
 |---|---|---|---|
-| Dev cold start | **1.7 s** vs 3.3 s (**2.0×**) | **2.9 s** vs 3.6 s (1.3×) | "First HTTP 200" |
-| Build time | **2.0 s** vs 2.9 s (1.4×) | **4.1 s** vs 7.6 s (**1.8×**) | Gap widens with catalog size |
-| Bundle (gzip) | **108 KB** vs 716 KB (**6.6×**) | **156 KB** vs 1.09 MB (**7.0×**) | No manager bundle |
-| dist total | **340 KB** vs 3 MB (**8.9×**) | — | Static hosting transfer |
-| Idle RSS (dev) | **321 MB** vs 403 MB (1.3×) | **345 MB** vs 489 MB (**1.4×**) | Dev tree RSS median |
+| Dev cold start | **1.7 s** vs 3.3 s (**2.0×**) | **2.0 s** vs 3.6 s (**1.8×**) | "First HTTP 200" |
+| Build time | **2.0 s** vs 2.9 s (1.4×) | **4.6 s** vs 5.7 s (1.2×) | Gap widens with catalog size |
+| Bundle (gzip) | **108 KB** vs 716 KB (**6.6×**) | **282 KB** vs 1.09 MB (**3.9×**) | Play/Themes/MDX addons added since 1.0 |
+| dist total | **340 KB** vs 3 MB (**8.9×**) | **1.58 MB** vs 4.34 MB (2.7×) | Static hosting transfer |
+| Idle RSS (dev) | **321 MB** vs 403 MB (1.3×) | **345 MB** vs 489 MB (**1.4×**) | Dev tree RSS median (last measured 1.0) |
 | HMR (warm median) | **153 ms** | **199 ms** | args edit → DOM, < 200 ms |
 
 ## Reproduce locally
