@@ -5,6 +5,25 @@ All notable changes to Jogak packages are documented here. The repository follow
 
 Version numbers apply to all packages in the workspace (synchronized release).
 
+## [1.2.0] — 2026-07-02
+
+### Added
+
+- **Play 함수 UI** — Toolbar ▶ 버튼 + PASS/FAIL 배지. `PlayResultBanner` 컴포넌트 (Toolbar 아래 assertion trace 노출).
+- **Themes host emit UI** — `JogakApp.themes` prop → Preview로 자동 pass. `virtual:jogak/_jogakThemes` literal에서 자동 입력.
+- **Sidebar Docs sub-entry** — `meta.docs` 있는 entry에 "Docs" 링크. 클릭 시 mode=docs URL 세팅.
+- **URL query 기반 초기 viewMode** — `?mode=docs`로 진입 시 Preview 자동 docs 뷰.
+- **Iframe height CSS transition** — 100ms ease-out. rAF debounce와 병행 flicker 완화.
+
+### Changed
+
+- `PlayResultBanner` 컴포넌트 별도 파일 (`packages/ui/src/components/Preview/PlayResultBanner.tsx`) — 재사용/test 가능.
+
+### Tests
+
+- `PlayResultBanner.test.tsx` 신규 (5 tests, no-play/ok/error/message-없음/dismiss).
+- 전체 128 → 133 tests.
+
 ## [1.1.0] — 2026-07-02
 
 ### Added

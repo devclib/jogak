@@ -5,6 +5,36 @@ All notable changes to Jogak packages are documented here. The repository follow
 
 Version numbers apply to all packages in the workspace (synchronized release).
 
+## [1.2.0] — 2026-07-02
+
+### Added
+
+- **Interactions (Play 함수)** — `Jogak.play?: (ctx: JogakPlayContext) => void | Promise<void>` 필드 신규. iframe scope에서 async 실행 (사용자 컴포넌트 mount 후). `@testing-library/user-event`는 사용자 install (jogak 미번들). Vite + Next 어댑터 모두 대칭 동작. Preview 툴바 ▶ 버튼 + PASS/FAIL 배지. Storybook `addon-interactions` 대응.
+
+- **Play 결과 상세 log** — `PlayResultBanner` 컴포넌트. 실패 시 assertion trace(에러 message)를 원문 노출. dismiss 버튼으로 clear.
+
+- **MDX docs auto-detect** — `Button.jogak.tsx` 옆의 `Button.mdx` 파일을 plugin이 자동 감지하여 `meta.docs` fallback 설정.
+
+- **Themes chrome scope emit** — `JogakPluginOptions.themes`를 plugin이 virtual:jogak literal로 emit. `JogakApp.themes` prop을 통해 Preview 툴바에 자동 노출.
+
+- **Sidebar Docs sub-entry** — `meta.docs` 있는 entry에 이탤릭 "Docs" 링크. 클릭 시 `?mode=docs` URL 세팅 → Preview 초기 viewMode 자동 반영.
+
+- **Storybook CSF3 호환** — `patterns`에 `.stories.{ts,tsx}` 확장자 추가 시 파일명 hint 기반 export 이름을 story name으로 자동 유추 (`Jogak.name` 필드 없어도 인식).
+
+- **MDX docs prose 스타일** — `[data-jogak-docs]` 스코프에 heading/paragraph/list/code/pre/table/blockquote 최소 prose 스타일 자동 inject.
+
+- **Next/Webpack scaffold의 3 message handler** — `jogak:setTheme` / `jogak:renderDocs` / `jogak:runPlay`를 5 framework 어댑터 모두 대칭 처리.
+
+### Fixed
+
+- **preview-entry template literal escape** — `injectDocsProseStyle`의 `.join('\n')` 실제 개행 emit 회귀 (childLog 진단으로 즉시 catch, hotfix).
+
+### Changed
+
+- **Iframe height** — rAF debounce + CSS `transition: 'height 100ms ease-out'`. large args 변경 시 flicker 해소.
+
+- **벤치마크 스크립트 갱신** — `packages/react`/`packages/next` → `packages/core/renderers/*` 통합 반영 (실제 publish 대상 3 패키지만 측정).
+
 ## [1.1.0] — 2026-07-02
 
 ### Added

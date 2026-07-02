@@ -5,6 +5,12 @@ All notable changes to Jogak packages are documented here. The repository follow
 
 Version numbers apply to all packages in the workspace (synchronized release).
 
+## [1.2.0] — 2026-07-02
+
+### Changed
+
+- **버전 동기화 (no functional change)**: `@jogak/core@1.2.0` (Interactions + auto-detect + Themes emit + prose + scaffold handler) + `@jogak/ui@1.2.0` (Play UI + Docs sub-entry + iframe transition) publish에 맞춰 caret semver 일관성 유지. `@jogak/cli` 소스 변경 없음.
+
 ## [1.1.0] — 2026-07-02
 
 ### Changed
