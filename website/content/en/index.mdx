@@ -34,21 +34,15 @@ See [Benchmarks](/en/docs/benchmarks) for the full table and reproduction comman
 # 1. Install
 pnpm add -D @jogak/cli @jogak/core
 
-# 2. Write your first entry next to a component
-cat > src/components/Button.jogak.tsx << 'EOF'
-import type { JogakMeta, Jogak } from '@jogak/core'
-import { Button } from './Button'
-
-const meta = { title: 'Components/Button', component: Button } satisfies JogakMeta
-export default meta
-
-export const Primary: Jogak = { name: 'Primary', args: { label: 'Click me' } }
-EOF
+# 2. Scaffold jogak.config.ts + Button example in one command
+npx jogak init
 
 # 3. Run
 npx jogak dev          # http://localhost:5173
 npx jogak build        # static output → ./jogak-static
 ```
+
+`jogak init` is idempotent — safe to re-run. Use `--force` to overwrite. See [Quick start guide](/en/docs) for hand-writing the entry instead.
 
 Deploy `jogak-static/` anywhere: GitHub Pages, Vercel, Netlify, S3.
 → Continue to the [Quick start guide](/en/docs) for framework peers and options.

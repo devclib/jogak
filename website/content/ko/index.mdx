@@ -34,21 +34,15 @@ title: Jogak — 가벼운 컴포넌트 쇼케이스
 # 1. 설치
 pnpm add -D @jogak/cli @jogak/core
 
-# 2. 컴포넌트 옆에 첫 entry 작성
-cat > src/components/Button.jogak.tsx << 'EOF'
-import type { JogakMeta, Jogak } from '@jogak/core'
-import { Button } from './Button'
-
-const meta = { title: 'Components/Button', component: Button } satisfies JogakMeta
-export default meta
-
-export const Primary: Jogak = { name: 'Primary', args: { label: 'Click me' } }
-EOF
+# 2. jogak.config.ts + Button 예시를 한 방에 scaffold
+npx jogak init
 
 # 3. 실행
 npx jogak dev          # http://localhost:5173
 npx jogak build        # static 산출물 → ./jogak-static
 ```
+
+`jogak init`은 idempotent — 재실행해도 안전. `--force`로 덮어쓰기 가능. 수동 entry 작성은 [Quick start guide](/ko/docs) 참조.
 
 `jogak-static/`을 어디든 배포: GitHub Pages, Vercel, Netlify, S3.
 → framework peer + 옵션은 [Quick start guide](/ko/docs)로.

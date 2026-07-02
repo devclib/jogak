@@ -6,9 +6,16 @@
     "jogak",
     "storybook",
     "storybook-alternative",
+    "storybook-drop-in",
     "showcase",
     "design-system",
-    "component-library"
+    "component-library",
+    "react",
+    "preview",
+    "mdx-docs",
+    "a11y",
+    "interactions",
+    "themes"
   ],
   "author": {
     "name": "devclib",

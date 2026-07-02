@@ -21,6 +21,20 @@ pnpm add -D @jogak/cli @jogak/core
 
 React라면 이게 전부입니다. 다른 프레임워크라면 framework peer + Vite plugin을 추가하세요 ([Frameworks](/ko/docs/frameworks/react) 섹션 참고).
 
+## 최단 경로 — `jogak init`
+
+`jogak.config.ts` + `Button` 예시 컴포넌트 + `Button.jogak.tsx` entry를 한 방에 생성하는 scaffold 명령:
+
+```bash
+pnpm jogak init
+```
+
+- **Idempotent** — 재실행해도 안전. 기존 파일은 skip.
+- `--force` — 기존 파일 덮어쓰기 (opt-in).
+- `--path <dir>` — 컴포넌트 위치 커스터마이즈 (기본 `src/components/Button`).
+
+수동 작성을 선호하면 아래 섹션 그대로 진행.
+
 ## 컴포넌트 정의
 
 ```tsx filename="src/components/Button.jogak.tsx"

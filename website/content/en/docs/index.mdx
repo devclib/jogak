@@ -21,6 +21,20 @@ pnpm add -D @jogak/cli @jogak/core
 
 That's all you need for React. For other frameworks, add the framework peer + its Vite plugin (see the [Frameworks](/en/docs/frameworks/react) section).
 
+## Fastest path — `jogak init`
+
+The one-liner scaffold that generates `jogak.config.ts` + a `Button` example component + a `Button.jogak.tsx` entry:
+
+```bash
+pnpm jogak init
+```
+
+- **Idempotent** — safe to re-run. Existing files are skipped.
+- `--force` — overwrite existing files (opt-in).
+- `--path <dir>` — custom component location (default `src/components/Button`).
+
+Skip this section if you prefer to hand-write the entry — the manual steps are below.
+
 ## Define a component
 
 ```tsx filename="src/components/Button.jogak.tsx"
