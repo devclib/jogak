@@ -5,6 +5,16 @@ All notable changes to Jogak packages are documented here. The repository follow
 
 Version numbers apply to all packages in the workspace (synchronized release).
 
+## [1.1.0] — 2026-07-02
+
+### Added
+
+- **Themes addon** — `JogakPluginOptions.themes?: readonly string[]` 옵션 + `'jogak:setTheme'` protocol. iframe scope 3곳 handler (`preview-frame.tsx`, `preview-entry/source.ts`, `adapters/vite,webpack/scaffold.ts`)에서 `document.documentElement.setAttribute('data-theme', theme)` 실행. CSS attribute selector 기반 — Storybook `addon-themes` 대응.
+
+- **MDX docs addon (Full)** — `JogakMeta.docs?: string` 옵션 (사용자 파일 상대 경로) + `RegistryEntryMeta.docs` 전파 + `'jogak:renderDocs'` / `'jogak:renderComponent'` protocol. iframe scope의 `preview-entry/source.ts`가 사용자 vite로 dynamic import → React 컴포넌트 렌더. MDX 컴파일은 사용자 vite scope에서 `@mdx-js/rollup` 등 사용자 install. 사용자 컴포넌트 import 자연스러움. Storybook `addon-docs` 대응.
+
+- **Parser skip reason 세분화** — `MetaSkipReason` type export + `InProcessExtractor.checkMetaSkipReason` 메소드. subprocess가 no-default-export / no-title 원인별 구체적 hint 출력. beta.7 minimal warning의 후속.
+
 ## [1.0.0] — 2026-07-02
 
 ### Milestone — 정식 릴리스

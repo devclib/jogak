@@ -5,6 +5,14 @@ All notable changes to Jogak packages are documented here. The repository follow
 
 Version numbers apply to all packages in the workspace (synchronized release).
 
+## [1.1.0] — 2026-07-02
+
+### Added
+
+- **Themes addon UI** — `PreviewProps.themes` + `Toolbar` theme selector (viewport 옆) + `IframeMount.activeTheme` prop → useEffect가 `jogak:setTheme` postMessage 전송.
+- **MDX docs addon UI** — `Preview` viewMode 상태 (`'component' | 'docs'`) + `Toolbar` viewMode toggle (meta.docs 있을 때만 노출) + `IframeMount.viewMode/docsPath` prop → useEffect가 viewMode 변경 시 `jogak:renderDocs` / `jogak:renderComponent` postMessage.
+- 랜딩 hero 강화 (5초 후크 + CTA + built-in 기능 매트릭스), WC (Web Components) smoke matrix 편입 (5 framework 완성).
+
 ## [1.0.0] — 2026-07-02
 
 ### Milestone — 정식 릴리스
