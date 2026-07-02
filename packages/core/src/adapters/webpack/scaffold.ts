@@ -157,6 +157,21 @@ window.addEventListener('message', (event: MessageEvent) => {
     scheduleA11y()
   } else if (data.type === 'jogak:setTheme' && typeof data.theme === 'string') {
     document.documentElement.setAttribute('data-theme', data.theme)
+  } else if (data.type === 'jogak:renderDocs' && typeof (data as { docsPath?: unknown }).docsPath === 'string') {
+    // 1.2.0 post-1.1: MDX docs — Webpack scaffold는 사용자 build에서 .mdx 처리를 loader로.
+    // 사용자 컴포넌트 import 지원 위해 사용자가 @mdx-js/loader 등을 webpack config에 등록 필요.
+    const rootEl = document.getElementById('jogak-preview-root')
+    if (rootEl !== null) {
+      rootEl.innerHTML =
+        '<div style="padding:24px;font:13px system-ui;color:#57534e;">'
+        + '<strong>MDX docs mode</strong><br><br>'
+        + 'Webpack adapter requires @mdx-js/loader in your webpack config to compile .mdx files.'
+        + '</div>'
+    }
+    window.parent.postMessage({ type: 'jogak:rendered', entryId: '__docs__' }, '*')
+  } else if (data.type === 'jogak:runPlay') {
+    // 1.2.0 post-1.1: Play — Webpack scaffold는 jogakName 컨텍스트 미보유, no-play 회신.
+    window.parent.postMessage({ type: 'jogak:playResult', status: 'no-play' }, '*')
   }
 })
 
