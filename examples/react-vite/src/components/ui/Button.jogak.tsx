@@ -1,5 +1,8 @@
 import type { JogakMeta, Jogak } from '@jogak/core'
 import { Button } from './Button'
+// 1.2.0 post-1.1: Play 함수 example (Storybook addon-interactions 대응).
+// @testing-library/user-event는 사용자 devDep으로 install — jogak 미번들.
+import { userEvent, within } from '@testing-library/react'
 
 const meta = {
   title: 'UI/Button',
@@ -60,4 +63,15 @@ export const Large: Jogak = {
 export const Disabled: Jogak = {
   name: 'Disabled',
   args: { children: 'Locked', variant: 'primary', disabled: true },
+}
+
+// 1.2.0 post-1.1: Interactive variant — 툴바 ▶ Play 버튼 클릭 시 자동 실행.
+export const Interactive: Jogak = {
+  name: 'Interactive',
+  args: { children: 'Click me', variant: 'primary', size: 'md' },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const button = canvas.getByRole('button', { name: /click me/i })
+    await userEvent.click(button)
+  },
 }
