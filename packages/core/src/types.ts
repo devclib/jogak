@@ -42,6 +42,27 @@ export interface JogakMeta {
    * `RegistryEntryMeta.framework`로 그대로 전파된다.
    */
   readonly framework?: JogakFramework
+  /**
+   * 1.0.0 post-1.0: MDX docs addon (Storybook Docs 대응).
+   *
+   * 값은 `.jogak.(ts|tsx)` 파일 기준 상대 경로 (예: `'./Button.mdx'`) 또는 확장 없는 slug.
+   * Preview에 docs tab이 노출되고, iframe scope의 사용자 vite가 dynamic import로 MDX
+   * 파일을 로드해 React 컴포넌트로 렌더한다.
+   *
+   * 사용자가 `rollup-plugin-mdx` 또는 `@mdx-js/rollup` 등을 사용자 vite.config에 등록해야
+   * .mdx가 컴파일된다 (jogak은 MDX 컴파일러를 번들 안 함 — 사용자 vite scope 재사용).
+   *
+   * @example
+   * ```tsx
+   * // Button.jogak.tsx
+   * const meta = {
+   *   title: 'Components/Button',
+   *   component: Button,
+   *   docs: './Button.mdx',
+   * } satisfies JogakMeta
+   * ```
+   */
+  readonly docs?: string
 }
 
 /**
@@ -115,6 +136,11 @@ export interface RegistryEntryMeta {
    * 3. `'react'` fallback (이미 registry parser에서 적용됨)
    */
   readonly framework?: JogakFramework
+  /**
+   * 1.0.0 post-1.0: MDX docs path (JogakMeta.docs를 그대로 전파).
+   * `.jogak.tsx` 파일 기준 상대 경로. Preview docs tab이 활성화되는 조건.
+   */
+  readonly docs?: string
 }
 
 /**

@@ -155,6 +155,8 @@ export function Preview({
   const [a11yResult, setA11yResult] = useState<A11yResult | null>(null)
   // 1.0.0 post-1.0: Themes addon. 첫 요소를 default. themes 미지정 시 null → selector 미표시.
   const [theme, setTheme] = useState<string | null>(themes && themes.length > 0 ? themes[0]! : null)
+  // 1.0.0 post-1.0: MDX docs view mode. meta.docs 있을 때만 tab 노출.
+  const [viewMode, setViewMode] = useState<'component' | 'docs'>('component')
 
   const prismTheme = resolvePrismTheme(codeTheme)
 
@@ -223,6 +225,8 @@ export function Preview({
       themes={themes}
       theme={theme}
       onThemeChange={setTheme}
+      viewMode={viewMode}
+      onViewModeChange={setViewMode}
     />
   )
 }
@@ -318,6 +322,8 @@ interface ReadyFrameProps {
   readonly themes?: readonly string[] | undefined
   readonly theme: string | null
   readonly onThemeChange: (theme: string) => void
+  readonly viewMode: 'component' | 'docs'
+  readonly onViewModeChange: (mode: 'component' | 'docs') => void
 }
 
 function ReadyFrame({
@@ -342,6 +348,8 @@ function ReadyFrame({
   themes,
   theme,
   onThemeChange,
+  viewMode,
+  onViewModeChange,
 }: ReadyFrameProps): ReactElement {
   // jogakName이 비어있으면 (deep link `?entry=...&jogak` 누락) 첫 jogak로 보정.
   const resolvedJogakName = jogakName ?? entry.jogaks[0]?.name ?? null
@@ -392,6 +400,9 @@ function ReadyFrame({
         themes={themes}
         theme={theme}
         onThemeChange={onThemeChange}
+        docsAvailable={typeof entry.meta.docs === 'string' && entry.meta.docs.length > 0}
+        viewMode={viewMode}
+        onViewModeChange={onViewModeChange}
       />
 
       {/* ── 캔버스 ───────────────────────────────────────── */}
@@ -420,6 +431,8 @@ function ReadyFrame({
             previewEntryPath={previewEntryPath}
             onA11yResult={onA11yResult}
             activeTheme={theme}
+            viewMode={viewMode}
+            docsPath={typeof entry.meta.docs === 'string' ? entry.meta.docs : null}
           />
         </div>
       </div>
@@ -487,6 +500,9 @@ interface ToolbarProps {
   readonly themes?: readonly string[] | undefined
   readonly theme?: string | null
   readonly onThemeChange?: (theme: string) => void
+  readonly docsAvailable?: boolean
+  readonly viewMode?: 'component' | 'docs'
+  readonly onViewModeChange?: (mode: 'component' | 'docs') => void
 }
 
 function Toolbar({
@@ -501,6 +517,9 @@ function Toolbar({
   themes,
   theme,
   onThemeChange,
+  docsAvailable,
+  viewMode,
+  onViewModeChange,
 }: ToolbarProps): ReactElement {
   return (
     <div className="jogak:flex jogak:items-center jogak:gap-[10px] jogak:px-[14px] jogak:py-[7px] jogak:border-b jogak:border-[var(--jogak-color-border)] jogak:bg-[var(--jogak-color-bg)] jogak:shrink-0">
@@ -533,6 +552,31 @@ function Toolbar({
           </button>
         ))}
       </div>
+
+      {/* 1.0.0 post-1.0: docs view mode toggle — meta.docs 있을 때만 */}
+      {docsAvailable === true && viewMode !== undefined && onViewModeChange !== undefined && (
+        <div
+          data-testid="toolbar-viewmode"
+          className="jogak:flex jogak:gap-0.5 jogak:bg-[var(--jogak-color-bg-subtle)] jogak:rounded-[var(--jogak-radius-lg)] jogak:p-0.5"
+        >
+          {(['component', 'docs'] as const).map((m) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => { onViewModeChange(m) }}
+              aria-pressed={viewMode === m}
+              className={clsx(
+                'jogak:px-[9px] jogak:py-[3px] jogak:text-[12px] jogak:border-none jogak:rounded-[var(--jogak-radius-md)] jogak:cursor-pointer jogak:transition-all jogak:duration-100 jogak:capitalize',
+                viewMode === m
+                  ? 'jogak:bg-[var(--jogak-color-bg-elevated)] jogak:text-[var(--jogak-color-fg-strong)] jogak:font-semibold jogak:shadow-[0_1px_2px_rgba(0,0,0,0.08)]'
+                  : 'jogak:bg-transparent jogak:text-[var(--jogak-color-fg-muted)] jogak:font-normal jogak:shadow-none',
+              )}
+            >
+              {m}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* 1.0.0 post-1.0: theme selector (themes 옵션이 있을 때만 렌더) */}
       {themes && themes.length > 0 && theme !== null && onThemeChange !== undefined && (
@@ -607,6 +651,10 @@ interface JogakRendererProps {
   readonly onA11yResult?: ((result: A11yResult) => void) | undefined
   /** 1.0.0 post-1.0: Themes addon 선택된 theme. IframeMount로 pass-through. */
   readonly activeTheme?: string | null | undefined
+  /** 1.0.0 post-1.0: MDX docs view mode ('component' or 'docs'). */
+  readonly viewMode?: 'component' | 'docs' | undefined
+  /** 1.0.0 post-1.0: MDX docs 파일 경로 (JogakMeta.docs). */
+  readonly docsPath?: string | null | undefined
 }
 
 /**
@@ -616,7 +664,7 @@ interface JogakRendererProps {
  * - `'shadow'` (deprecated) — `<ShadowMount>` 안에 마운트.
  * - `'none'` (deprecated) — 같은 document에 직접 마운트.
  */
-function JogakRenderer({ entry, args, theme, previewIsolation, userPreviewUrl, previewEntryPath, onA11yResult, activeTheme }: JogakRendererProps): ReactElement {
+function JogakRenderer({ entry, args, theme, previewIsolation, userPreviewUrl, previewEntryPath, onA11yResult, activeTheme, viewMode, docsPath }: JogakRendererProps): ReactElement {
   const [showCode, setShowCode] = useState(false)
   // 알파.10.3: 코드 패널은 jogak 메타 파일이 아니라 현재 args 기반 사용 코드를 노출.
   const usageCode = formatUsageCode(entry, args)
@@ -631,6 +679,8 @@ function JogakRenderer({ entry, args, theme, previewIsolation, userPreviewUrl, p
         previewEntryPath={previewEntryPath}
         onA11yResult={onA11yResult}
         activeTheme={activeTheme}
+        viewMode={viewMode}
+        docsPath={docsPath}
       />
       <button
         type="button"
@@ -676,13 +726,15 @@ interface PreviewMountProps {
   readonly previewEntryPath: string
   readonly onA11yResult?: ((result: A11yResult) => void) | undefined
   readonly activeTheme?: string | null | undefined
+  readonly viewMode?: 'component' | 'docs' | undefined
+  readonly docsPath?: string | null | undefined
 }
 
 const PREVIEW_HOST_CLASS =
   'jogak:border jogak:border-dashed jogak:border-[var(--jogak-color-border)] ' +
   'jogak:rounded-[var(--jogak-radius-xl)] jogak:p-4 jogak:pb-9'
 
-function PreviewMount({ entry, args, previewIsolation, userPreviewUrl, previewEntryPath, onA11yResult, activeTheme }: PreviewMountProps): ReactElement {
+function PreviewMount({ entry, args, previewIsolation, userPreviewUrl, previewEntryPath, onA11yResult, activeTheme, viewMode, docsPath }: PreviewMountProps): ReactElement {
   if (previewIsolation === 'shadow') {
     return (
       <ShadowMount
@@ -703,6 +755,8 @@ function PreviewMount({ entry, args, previewIsolation, userPreviewUrl, previewEn
         previewEntryPath={previewEntryPath}
         onA11yResult={onA11yResult}
         activeTheme={activeTheme}
+        viewMode={viewMode}
+        docsPath={docsPath}
         data-testid="preview-content"
         className={`${PREVIEW_HOST_CLASS} jogak:block jogak:w-full jogak:bg-transparent jogak:min-h-[256px]`}
       />

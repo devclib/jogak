@@ -28,6 +28,10 @@ export interface IframeMountProps {
    * `document.documentElement.setAttribute('data-theme', theme)` 실행.
    */
   readonly activeTheme?: string | null | undefined
+  /** 1.0.0 post-1.0: MDX docs view mode. 'docs' 선택 시 renderDocs 전송. */
+  readonly viewMode?: 'component' | 'docs' | undefined
+  /** 1.0.0 post-1.0: MDX docs 파일 경로 (jogak.meta.docs). */
+  readonly docsPath?: string | null | undefined
   readonly className?: string
   readonly 'data-testid'?: string
 }

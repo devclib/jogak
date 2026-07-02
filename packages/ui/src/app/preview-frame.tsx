@@ -167,7 +167,7 @@ function scheduleA11y(): void {
 }
 
 window.addEventListener('message', (event: MessageEvent) => {
-  const data = event.data as { type?: unknown; entryId?: unknown; args?: unknown; theme?: unknown } | null
+  const data = event.data as { type?: unknown; entryId?: unknown; args?: unknown; theme?: unknown; docsPath?: unknown } | null
   if (data === null || typeof data !== 'object') return
   if (data.type === 'jogak:setProps' && typeof data.entryId === 'string') {
     const args = (data.args ?? {}) as Readonly<Record<string, unknown>>
@@ -190,6 +190,18 @@ window.addEventListener('message', (event: MessageEvent) => {
   } else if (data.type === 'jogak:setTheme' && typeof data.theme === 'string') {
     // 1.0.0 post-1.0: Themes addon — CSS attribute selector 기반.
     document.documentElement.setAttribute('data-theme', data.theme)
+  } else if (data.type === 'jogak:renderDocs' && typeof data.docsPath === 'string') {
+    // 1.0.0 post-1.0: MDX docs — chrome SPA fallback scope는 사용자 vite 없어 .mdx 컴파일 불가.
+    const rootEl = document.getElementById('jogak-preview-root')
+    if (rootEl !== null) {
+      rootEl.innerHTML =
+        '<div style="padding:24px;font:13px system-ui;color:#57534e;">'
+        + '<strong>MDX docs mode</strong><br><br>'
+        + 'This preview runs in chrome SPA fallback scope which does not compile .mdx. '
+        + 'Configure your project with a vite MDX plugin (@mdx-js/rollup) and jogak will render docs in the user vite scope.'
+        + '</div>'
+    }
+    window.parent.postMessage({ type: 'jogak:rendered', entryId: '__docs__' }, '*')
   }
 })
 

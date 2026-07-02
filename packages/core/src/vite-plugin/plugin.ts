@@ -169,6 +169,7 @@ export function jogak(options: JogakPluginOptions = {}): Plugin {
         filePath: file,
         metaExtras: metaPayload.metaExtras,
         framework,
+        ...(metaPayload.docs !== undefined ? { docs: metaPayload.docs } : {}),
       }
       // F4: lastSig 채움 (HMR 시 비교 기준)
       lastSig.set(file, sigOf(meta))
@@ -526,6 +527,7 @@ export {}
         filePath: file,
         metaExtras: newMeta.metaExtras,
         framework: newFramework,
+        ...(newMeta.docs !== undefined ? { docs: newMeta.docs } : {}),
       }
 
       // entry 모듈만 invalidate (다음 requestEntry에서 새 args/component 받도록).
