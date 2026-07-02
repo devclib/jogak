@@ -36,11 +36,12 @@ async function dirSize(dir) {
   return { total, totalGzip, files }
 }
 
+// 1.1.0: 모노레포 구조 갱신 반영. react/next/web-components/vue/svelte 어댑터는
+// alpha.14.1부터 @jogak/core의 `renderers/*` 서브패스로 통합. 별도 npm 패키지 아님.
+// 측정 대상은 실제 publish되는 3 패키지 (core/ui/cli).
 const TARGETS = [
   { name: '@jogak/core', cmd: ['pnpm', '--filter', '@jogak/core', 'build'], dist: 'packages/core/dist' },
-  { name: '@jogak/react', cmd: ['pnpm', '--filter', '@jogak/react', 'build'], dist: 'packages/react/dist' },
-  { name: '@jogak/next', cmd: ['pnpm', '--filter', '@jogak/next', 'build'], dist: 'packages/next/dist' },
-  { name: '@jogak/web-components', cmd: ['pnpm', '--filter', '@jogak/web-components', 'build'], dist: 'packages/web-components/dist' },
+  { name: '@jogak/ui', cmd: ['pnpm', '--filter', '@jogak/ui', 'build'], dist: 'packages/ui/dist' },
   { name: '@jogak/cli', cmd: ['pnpm', '--filter', '@jogak/cli', 'build'], dist: 'packages/cli/dist' },
 ]
 
