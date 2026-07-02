@@ -48,7 +48,7 @@ export interface PreviewProps {
    * 1.0.0 post-1.0: Themes addon. 툴바에 theme selector 노출.
    * 미지정/빈 배열이면 selector 미표시. 첫 요소가 default theme.
    */
-  readonly themes?: readonly string[]
+  readonly themes?: readonly string[] | undefined
 }
 
 type ViewportKey = 'mobile' | 'tablet' | 'desktop'

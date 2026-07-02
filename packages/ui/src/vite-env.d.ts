@@ -23,6 +23,10 @@ declare module 'virtual:jogak' {
    * 알파.8 호환 alias.
    */
   export const _jogakUserViteUrl: string
+  /**
+   * 1.1.0: Themes addon. `JogakPluginOptions.themes` (string[]) 또는 null 미지정 시.
+   */
+  export const _jogakThemes: readonly string[] | null
 }
 
 declare module 'virtual:jogak/global-css' {
