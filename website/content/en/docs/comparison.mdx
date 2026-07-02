@@ -44,8 +44,8 @@ Storybook ships as a plugin platform — the core UI is small; features come fro
 | Themes | Toggle theme in toolbar | Built-in (`themes: ['light', 'dark']` in config; CSS `[data-theme='dark']` attribute selector) | ✅ 1.1.0+ |
 | A11y (axe-core) | Accessibility scan | Built-in (dynamic import, `axe-core` as `optionalDependency`) | ✅ 1.0.0-beta.3+ |
 | MDX docs | Rich documentation pages | Built-in (sibling `.mdx` auto-detect + `@mdx-js/rollup` in user vite; sidebar `component | docs` toggle) | ✅ 1.1.0+ |
-| Interactions / Play | Runtime scripting per story | ❌ move to Vitest + RTL | not planned for 1.0 |
-| Test runner | Storybook-based Jest runner | ❌ use Vitest | not planned for 1.0 |
+| Interactions / Play | Runtime scripting per story | Built-in (`play: async ({ canvasElement }) => ...` field; iframe scope async execution; toolbar ▶ button with PASS/FAIL) | ✅ 1.2.0+ |
+| Test runner | Storybook-based Jest runner | ❌ use Vitest + Playwright | out-of-scope (overlaps user test tooling) |
 | Design tokens (community) | Custom panel | ❌ no addon API | fork or wait post-1.0 |
 
 **Bottom line:** if your team's Storybook is essentially Controls + Actions + Viewport + Backgrounds, Jogak covers it out of the box. If you rely on MDX docs or A11y, wait for those to land.
@@ -76,7 +76,7 @@ The bundle-size gap widens for static deploy — Storybook manager + preview bui
 Jogak is not a superset. Pick Storybook if any of the following applies:
 
 - You depend on **MDX docs** as living documentation (not just prop tables)
-- You rely on **Play functions / Interactions** or the **Test runner** for story-level integration tests
+- You rely on the **Test runner** (Storybook-based Jest runner) for CI; Jogak has Play functions but no test-runner CLI — use Vitest + Playwright directly instead
 - Your team maintains **custom addons** — design tokens, i18n switchers, backend mocks — and rewriting them is a non-starter
 - You need **decorators** to wrap every story (theme provider, router context, i18n) and refactoring them into components is impractical
 - Your project uses the Storybook Composition feature to combine multiple sub-storybooks
