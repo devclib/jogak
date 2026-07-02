@@ -309,6 +309,24 @@ export function JogakIframeBridge() {
         router.replace('?', { scroll: false })
       } else if (data.type === 'jogak:runA11y') {
         scheduleA11y()
+      } else if (data.type === 'jogak:setTheme' && typeof data.theme === 'string') {
+        // 1.2.0 post-1.1: Themes addon.
+        document.documentElement.setAttribute('data-theme', data.theme)
+      } else if (data.type === 'jogak:renderDocs' && typeof data.docsPath === 'string') {
+        // 1.2.0 post-1.1: MDX docs — Next scaffold는 SSR path 기반이므로 chrome scope에서 안내.
+        const rootEl = document.getElementById('jogak-preview-root')
+        if (rootEl !== null) {
+          rootEl.innerHTML =
+            '<div style="padding:24px;font:13px system-ui;color:#57534e;">'
+            + '<strong>MDX docs mode</strong><br><br>'
+            + 'Next adapter routes docs through the app router. To render .mdx in Next, add a docs page under /jogak-docs/[slug] and use @next/mdx.'
+            + '</div>'
+        }
+        window.parent.postMessage({ type: 'jogak:rendered', entryId: '__docs__' }, '*')
+      } else if (data.type === 'jogak:runPlay') {
+        // 1.2.0 post-1.1: Play 함수 — Next scaffold는 RSC/SSR path 기반이므로 play는 client 컴포넌트만 지원.
+        // 실행 컨텍스트가 별도 저장되지 않은 상태에서 no-play 회신 (사용자에게 Next 특유 안내).
+        window.parent.postMessage({ type: 'jogak:playResult', status: 'no-play' }, '*')
       }
     }
     window.addEventListener('message', handler)
@@ -385,6 +403,13 @@ export default function ${componentName}() {
         unmount()
       } else if (data.type === 'jogak:runA11y') {
         scheduleA11y()
+      } else if (data.type === 'jogak:setTheme' && typeof data.theme === 'string') {
+        // 1.2.0 post-1.1: Themes addon.
+        document.documentElement.setAttribute('data-theme', data.theme)
+      } else if (data.type === 'jogak:runPlay') {
+        // 1.2.0 post-1.1: Next client mount scaffold의 Play — jogakName 컨텍스트 없어 no-play 회신.
+        // Vite scope와 달리 Next path는 chrome이 currentJogakName을 아직 pass하지 않음 (followup).
+        window.parent.postMessage({ type: 'jogak:playResult', status: 'no-play' }, '*')
       }
     }
 
