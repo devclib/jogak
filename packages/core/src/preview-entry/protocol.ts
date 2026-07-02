@@ -26,6 +26,18 @@ export type JogakMessageToFrame =
       readonly theme: string
     }
   | { readonly type: 'jogak:runA11y' }
+  | {
+      /**
+       * 1.0.0 post-1.0: MDX docs addon. Preview docs tab 선택 시 iframe에 전송.
+       * iframe scope handler가 사용자 vite로 `docsPath`를 dynamic import → React 컴포넌트로
+       * 렌더. MDX 컴파일러(@mdx-js/rollup 등)는 사용자 vite scope에서 사전 설치.
+       *
+       * `docsPath`: 사용자 프로젝트 root 기준 상대 경로.
+       */
+      readonly type: 'jogak:renderDocs'
+      readonly docsPath: string
+    }
+  | { readonly type: 'jogak:renderComponent' }
 
 /**
  * 1.0.0-beta.3: A11y (axe-core) violation. iframe scope에서 실행 후 부모에 전송.

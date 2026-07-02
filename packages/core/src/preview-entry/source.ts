@@ -182,8 +182,59 @@ window.addEventListener('message', (event) => {
     scheduleA11y()
   } else if (data.type === 'jogak:setTheme' && typeof data.theme === 'string') {
     document.documentElement.setAttribute('data-theme', data.theme)
+  } else if (data.type === 'jogak:renderDocs' && typeof data.docsPath === 'string') {
+    renderDocs(data.docsPath)
+  } else if (data.type === 'jogak:renderComponent') {
+    unmount()
   }
 })
+
+// 1.0.0 post-1.0: MDX docs 렌더. rollup-plugin-mdx가 사용자 vite에 있어야 .mdx 컴파일.
+async function renderDocs(docsPath) {
+  try {
+    const modId = docsPath
+    const mod = await import(modId).catch((err) => ({ __error: err }))
+    if (mod && mod.__error) {
+      renderDocsError(String(mod.__error && mod.__error.message ? mod.__error.message : mod.__error))
+      return
+    }
+    const DocsComponent = mod.default
+    if (typeof DocsComponent !== 'function') {
+      renderDocsError('MDX module has no default export (expected React component).')
+      return
+    }
+    const reactAdapter = await import('@jogak/core/renderers/react').then((m) => m.reactAdapter)
+    if (currentContainer !== null && currentAdapter !== null) {
+      try { currentAdapter.unmount(currentContainer) } catch {}
+    }
+    currentContainer = document.createElement('div')
+    currentContainer.setAttribute('data-jogak-docs', '')
+    rootEl.replaceChildren(currentContainer)
+    const entryLike = {
+      id: '__docs__',
+      title: '__docs__',
+      jogaks: [{ name: 'default', args: {} }],
+      meta: { title: '__docs__', component: DocsComponent, framework: 'react' },
+    }
+    await reactAdapter.render(entryLike, {}, currentContainer)
+    currentAdapter = reactAdapter
+    window.parent.postMessage({ type: 'jogak:rendered', entryId: '__docs__' }, '*')
+  } catch (err) {
+    renderDocsError(String(err && err.message ? err.message : err))
+  }
+}
+
+function renderDocsError(message) {
+  if (currentContainer === null) {
+    currentContainer = document.createElement('div')
+    rootEl.replaceChildren(currentContainer)
+  }
+  currentContainer.innerHTML = '<div style="padding:24px;color:#b91c1c;font:13px system-ui;">'
+    + '<strong>Docs render failed.</strong><br>' + message.replace(/</g, '&lt;')
+    + '<br><br>Install a MDX plugin in your vite.config (e.g. <code>@mdx-js/rollup</code>) so <code>.mdx</code> files compile.'
+    + '</div>'
+  window.parent.postMessage({ type: 'jogak:error', message }, '*')
+}
 
 // 1.0.0-beta.2: body 높이를 부모(chrome SPA의 IframeMount)에 동기화 — iframe element height
 // 갱신으로 내부 scroll 회피. ResizeObserver는 frame 단위 throttle.

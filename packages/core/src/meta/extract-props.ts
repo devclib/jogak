@@ -35,6 +35,10 @@ export interface ExtractedMetaPayload {
    * 추출 단계에서는 사용자가 명시한 raw 값만 전달 — 전역 fallback은 plugin 측에서 결정.
    */
   readonly framework?: JogakFramework
+  /**
+   * 1.0.0 post-1.0: MDX docs 상대 경로 (JogakMeta.docs).
+   */
+  readonly docs?: string
 }
 
 export interface PropsExtractor {

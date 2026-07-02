@@ -45,6 +45,10 @@ export interface ExtractedMeta {
    * 적용.
    */
   readonly framework?: JogakFramework
+  /**
+   * 1.0.0 post-1.0: MDX docs 상대 경로 (default export의 `docs` 필드).
+   */
+  readonly docs?: string
 }
 
 export interface InProcessExtractor {
@@ -579,6 +583,8 @@ export function extractMetaFromSourceFile(sourceFile: SourceFile): ExtractedMeta
   const parameters = readJsonObjectProperty(defaultObj, 'parameters')
   // 알파.14.1: framework string literal 추출. 알려진 값만 통과.
   const framework = readFrameworkProperty(defaultObj)
+  // 1.0.0 post-1.0: docs 상대 경로 추출.
+  const docs = readStringPropertyLiteral(defaultObj, 'docs')
 
   const jogakNames = collectNamedExportJogakNames(sourceFile)
   const jogakDefaultArgs = collectNamedExportJogakArgs(sourceFile)
@@ -595,6 +601,7 @@ export function extractMetaFromSourceFile(sourceFile: SourceFile): ExtractedMeta
     userArgTypes,
     metaExtras,
     ...(framework !== undefined ? { framework } : {}),
+    ...(docs !== undefined ? { docs } : {}),
   }
 }
 
