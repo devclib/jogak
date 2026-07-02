@@ -191,8 +191,13 @@ export function IframeMount({
         className="jogak:block jogak:w-full jogak:min-h-[256px] jogak:border-none"
         // 1.0.0-beta.2: contentHeight 받은 후 자연 높이로 갱신 (내부 scroll 회피).
         // 'jogak:height' postMessage 수신 시점에만 inline style — 다른 정적 속성은 className.
+        // 1.2.0 post-1.2: transition으로 flicker 완화 — rAF debounce와 병행.
         // eslint-disable-next-line no-restricted-syntax -- jogak: dynamic height sync from iframe content
-        style={contentHeight !== null ? { height: `${contentHeight}px` } : undefined}
+        style={
+          contentHeight !== null
+            ? { height: `${contentHeight}px`, transition: 'height 100ms ease-out' }
+            : undefined
+        }
       />
       {errorMessage !== null ? (
         <div
