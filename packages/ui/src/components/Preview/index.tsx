@@ -157,6 +157,9 @@ export function Preview({
   const [theme, setTheme] = useState<string | null>(themes && themes.length > 0 ? themes[0]! : null)
   // 1.0.0 post-1.0: MDX docs view mode. meta.docs 있을 때만 tab 노출.
   const [viewMode, setViewMode] = useState<'component' | 'docs'>('component')
+  // 1.1.0 post-1.0: Play 함수 실행 트리거 + 결과 (Storybook addon-interactions 대응).
+  const [playTrigger, setPlayTrigger] = useState<number>(0)
+  const [playResult, setPlayResult] = useState<{ status: 'ok' | 'error' | 'no-play'; message?: string } | null>(null)
 
   const prismTheme = resolvePrismTheme(codeTheme)
 
@@ -227,6 +230,10 @@ export function Preview({
       onThemeChange={setTheme}
       viewMode={viewMode}
       onViewModeChange={setViewMode}
+      playTrigger={playTrigger}
+      onPlayClick={() => { setPlayResult(null); setPlayTrigger((n) => n + 1) }}
+      playResult={playResult}
+      onPlayResult={setPlayResult}
     />
   )
 }
@@ -324,6 +331,10 @@ interface ReadyFrameProps {
   readonly onThemeChange: (theme: string) => void
   readonly viewMode: 'component' | 'docs'
   readonly onViewModeChange: (mode: 'component' | 'docs') => void
+  readonly playTrigger: number
+  readonly onPlayClick: () => void
+  readonly playResult: { status: 'ok' | 'error' | 'no-play'; message?: string } | null
+  readonly onPlayResult: (result: { status: 'ok' | 'error' | 'no-play'; message?: string }) => void
 }
 
 function ReadyFrame({
@@ -350,6 +361,10 @@ function ReadyFrame({
   onThemeChange,
   viewMode,
   onViewModeChange,
+  playTrigger,
+  onPlayClick,
+  playResult,
+  onPlayResult,
 }: ReadyFrameProps): ReactElement {
   // jogakName이 비어있으면 (deep link `?entry=...&jogak` 누락) 첫 jogak로 보정.
   const resolvedJogakName = jogakName ?? entry.jogaks[0]?.name ?? null
@@ -403,6 +418,9 @@ function ReadyFrame({
         docsAvailable={typeof entry.meta.docs === 'string' && entry.meta.docs.length > 0}
         viewMode={viewMode}
         onViewModeChange={onViewModeChange}
+        playAvailable={typeof jogak.play === 'function'}
+        onPlayClick={onPlayClick}
+        playResult={playResult}
       />
 
       {/* ── 캔버스 ───────────────────────────────────────── */}
@@ -433,6 +451,9 @@ function ReadyFrame({
             activeTheme={theme}
             viewMode={viewMode}
             docsPath={typeof entry.meta.docs === 'string' ? entry.meta.docs : null}
+            jogakName={jogak.name}
+            playTrigger={playTrigger}
+            onPlayResult={onPlayResult}
           />
         </div>
       </div>
@@ -503,6 +524,9 @@ interface ToolbarProps {
   readonly docsAvailable?: boolean
   readonly viewMode?: 'component' | 'docs'
   readonly onViewModeChange?: (mode: 'component' | 'docs') => void
+  readonly playAvailable?: boolean
+  readonly onPlayClick?: () => void
+  readonly playResult?: { status: 'ok' | 'error' | 'no-play'; message?: string } | null
 }
 
 function Toolbar({
@@ -520,6 +544,9 @@ function Toolbar({
   docsAvailable,
   viewMode,
   onViewModeChange,
+  playAvailable,
+  onPlayClick,
+  playResult,
 }: ToolbarProps): ReactElement {
   return (
     <div className="jogak:flex jogak:items-center jogak:gap-[10px] jogak:px-[14px] jogak:py-[7px] jogak:border-b jogak:border-[var(--jogak-color-border)] jogak:bg-[var(--jogak-color-bg)] jogak:shrink-0">
@@ -552,6 +579,26 @@ function Toolbar({
           </button>
         ))}
       </div>
+
+      {/* 1.1.0 post-1.0: Play 함수 실행 버튼 — jogak.play 있을 때만 */}
+      {playAvailable === true && onPlayClick !== undefined && (
+        <button
+          type="button"
+          data-testid="toolbar-play"
+          onClick={onPlayClick}
+          title="Run play function"
+          className={clsx(
+            'jogak:px-2 jogak:py-[3px] jogak:text-[12px] jogak:border-none jogak:rounded-[var(--jogak-radius-md)] jogak:cursor-pointer jogak:transition-all jogak:duration-100',
+            playResult?.status === 'ok'
+              ? 'jogak:bg-[var(--jogak-color-accent-bg-soft)] jogak:text-[var(--jogak-color-accent-fg)]'
+              : playResult?.status === 'error'
+                ? 'jogak:bg-[color:rgb(254_226_226)] jogak:text-[color:rgb(153_27_27)]'
+                : 'jogak:bg-[var(--jogak-color-bg-subtle)] jogak:text-[var(--jogak-color-fg-strong)]',
+          )}
+        >
+          {playResult?.status === 'ok' ? 'PASS' : playResult?.status === 'error' ? 'FAIL' : '▶ Play'}
+        </button>
+      )}
 
       {/* 1.0.0 post-1.0: docs view mode toggle — meta.docs 있을 때만 */}
       {docsAvailable === true && viewMode !== undefined && onViewModeChange !== undefined && (
@@ -655,6 +702,9 @@ interface JogakRendererProps {
   readonly viewMode?: 'component' | 'docs' | undefined
   /** 1.0.0 post-1.0: MDX docs 파일 경로 (JogakMeta.docs). */
   readonly docsPath?: string | null | undefined
+  readonly jogakName?: string | undefined
+  readonly playTrigger?: number | undefined
+  readonly onPlayResult?: ((result: { status: 'ok' | 'error' | 'no-play'; message?: string }) => void) | undefined
 }
 
 /**
@@ -664,7 +714,7 @@ interface JogakRendererProps {
  * - `'shadow'` (deprecated) — `<ShadowMount>` 안에 마운트.
  * - `'none'` (deprecated) — 같은 document에 직접 마운트.
  */
-function JogakRenderer({ entry, args, theme, previewIsolation, userPreviewUrl, previewEntryPath, onA11yResult, activeTheme, viewMode, docsPath }: JogakRendererProps): ReactElement {
+function JogakRenderer({ entry, args, theme, previewIsolation, userPreviewUrl, previewEntryPath, onA11yResult, activeTheme, viewMode, docsPath, jogakName, playTrigger, onPlayResult }: JogakRendererProps): ReactElement {
   const [showCode, setShowCode] = useState(false)
   // 알파.10.3: 코드 패널은 jogak 메타 파일이 아니라 현재 args 기반 사용 코드를 노출.
   const usageCode = formatUsageCode(entry, args)
@@ -681,6 +731,9 @@ function JogakRenderer({ entry, args, theme, previewIsolation, userPreviewUrl, p
         activeTheme={activeTheme}
         viewMode={viewMode}
         docsPath={docsPath}
+        jogakName={jogakName}
+        playTrigger={playTrigger}
+        onPlayResult={onPlayResult}
       />
       <button
         type="button"
@@ -728,13 +781,16 @@ interface PreviewMountProps {
   readonly activeTheme?: string | null | undefined
   readonly viewMode?: 'component' | 'docs' | undefined
   readonly docsPath?: string | null | undefined
+  readonly jogakName?: string | undefined
+  readonly playTrigger?: number | undefined
+  readonly onPlayResult?: ((result: { status: 'ok' | 'error' | 'no-play'; message?: string }) => void) | undefined
 }
 
 const PREVIEW_HOST_CLASS =
   'jogak:border jogak:border-dashed jogak:border-[var(--jogak-color-border)] ' +
   'jogak:rounded-[var(--jogak-radius-xl)] jogak:p-4 jogak:pb-9'
 
-function PreviewMount({ entry, args, previewIsolation, userPreviewUrl, previewEntryPath, onA11yResult, activeTheme, viewMode, docsPath }: PreviewMountProps): ReactElement {
+function PreviewMount({ entry, args, previewIsolation, userPreviewUrl, previewEntryPath, onA11yResult, activeTheme, viewMode, docsPath, jogakName, playTrigger, onPlayResult }: PreviewMountProps): ReactElement {
   if (previewIsolation === 'shadow') {
     return (
       <ShadowMount
@@ -757,6 +813,9 @@ function PreviewMount({ entry, args, previewIsolation, userPreviewUrl, previewEn
         activeTheme={activeTheme}
         viewMode={viewMode}
         docsPath={docsPath}
+        jogakName={jogakName}
+        playTrigger={playTrigger}
+        onPlayResult={onPlayResult}
         data-testid="preview-content"
         className={`${PREVIEW_HOST_CLASS} jogak:block jogak:w-full jogak:bg-transparent jogak:min-h-[256px]`}
       />

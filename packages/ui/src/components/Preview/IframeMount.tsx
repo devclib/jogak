@@ -32,6 +32,12 @@ export interface IframeMountProps {
   readonly viewMode?: 'component' | 'docs' | undefined
   /** 1.0.0 post-1.0: MDX docs 파일 경로 (jogak.meta.docs). */
   readonly docsPath?: string | null | undefined
+  /** 1.1.0 post-1.0: Play 함수 트리거 — 값이 증가하면 iframe에 runPlay 전송. */
+  readonly playTrigger?: number | undefined
+  /** 1.1.0 post-1.0: 현재 선택된 jogak variant name — setProps에 함께 전달. */
+  readonly jogakName?: string | null | undefined
+  /** 1.1.0 post-1.0: Play 결과 콜백. */
+  readonly onPlayResult?: ((result: { status: 'ok' | 'error' | 'no-play'; message?: string }) => void) | undefined
   readonly className?: string
   readonly 'data-testid'?: string
 }
@@ -61,6 +67,11 @@ export function IframeMount({
   previewEntryPath,
   onA11yResult,
   activeTheme,
+  viewMode,
+  docsPath,
+  jogakName,
+  playTrigger,
+  onPlayResult,
   className,
   'data-testid': dataTestId,
 }: IframeMountProps): ReactElement {
@@ -96,6 +107,11 @@ export function IframeMount({
           violations: data.violations as readonly JogakA11yViolation[],
           notInstalled: data.notInstalled === true,
         })
+      } else if (data.type === 'jogak:playResult' && typeof data.status === 'string') {
+        onPlayResult?.({
+          status: data.status as 'ok' | 'error' | 'no-play',
+          message: typeof data.message === 'string' ? data.message : undefined,
+        })
       }
     }
     window.addEventListener('message', handler)
@@ -111,10 +127,24 @@ export function IframeMount({
     const iframe = iframeRef.current
     if (iframe === null) return
     iframe.contentWindow?.postMessage(
-      { type: 'jogak:setProps', entryId: entry.id, args },
+      {
+        type: 'jogak:setProps',
+        entryId: entry.id,
+        args,
+        // 1.1.0 post-1.0: jogakName 전달 → iframe이 어느 variant의 play를 실행할지 판별.
+        ...(typeof jogakName === 'string' ? { jogakName } : {}),
+      },
       '*',
     )
-  }, [ready, entry, args])
+  }, [ready, entry, args, jogakName])
+
+  // 1.1.0 post-1.0: Play 함수 실행 — playTrigger가 증가할 때마다 runPlay 전송.
+  useEffect(() => {
+    if (!ready || playTrigger === undefined || playTrigger === 0) return
+    const iframe = iframeRef.current
+    if (iframe === null) return
+    iframe.contentWindow?.postMessage({ type: 'jogak:runPlay' }, '*')
+  }, [ready, playTrigger])
 
   // 1.0.0 post-1.0: Themes addon — ready + activeTheme 변경 시 setTheme 전송.
   useEffect(() => {

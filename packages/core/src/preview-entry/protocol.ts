@@ -14,6 +14,8 @@ export type JogakMessageToFrame =
       readonly type: 'jogak:setProps'
       readonly entryId: string
       readonly args: Readonly<Record<string, unknown>>
+      /** 1.1.0 post-1.0: 현재 선택된 jogak variant name — Play 함수 실행 시 어느 jogak.play 호출할지 판별. */
+      readonly jogakName?: string
     }
   | { readonly type: 'jogak:unmount' }
   | {
@@ -38,6 +40,14 @@ export type JogakMessageToFrame =
       readonly docsPath: string
     }
   | { readonly type: 'jogak:renderComponent' }
+  | {
+      /**
+       * 1.1.0 post-1.0: Play 함수 실행 요청 (Storybook `addon-interactions` 대응).
+       * chrome 툴바의 ▶ 버튼 클릭 시 전송. iframe scope handler가 현재 마운트된 entry의
+       * jogak.play 함수를 async 실행. 결과/에러는 `jogak:playResult`로 chrome에 알림.
+       */
+      readonly type: 'jogak:runPlay'
+    }
 
 /**
  * 1.0.0-beta.3: A11y (axe-core) violation. iframe scope에서 실행 후 부모에 전송.
@@ -72,4 +82,14 @@ export type JogakMessageFromFrame =
       readonly violations: readonly JogakA11yViolation[]
       /** axe-core 미설치 시 true — chrome UI가 install 안내 표시 */
       readonly notInstalled?: boolean
+    }
+  | {
+      /**
+       * 1.1.0 post-1.0: Play 함수 실행 결과.
+       * `status: 'ok'`면 완료, `'error'`면 message로 오류 표시, `'no-play'`면 현재 jogak에
+       * play 함수가 정의되지 않음 (chrome UI가 disabled 표시 또는 안내).
+       */
+      readonly type: 'jogak:playResult'
+      readonly status: 'ok' | 'error' | 'no-play'
+      readonly message?: string
     }

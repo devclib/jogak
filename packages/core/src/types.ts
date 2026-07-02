@@ -66,6 +66,17 @@ export interface JogakMeta {
 }
 
 /**
+ * 1.1.0 post-1.0: Play 함수 인자 (Storybook `PlayFunctionContext` 대응).
+ *
+ * jogak은 최소 필드만 노출 — `canvasElement`는 컴포넌트가 mount된 root 요소.
+ * `@testing-library/user-event` 등 라이브러리는 사용자가 별도 install.
+ */
+export interface JogakPlayContext {
+  readonly canvasElement: HTMLElement
+  readonly args: Readonly<Record<string, unknown>>
+}
+
+/**
  * *.jogak.(ts|tsx) 파일의 named export — 컴포넌트의 개별 사용 예시
  */
 export interface Jogak {
@@ -73,6 +84,29 @@ export interface Jogak {
   readonly args?: Readonly<Record<string, unknown>>
   readonly argTypes?: Readonly<Record<string, ArgType>>
   readonly parameters?: Readonly<Record<string, unknown>>
+  /**
+   * 1.1.0 post-1.0: Play 함수 (Storybook `addon-interactions` 대응).
+   *
+   * mount 완료 후 iframe scope에서 async로 실행된다. `canvasElement`(root 요소)를
+   * 인자로 받아 사용자 상호작용(click, type 등)을 시뮬레이션. `@testing-library/user-event`
+   * 를 사용자가 install해서 활용한다 (jogak은 미번들).
+   *
+   * Chrome 툴바의 ▶ 버튼 클릭 시 실행. 완료/에러는 postMessage로 chrome에 전송.
+   *
+   * @example
+   * ```ts
+   * import { userEvent, within } from '@testing-library/react'
+   *
+   * export const Primary: Jogak = {
+   *   name: 'Primary',
+   *   args: { label: 'Click me' },
+   *   play: async ({ canvasElement }) => {
+   *     await userEvent.click(within(canvasElement).getByRole('button'))
+   *   },
+   * }
+   * ```
+   */
+  readonly play?: (ctx: JogakPlayContext) => void | Promise<void>
 }
 
 /**
