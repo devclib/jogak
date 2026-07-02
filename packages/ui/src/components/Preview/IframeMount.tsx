@@ -82,6 +82,8 @@ export function IframeMount({
   // 컴포넌트 자연 높이에 맞춰 iframe element height 조정 — 내부 scroll 회피.
   // null이면 fallback (min-height만 적용).
   const [contentHeight, setContentHeight] = useState<number | null>(null)
+  // 1.2.0 post-1.2: rAF debounce용 — 프레임 안에 도착한 height는 마지막 값만 반영.
+  const pendingHeightRef = useRef<number | null>(null)
 
   const src =
     userPreviewUrl !== ''
@@ -101,7 +103,15 @@ export function IframeMount({
       else if (data.type === 'jogak:error' && typeof data.message === 'string') {
         setErrorMessage(data.message)
       } else if (data.type === 'jogak:height' && typeof data.height === 'number' && data.height > 0) {
-        setContentHeight(data.height)
+        // 1.2.0 post-1.2: rAF debounce — 짧은 시간 안에 여러 height 오면 한 frame당 1회만 setState.
+        // large args 변경 시 ResizeObserver가 여러 번 fire → flicker 해소.
+        if (pendingHeightRef.current !== null) return
+        pendingHeightRef.current = data.height
+        requestAnimationFrame(() => {
+          const next = pendingHeightRef.current
+          pendingHeightRef.current = null
+          if (next !== null) setContentHeight(next)
+        })
       } else if (data.type === 'jogak:a11y' && Array.isArray(data.violations)) {
         onA11yResult?.({
           violations: data.violations as readonly JogakA11yViolation[],
