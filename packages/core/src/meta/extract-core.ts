@@ -833,6 +833,12 @@ function readJsonValue(node: Node): unknown {
  * `name` 프로퍼티가 문자열 literal인 jogak 객체의 `name` 값들을 모은다.
  */
 function collectNamedExportJogakNames(sourceFile: SourceFile): readonly string[] {
+  // 1.1.0 post-1.0: Storybook CSF3 호환 — .stories.{ts,tsx} 파일에서는 `name` 필드가
+  // 없고 export 이름이 story name (예: `export const Primary: Story = {...}`).
+  // jogak schema는 name 필드 명시가 원칙이지만 stories 파일이면 declaration 이름을 fallback.
+  const filePath = sourceFile.getFilePath()
+  const isStorybookCsf = /\.stories\.(tsx?|jsx?|mjs)$/u.test(filePath)
+
   const out: string[] = []
   for (const stmt of sourceFile.getVariableStatements()) {
     if (!stmt.isExported()) continue
@@ -842,7 +848,10 @@ function collectNamedExportJogakNames(sourceFile: SourceFile): readonly string[]
       if (init === undefined) continue
       const objLit = unwrapToObjectLiteral(init)
       if (objLit === undefined) continue
-      const name = readStringPropertyLiteral(objLit, 'name')
+      let name = readStringPropertyLiteral(objLit, 'name')
+      if (name === undefined && isStorybookCsf) {
+        name = decl.getName()
+      }
       if (name !== undefined) out.push(name)
     }
   }
@@ -857,6 +866,10 @@ function collectNamedExportJogakNames(sourceFile: SourceFile): readonly string[]
 function collectNamedExportJogakArgs(
   sourceFile: SourceFile,
 ): Record<string, Record<string, unknown>> {
+  // 1.1.0 post-1.0: Storybook CSF3 호환 — .stories 파일이면 export 이름을 name fallback.
+  const filePath = sourceFile.getFilePath()
+  const isStorybookCsf = /\.stories\.(tsx?|jsx?|mjs)$/u.test(filePath)
+
   const out: Record<string, Record<string, unknown>> = {}
   for (const stmt of sourceFile.getVariableStatements()) {
     if (!stmt.isExported()) continue
@@ -866,7 +879,10 @@ function collectNamedExportJogakArgs(
       if (init === undefined) continue
       const objLit = unwrapToObjectLiteral(init)
       if (objLit === undefined) continue
-      const jogakName = readStringPropertyLiteral(objLit, 'name')
+      let jogakName = readStringPropertyLiteral(objLit, 'name')
+      if (jogakName === undefined && isStorybookCsf) {
+        jogakName = decl.getName()
+      }
       if (jogakName === undefined) continue
       const argsProp = objLit.getProperty('args')
       if (argsProp === undefined || !Node.isPropertyAssignment(argsProp)) continue
