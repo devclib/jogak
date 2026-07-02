@@ -279,7 +279,7 @@ function injectDocsProseStyle() {
     '[data-jogak-docs] table { border-collapse: collapse; margin: 0 0 16px; font-size: 13px; }',
     '[data-jogak-docs] th, [data-jogak-docs] td { border: 1px solid #e7e5e4; padding: 6px 10px; text-align: left; }',
     '[data-jogak-docs] th { background: #fafaf9; font-weight: 600; }',
-  ].join('\n')
+  ].join('\\n')
   document.head.appendChild(style)
 }
 
