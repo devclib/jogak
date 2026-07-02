@@ -89,6 +89,36 @@ export default {
 }
 ```
 
+## MDX docs (1.2.0+)
+
+Jogak's built-in MDX docs (`meta.docs = './Button.mdx'` + sibling auto-detect) render natively in the Vite adapter. Next requires an extra step because the app router controls its own routing.
+
+**Setup:**
+
+```bash
+pnpm add @next/mdx @mdx-js/loader @mdx-js/react
+```
+
+`next.config.js`:
+
+```js
+import createMDX from '@next/mdx'
+
+const withMDX = createMDX({
+  options: { remarkPlugins: [], rehypePlugins: [] },
+})
+
+export default withMDX({
+  pageExtensions: ['ts', 'tsx', 'md', 'mdx'],
+})
+```
+
+Add a dynamic catch-all route at `app/jogak-docs/[…slug]/page.tsx` (that is, `[three-dots-slug]` in Next's file convention). It awaits `props.params.slug`, joins the array into a path, dynamic-imports the user's MDX file, and renders its `default` export. See the [full example on GitHub](https://github.com/devclib/jogak/tree/main/examples/nextjs) for the complete implementation with TypeScript types.
+
+When the Preview toolbar's "docs" toggle is active, jogak's Next scaffold displays this setup guide directly in-frame if a user MDX page hasn't been configured yet. Once the route above resolves the requested `docsPath`, docs render normally.
+
+**Note:** the Vite adapter compiles `.mdx` in the user's Vite scope and injects prose styles. Next's `@next/mdx` handles compilation itself — style your MDX pages via your own `globals.css`.
+
 ## Working example
 
 See [`examples/nextjs/`](https://github.com/devclib/jogak/tree/main/examples/nextjs) — Next.js 15 App Router with Server `Badge` + Client `Button` side by side.
