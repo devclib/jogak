@@ -5,6 +5,7 @@ import { generateRegistryFile } from '@jogak/core/build'
 import type { JogakConfig } from '@jogak/core'
 import { runDevCommand, type DevCliArgs } from './commands/dev.js'
 import { runBuildCommand, type BuildCliArgs } from './commands/build.js'
+import { runInitCommand, type InitCliArgs } from './commands/init.js'
 import { loadJogakConfig } from './config-loader.js'
 
 interface ParsedArgs {
@@ -160,6 +161,7 @@ function help(): void {
   process.stdout.write(`jogak — component showcase
 
 USAGE
+  jogak init [options]             jogak.config.ts + 첫 예시 컴포넌트/스토리 자동 생성
   jogak generate [options]         (alias: gen)  사용자 프로젝트에 .jogak/registry.ts 생성
   jogak dev [options]              쇼케이스 dev server 실행
   jogak build [options]            쇼케이스 정적 빌드
@@ -173,6 +175,10 @@ COMMON OPTIONS
   --global-css [true|false|path]   사용자 globalCss 적용 (알파.7, 기본: jogak.config 또는 false)
   --preview-isolation <mode>       preview 격리 (none|shadow|iframe, 알파.7, 기본: 'none')
   --help                           도움말 출력
+
+init OPTIONS
+  --path <dir>                     컴포넌트 생성 위치 (기본: 'src/components/Button')
+  --force                          기존 파일도 덮어쓰기 (기본: skip)
 
 generate OPTIONS
   --out <path>                     출력 파일 경로 (기본: '.jogak/registry.ts')
@@ -292,6 +298,13 @@ function parseDevArgs(
   }
 }
 
+function parseInitArgs(parsed: ParsedArgs, cwd: string): InitCliArgs {
+  const componentPath =
+    typeof parsed.flags['path'] === 'string' ? parsed.flags['path'] : 'src/components/Button'
+  const force = parsed.flags['force'] === true
+  return { cwd, force, componentPath }
+}
+
 function parseBuildArgs(parsed: ParsedArgs, fileConfig: JogakConfig): BuildCliArgs {
   const cwd = resolve(asString(parsed.flags['cwd'], process.cwd()))
 
@@ -377,8 +390,16 @@ async function main(): Promise<void> {
   const rest = argv.slice(1)
   const parsed = parseArgs(rest)
 
-  // 알파.7: jogak.config.* 자동 발견 + 로드. CLI 플래그가 override.
   const cwd = resolve(asString(parsed.flags['cwd'], process.cwd()))
+
+  // 1.2.0 post-1.2: `init`은 새 프로젝트 시나리오 — @jogak/core 미설치 상태 가능.
+  // 기존 config가 있어도 load 시도가 실패하면 init 자체가 안 되므로 skip.
+  if (command === 'init') {
+    runInitCommand(parseInitArgs(parsed, cwd))
+    return
+  }
+
+  // 알파.7: jogak.config.* 자동 발견 + 로드. CLI 플래그가 override.
   const explicitConfig =
     typeof parsed.flags['config'] === 'string' ? parsed.flags['config'] : undefined
   const { path: configPath, config: fileConfig } = await loadJogakConfig(
