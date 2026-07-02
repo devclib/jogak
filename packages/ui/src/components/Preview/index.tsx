@@ -13,6 +13,7 @@ import { ShadowMount } from './ShadowMount.js'
 import { IframeMount } from './IframeMount.js'
 import type { A11yResult } from './IframeMount.js'
 import { A11yPanel } from './A11yPanel.js'
+import { PlayResultBanner } from './PlayResultBanner.js'
 import { formatUsageCode } from './format-usage.js'
 
 export interface PreviewProps {
@@ -515,54 +516,6 @@ function ReadyFrame({
           )}
         </div>
       </div>
-    </div>
-  )
-}
-
-// ── PlayResultBanner ─────────────────────────────────────
-
-interface PlayResultBannerProps {
-  readonly result: { status: 'ok' | 'error' | 'no-play'; message?: string }
-  readonly onDismiss: () => void
-}
-
-/**
- * 1.2.0 post-1.2: Play 실행 결과 배너 — Toolbar 아래에 잠시 표시.
- *
- * - `ok`: 초록 배지 "Play passed"
- * - `error`: 빨강 배경 + 에러 message 원문 표시 (assertion trace)
- * - `no-play`: 표시 안 함 (dismiss 상태로 사용)
- */
-function PlayResultBanner({ result, onDismiss }: PlayResultBannerProps): ReactElement | null {
-  if (result.status === 'no-play') return null
-  const isOk = result.status === 'ok'
-  return (
-    <div
-      data-testid="play-result-banner"
-      data-status={result.status}
-      className={clsx(
-        'jogak:flex jogak:items-start jogak:gap-3 jogak:px-4 jogak:py-2 jogak:border-b jogak:border-[var(--jogak-color-border)] jogak:text-[12.5px]',
-        isOk
-          ? 'jogak:bg-[color:rgb(240_253_244)] jogak:text-[color:rgb(21_128_61)]'
-          : 'jogak:bg-[color:rgb(254_242_242)] jogak:text-[color:rgb(153_27_27)]',
-      )}
-    >
-      <span className="jogak:font-semibold jogak:shrink-0">
-        {isOk ? '✓ Play passed' : '✗ Play failed'}
-      </span>
-      {!isOk && result.message !== undefined && result.message.length > 0 && (
-        <code className="jogak:flex-1 jogak:whitespace-pre-wrap jogak:break-words jogak:font-[family-name:var(--jogak-font-mono)] jogak:text-[12px] jogak:leading-tight jogak:min-w-0">
-          {result.message}
-        </code>
-      )}
-      <button
-        type="button"
-        onClick={onDismiss}
-        className="jogak:shrink-0 jogak:px-2 jogak:py-0.5 jogak:text-[11.5px] jogak:border-none jogak:rounded jogak:cursor-pointer jogak:bg-transparent jogak:opacity-70 hover:jogak:opacity-100"
-        aria-label="Dismiss play result"
-      >
-        ✕
-      </button>
     </div>
   )
 }
