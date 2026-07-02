@@ -1,0 +1,33 @@
+import { Button } from './Button'
+
+# Button
+
+A minimal button primitive. Renders a `<button>` with variant + size classes.
+
+## Variants
+
+<div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+  <Button variant="primary">Primary</Button>
+  <Button variant="secondary">Secondary</Button>
+  <Button variant="ghost">Ghost</Button>
+</div>
+
+## When to use
+
+- Actions the user can perform (submit, cancel, delete)
+- One primary action per screen — use `variant="primary"` sparingly
+
+## API
+
+`Button` accepts:
+
+- `variant`: `'primary' | 'secondary' | 'ghost'`
+- `size`: `'sm' | 'md' | 'lg'`
+- `disabled`: `boolean`
+- `onClick`: `(e) => void`
+
+## Accessibility
+
+- Renders as native `<button>` — keyboard focusable by default
+- `aria-disabled` mirrors `disabled` prop
+- `onClick` receives synthetic React event
