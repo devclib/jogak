@@ -23,6 +23,9 @@
     "test:e2e:framework:svelte": "node e2e/framework-smoke.mjs --fixture=svelte",
     "test:e2e:framework": "pnpm test:e2e:framework:vue && pnpm test:e2e:framework:svelte",
     "typecheck": "tsc -b",
+    "changeset": "changeset",
+    "version-packages": "changeset version",
+    "release:local": "pnpm build && changeset publish",
     "clean": "pnpm -r --filter './packages/*' exec rm -rf dist",
     "prebench": "pnpm --filter @jogak/core build",
     "bench": "node benchmarks/run.mjs",
@@ -49,6 +52,8 @@
     }
   },
   "devDependencies": {
+    "@changesets/changelog-github": "^0.5.0",
+    "@changesets/cli": "^2.27.1",
     "@playwright/test": "^1.44.0",
     "@types/node": "^20.14.0",
     "@vitejs/plugin-react": "^4.3.0",

@@ -72,7 +72,7 @@ jobs:
         # 이후 npm publish에 tarball을 직접 넘기면 npm CLI(11+)의 OIDC 인증 흐름을 정확히 탄다.
         run: |
           mkdir -p /tmp/jogak-tgz
-          for pkg in core ui cli; do
+          for pkg in core ui cli codemod; do
             (cd packages/$pkg && pnpm pack --pack-destination /tmp/jogak-tgz)
           done
           ls -la /tmp/jogak-tgz
@@ -100,7 +100,7 @@ jobs:
         run: |
           cd /tmp/jogak-tgz
           DIST_TAG='${{ steps.dist-tag.outputs.tag }}'
-          for pkg in core ui cli; do
+          for pkg in core ui cli codemod; do
             PKG_VER=$(node -p "require(\"$GITHUB_WORKSPACE/packages/$pkg/package.json\").version")
             TGZ="jogak-${pkg}-${PKG_VER}.tgz"
             EXISTS=$(npm view "@jogak/$pkg@$PKG_VER" version 2>/dev/null || true)
@@ -120,7 +120,7 @@ jobs:
           # 한 패키지(예: cli)만 patch bump했을 때 core/ui의 동일 버전을 재-publish하다
           # E403으로 CI가 깨지는 회귀를 방지. 의존성 순서(core → ui → cli)는 유지.
           DIST_TAG='${{ steps.dist-tag.outputs.tag }}'
-          for pkg in core ui cli; do
+          for pkg in core ui cli codemod; do
             PKG_VER=$(node -p "require('/__w/jogak/jogak/packages/$pkg/package.json').version" 2>/dev/null \
               || node -p "require(\"$GITHUB_WORKSPACE/packages/$pkg/package.json\").version")
             TGZ="jogak-${pkg}-${PKG_VER}.tgz"
@@ -154,7 +154,7 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > "$HOME/.npmrc"
-          for pkg in core ui cli; do
+          for pkg in core ui cli codemod; do
             PKG_VER=$(node -p "require('/__w/jogak/jogak/packages/$pkg/package.json').version" 2>/dev/null \
               || node -p "require(\"$GITHUB_WORKSPACE/packages/$pkg/package.json\").version")
             CURRENT_LATEST=$(npm view "@jogak/$pkg" dist-tags.latest 2>/dev/null || echo "")
