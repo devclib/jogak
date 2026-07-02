@@ -1,4 +1,4 @@
-import { resolve } from 'node:path'
+import { resolve, dirname, basename, extname, join } from 'node:path'
 import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import type { Plugin, ViteDevServer } from 'vite'
@@ -158,6 +158,20 @@ export function jogak(options: JogakPluginOptions = {}): Plugin {
       const framework: JogakFramework =
         metaPayload.framework ?? globalFramework ?? 'react'
 
+      // 1.1.0 post-1.0: MDX auto-detect. meta.docs 명시 없으면 sibling .mdx 감지.
+      // `Button.jogak.tsx` → 같은 디렉토리의 `Button.mdx` 있으면 상대 경로 자동 연결.
+      let resolvedDocs = metaPayload.docs
+      if (resolvedDocs === undefined) {
+        const dir = dirname(file)
+        const base = basename(file, extname(file))
+        // basename에서 `.jogak`이 아직 있으면 (예: Button.jogak) 그 부분도 제거.
+        const stem = base.endsWith('.jogak') ? base.slice(0, -'.jogak'.length) : base
+        const candidate = join(dir, `${stem}.mdx`)
+        if (existsSync(candidate)) {
+          resolvedDocs = `./${stem}.mdx`
+        }
+      }
+
       const meta: RegistryEntryMeta = {
         id,
         title: metaPayload.title,
@@ -169,7 +183,7 @@ export function jogak(options: JogakPluginOptions = {}): Plugin {
         filePath: file,
         metaExtras: metaPayload.metaExtras,
         framework,
-        ...(metaPayload.docs !== undefined ? { docs: metaPayload.docs } : {}),
+        ...(resolvedDocs !== undefined ? { docs: resolvedDocs } : {}),
       }
       // F4: lastSig 채움 (HMR 시 비교 기준)
       lastSig.set(file, sigOf(meta))
