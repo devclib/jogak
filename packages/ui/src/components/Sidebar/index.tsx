@@ -1,8 +1,16 @@
-import { useState, useEffect } from 'react'
-import type { CSSProperties, ReactElement } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import type { CSSProperties, ReactElement, DragEvent } from 'react'
 import clsx from 'clsx'
 import type { CategoryMetaTree, RegistryEntryMeta } from '@jogak/core'
 import { useRegistryMeta } from '@jogak/core/renderers/react'
+import {
+  loadReorderMap,
+  saveReorderMap,
+  applyOrder,
+  reorderInPlace,
+  updateOrder,
+  type ReorderMap,
+} from './reorder-store.js'
 
 // CSS custom property를 React style prop에 주입하기 위한 헬퍼 타입.
 // React 18+는 string-keyed `--` prefix를 인식하나 TS는 명시적 cast 필요.
@@ -28,6 +36,22 @@ export function Sidebar({
   const { metaTree, searchMeta, metas: allMetas } = useRegistryMeta()
 
   const filtered = query.trim().length > 0 ? searchMeta(query) : null
+
+  // 1.2.0 post-1.2: 사용자 커스텀 순서 — localStorage 지속.
+  const [reorderMap, setReorderMap] = useState<ReorderMap>(() => loadReorderMap())
+  const handleReorder = useCallback((parentKey: string, dragged: string, dropTarget: string) => {
+    setReorderMap((prev) => {
+      // 현재 parentKey 안 자식 노드 목록을 tree에서 추출 후 재정렬 → save.
+      const parentNode = getNodeAt(metaTree, parentKey)
+      if (parentNode === undefined) return prev
+      const keys = Object.keys(parentNode)
+      const currentOrder = applyOrder(keys, parentKey, prev)
+      const next = reorderInPlace(currentOrder, dragged, dropTarget)
+      const updated = updateOrder(prev, parentKey, next)
+      saveReorderMap(updated)
+      return updated
+    })
+  }, [metaTree])
 
   // 1.2.0 post-1.2: Keyboard navigation — ↑/↓로 jogak variant 순회, Enter로 확정.
   // 검색 결과 있을 땐 flat 순회, 없으면 metaTree flatten.
@@ -115,6 +139,8 @@ export function Sidebar({
             selectedEntryId={selectedEntryId}
             selectedJogakName={selectedJogakName}
             onSelect={onSelect}
+            reorderMap={reorderMap}
+            onReorder={handleReorder}
           />
         )}
       </nav>
@@ -257,12 +283,33 @@ function highlightMatch(text: string, query: string | undefined): ReactElement |
   return <>{parts}</>
 }
 
+/**
+ * 1.2.0 post-1.2: metaTree에서 path (예: '', 'Components', 'Components/Buttons')에 해당하는 노드 반환.
+ */
+function getNodeAt(tree: CategoryMetaTree, path: string): CategoryMetaTree | undefined {
+  if (path === '') return tree
+  const parts = path.split('/')
+  let node: CategoryMetaTree | RegistryEntryMeta | undefined = tree
+  for (const p of parts) {
+    if (node === undefined || 'id' in node) return undefined
+    node = node[p]
+  }
+  if (node === undefined || 'id' in node) return undefined
+  return node
+}
+
 interface TreeViewProps {
   readonly node: CategoryMetaTree
   readonly selectedEntryId: string | null
   readonly selectedJogakName: string | null
   readonly onSelect: (entryId: string, jogakName: string) => void
   readonly depth?: number
+  /** 1.2.0 post-1.2: 사용자 커스텀 순서 map. */
+  readonly reorderMap?: ReorderMap | undefined
+  /** 1.2.0 post-1.2: parentKey 안에서 dragged를 dropTarget 앞으로 이동. */
+  readonly onReorder?: ((parentKey: string, dragged: string, dropTarget: string) => void) | undefined
+  /** 1.2.0 post-1.2: 현재 노드의 parent path (root=''). */
+  readonly parentPath?: string | undefined
 }
 
 function TreeView({
@@ -271,35 +318,68 @@ function TreeView({
   selectedJogakName,
   onSelect,
   depth = 0,
+  reorderMap,
+  onReorder,
+  parentPath = '',
 }: TreeViewProps): ReactElement {
+  const entries = Object.entries(node)
+  const orderedKeys = applyOrder(entries.map(([k]) => k), parentPath, reorderMap ?? {})
+  const entryMap = new Map(entries)
   return (
     <ul
       className="jogak:list-none jogak:m-0 jogak:pr-0 jogak:py-0 jogak:pl-[var(--jogak-tree-pl)]"
       // eslint-disable-next-line no-restricted-syntax -- jogak: CSS var inject (--jogak-tree-pl)
       style={{ '--jogak-tree-pl': `${depth * 12}px` } as CSSVarStyle}
     >
-      {Object.entries(node).map(([key, child]) => (
-        <li key={key}>
-          {'id' in child ? (
-            <EntryGroup
-              meta={child as RegistryEntryMeta}
-              selectedEntryId={selectedEntryId}
-              selectedJogakName={selectedJogakName}
-              onSelect={onSelect}
-              indent={0}
-            />
-          ) : (
-            <CategoryGroup
-              label={key}
-              node={child as CategoryMetaTree}
-              selectedEntryId={selectedEntryId}
-              selectedJogakName={selectedJogakName}
-              onSelect={onSelect}
-              depth={depth + 1}
-            />
-          )}
-        </li>
-      ))}
+      {orderedKeys.map((key) => {
+        const child = entryMap.get(key)
+        if (child === undefined) return null
+        return (
+          <li
+            key={key}
+            draggable={onReorder !== undefined}
+            onDragStart={(e: DragEvent<HTMLLIElement>) => {
+              e.dataTransfer.setData('application/x-jogak-sidebar-key', key)
+              e.dataTransfer.effectAllowed = 'move'
+            }}
+            onDragOver={(e: DragEvent<HTMLLIElement>) => {
+              if (e.dataTransfer.types.includes('application/x-jogak-sidebar-key')) {
+                e.preventDefault()
+                e.dataTransfer.dropEffect = 'move'
+              }
+            }}
+            onDrop={(e: DragEvent<HTMLLIElement>) => {
+              const dragged = e.dataTransfer.getData('application/x-jogak-sidebar-key')
+              if (dragged !== '' && dragged !== key && onReorder !== undefined) {
+                e.preventDefault()
+                onReorder(parentPath, dragged, key)
+              }
+            }}
+          >
+            {'id' in child ? (
+              <EntryGroup
+                meta={child as RegistryEntryMeta}
+                selectedEntryId={selectedEntryId}
+                selectedJogakName={selectedJogakName}
+                onSelect={onSelect}
+                indent={0}
+              />
+            ) : (
+              <CategoryGroup
+                label={key}
+                node={child as CategoryMetaTree}
+                selectedEntryId={selectedEntryId}
+                selectedJogakName={selectedJogakName}
+                onSelect={onSelect}
+                depth={depth + 1}
+                reorderMap={reorderMap}
+                onReorder={onReorder}
+                parentPath={parentPath === '' ? key : `${parentPath}/${key}`}
+              />
+            )}
+          </li>
+        )
+      })}
     </ul>
   )
 }
@@ -311,6 +391,9 @@ interface CategoryGroupProps {
   readonly selectedJogakName: string | null
   readonly onSelect: (entryId: string, jogakName: string) => void
   readonly depth: number
+  readonly reorderMap?: ReorderMap | undefined
+  readonly onReorder?: ((parentKey: string, dragged: string, dropTarget: string) => void) | undefined
+  readonly parentPath?: string | undefined
 }
 
 function CategoryGroup({
@@ -320,6 +403,9 @@ function CategoryGroup({
   selectedJogakName,
   onSelect,
   depth,
+  reorderMap,
+  onReorder,
+  parentPath,
 }: CategoryGroupProps): ReactElement {
   const [open, setOpen] = useState(true)
   return (
@@ -342,6 +428,9 @@ function CategoryGroup({
           selectedJogakName={selectedJogakName}
           onSelect={onSelect}
           depth={depth}
+          reorderMap={reorderMap}
+          onReorder={onReorder}
+          parentPath={parentPath}
         />
       )}
     </div>
