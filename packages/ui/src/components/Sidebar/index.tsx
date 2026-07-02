@@ -21,6 +21,8 @@ export interface SidebarProps {
   readonly selectedEntryId: string | null
   readonly selectedJogakName: string | null
   readonly onSelect: (entryId: string, jogakName: string) => void
+  /** 1.2.0 post-1.2: Storybook Composition — 외부 링크 그룹 (jogak.config refs). */
+  readonly refs?: Readonly<Record<string, { readonly title: string; readonly url: string }>> | undefined
 }
 
 /**
@@ -31,6 +33,7 @@ export function Sidebar({
   selectedEntryId,
   selectedJogakName,
   onSelect,
+  refs,
 }: SidebarProps): ReactElement {
   const [query, setQuery] = useState('')
   const { metaTree, searchMeta, metas: allMetas } = useRegistryMeta()
@@ -134,14 +137,19 @@ export function Sidebar({
         ) : Object.keys(metaTree).length === 0 ? (
           <SidebarEmptyState />
         ) : (
-          <TreeView
-            node={metaTree}
-            selectedEntryId={selectedEntryId}
-            selectedJogakName={selectedJogakName}
-            onSelect={onSelect}
-            reorderMap={reorderMap}
-            onReorder={handleReorder}
-          />
+          <>
+            <TreeView
+              node={metaTree}
+              selectedEntryId={selectedEntryId}
+              selectedJogakName={selectedJogakName}
+              onSelect={onSelect}
+              reorderMap={reorderMap}
+              onReorder={handleReorder}
+            />
+            {refs !== undefined && Object.keys(refs).length > 0 && (
+              <RefsGroup refs={refs} />
+            )}
+          </>
         )}
       </nav>
     </aside>
@@ -281,6 +289,44 @@ function highlightMatch(text: string, query: string | undefined): ReactElement |
   }
   if (cursor < text.length) parts.push(<span key={`p${key++}`}>{text.slice(cursor)}</span>)
   return <>{parts}</>
+}
+
+/**
+ * 1.2.0 post-1.2: Storybook Composition — 외부 링크 그룹 (사이드바 하단).
+ */
+function RefsGroup({
+  refs,
+}: {
+  readonly refs: Readonly<Record<string, { readonly title: string; readonly url: string }>>
+}): ReactElement {
+  return (
+    <div
+      data-testid="sidebar-refs"
+      className="jogak:mt-4 jogak:border-t jogak:border-[var(--jogak-color-border)] jogak:pt-3"
+    >
+      <div className="jogak:px-3 jogak:mb-2 jogak:text-[11px] jogak:font-semibold jogak:uppercase jogak:tracking-wider jogak:text-[var(--jogak-color-fg-muted)]">
+        Composition
+      </div>
+      <ul className="jogak:list-none jogak:m-0 jogak:p-0">
+        {Object.entries(refs).map(([key, ref]) => (
+          <li key={key}>
+            <a
+              href={ref.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-testid="sidebar-ref-link"
+              className="jogak:flex jogak:items-center jogak:gap-2 jogak:px-3 jogak:py-1.5 jogak:text-[13px] jogak:text-[var(--jogak-color-fg)] jogak:no-underline hover:jogak:bg-[var(--jogak-color-bg-subtle)]"
+            >
+              <span className="jogak:text-[10px] jogak:shrink-0 jogak:leading-none jogak:text-[var(--jogak-color-fg-subtle)]">
+                ↗
+              </span>
+              {ref.title}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
 }
 
 /**

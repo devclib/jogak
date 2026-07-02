@@ -7,6 +7,7 @@ import {
   _jogakUserPreviewUrl,
   _jogakPreviewEntryPath,
   _jogakThemes,
+  _jogakRefs,
 } from 'virtual:jogak'
 import '../styles/jogak.css'
 import { JogakApp } from './App.js'
@@ -28,6 +29,7 @@ createRoot(rootEl).render(
       userPreviewUrl={_jogakUserPreviewUrl}
       previewEntryPath={_jogakPreviewEntryPath}
       themes={_jogakThemes ?? undefined}
+      refs={_jogakRefs ?? undefined}
     />
   </StrictMode>,
 )

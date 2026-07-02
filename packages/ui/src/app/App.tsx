@@ -49,6 +49,10 @@ export interface JogakAppProps {
    * 명시하면 자동으로 Preview toolbar에 selector 노출.
    */
   readonly themes?: readonly string[] | undefined
+  /**
+   * 1.2.0 post-1.2: Storybook Composition (외부 링크 그룹). sidebar에 refs 그룹으로 노출.
+   */
+  readonly refs?: Readonly<Record<string, { readonly title: string; readonly url: string }>> | undefined
 }
 
 function readUrlParams(): {
@@ -83,6 +87,7 @@ export function JogakApp({
   previewEntryPath = '/__jogak_preview__/index.html',
   userViteUrl,
   themes,
+  refs,
 }: JogakAppProps = {}): ReactElement {
   // 알파.9: userViteUrl alias (deprecated). userPreviewUrl 우선.
   const resolvedPreviewUrl = userPreviewUrl !== '' ? userPreviewUrl : (userViteUrl ?? '')
@@ -181,6 +186,7 @@ export function JogakApp({
           selectedEntryId={selectedEntryId}
           selectedJogakName={selectedJogakName}
           onSelect={handleSelect}
+          refs={refs}
         />
         <main className="jogak:overflow-hidden jogak:min-h-0">
           {selectedEntryId !== null ? (

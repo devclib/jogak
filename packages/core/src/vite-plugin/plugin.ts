@@ -89,6 +89,8 @@ export function jogak(options: JogakPluginOptions = {}): Plugin {
   const configPath = options.configPath
   // 1.1.0 post-1.0: Themes addon. chrome scope에 emit → App.tsx가 Preview에 pass.
   const themes = options.themes
+  // 1.2.0 post-1.2: Storybook Composition — 외부 링크 그룹.
+  const refs = options.refs
 
   let devServer: ViteDevServer | undefined
   let extractor: PropsExtractor | undefined
@@ -345,6 +347,7 @@ export const _jogakUserPreviewUrl = ${JSON.stringify(userPreviewUrl)}
 export const _jogakPreviewEntryPath = ${JSON.stringify(previewEntryPath)}
 export const _jogakUserViteUrl = ${JSON.stringify(userPreviewUrl)}
 export const _jogakThemes = ${JSON.stringify(themes ?? null)}
+export const _jogakRefs = ${JSON.stringify(refs ?? null)}
 export const _jogakMetas = _metas
 `
 

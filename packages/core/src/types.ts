@@ -422,6 +422,23 @@ export interface JogakPluginOptions {
    * ```
    */
   readonly themes?: readonly string[]
+  /**
+   * 1.2.0 post-1.2: Storybook Composition 대응 (minimal — 외부 링크 그룹).
+   *
+   * 다른 jogak/storybook 인스턴스를 sidebar에 external ref 그룹으로 노출한다.
+   * embed는 하지 않음 — 클릭 시 새 탭. 대기업/모노레포에서 팀별 sub-storybook을
+   * 한 곳에서 볼 수 있도록 하는 정도.
+   *
+   * ```ts
+   * export default defineJogakConfig({
+   *   refs: {
+   *     design: { title: 'Design System', url: 'https://design.example.com' },
+   *     mobile: { title: 'Mobile App', url: 'https://mobile.example.com/storybook' },
+   *   },
+   * })
+   * ```
+   */
+  readonly refs?: Readonly<Record<string, { readonly title: string; readonly url: string }>>
 }
 
 /**
