@@ -27,6 +27,10 @@ declare module 'virtual:jogak' {
    * 1.1.0: Themes addon. `JogakPluginOptions.themes` (string[]) 또는 null 미지정 시.
    */
   export const _jogakThemes: readonly string[] | null
+  /**
+   * 1.2.0 post-1.2: Storybook Composition — 외부 링크 그룹. null 미지정 시.
+   */
+  export const _jogakRefs: Readonly<Record<string, { readonly title: string; readonly url: string }>> | null
 }
 
 declare module 'virtual:jogak/global-css' {
