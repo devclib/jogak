@@ -25,9 +25,57 @@ export function Sidebar({
   onSelect,
 }: SidebarProps): ReactElement {
   const [query, setQuery] = useState('')
-  const { metaTree, searchMeta } = useRegistryMeta()
+  const { metaTree, searchMeta, metas: allMetas } = useRegistryMeta()
 
   const filtered = query.trim().length > 0 ? searchMeta(query) : null
+
+  // 1.2.0 post-1.2: Keyboard navigation — ↑/↓로 jogak variant 순회, Enter로 확정.
+  // 검색 결과 있을 땐 flat 순회, 없으면 metaTree flatten.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const handleKeydown = (e: KeyboardEvent): void => {
+      // input/textarea 안에서는 무시 (Sidebar search input 포함).
+      const target = e.target as HTMLElement | null
+      const tag = target?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || target?.isContentEditable === true) return
+      if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return
+      // Ctrl/Cmd/Alt modifier가 눌린 경우 무시 (다른 shortcut과 충돌 회피).
+      if (e.ctrlKey || e.metaKey || e.altKey) return
+
+      // 현재 metas 목록 — 검색 중이면 filtered, 아니면 allMetas.
+      const metas: readonly RegistryEntryMeta[] = filtered ?? allMetas
+      if (metas.length === 0) return
+
+      // 현재 선택된 entry의 jogak variants를 flatten.
+      // 목표: 다음/이전 (entry.id, jogakName) 쌍으로 이동.
+      const flat: { entryId: string; jogakName: string }[] = []
+      for (const m of metas) {
+        for (const name of m.jogakNames) {
+          flat.push({ entryId: m.id, jogakName: name })
+        }
+      }
+      if (flat.length === 0) return
+
+      const currentIdx = flat.findIndex(
+        (f) => f.entryId === selectedEntryId && f.jogakName === selectedJogakName,
+      )
+      const nextIdx =
+        e.key === 'ArrowDown'
+          ? currentIdx < 0
+            ? 0
+            : Math.min(currentIdx + 1, flat.length - 1)
+          : currentIdx <= 0
+            ? 0
+            : currentIdx - 1
+      const target2 = flat[nextIdx]
+      if (target2 === undefined) return
+      if (target2.entryId === selectedEntryId && target2.jogakName === selectedJogakName) return
+      e.preventDefault()
+      onSelect(target2.entryId, target2.jogakName)
+    }
+    window.addEventListener('keydown', handleKeydown)
+    return () => { window.removeEventListener('keydown', handleKeydown) }
+  }, [filtered, allMetas, selectedEntryId, selectedJogakName, onSelect])
 
   return (
     <aside

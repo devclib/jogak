@@ -581,8 +581,19 @@ function Toolbar({
   onPlayClick,
   playResult,
 }: ToolbarProps): ReactElement {
+  // 1.2.0 post-1.2: docs mode 컨텍스트 시각 강조 — 툴바 배경 옅게 변경.
+  const isDocsMode = viewMode === 'docs'
   return (
-    <div className="jogak:flex jogak:items-center jogak:gap-[10px] jogak:px-[14px] jogak:py-[7px] jogak:border-b jogak:border-[var(--jogak-color-border)] jogak:bg-[var(--jogak-color-bg)] jogak:shrink-0">
+    <div
+      data-testid="preview-toolbar"
+      data-view-mode={viewMode}
+      className={clsx(
+        'jogak:flex jogak:items-center jogak:gap-[10px] jogak:px-[14px] jogak:py-[7px] jogak:border-b jogak:border-[var(--jogak-color-border)] jogak:shrink-0 jogak:transition-colors jogak:duration-150',
+        isDocsMode
+          ? 'jogak:bg-[color:rgb(238_242_255)]'
+          : 'jogak:bg-[var(--jogak-color-bg)]',
+      )}
+    >
       <div className="jogak:flex-1 jogak:text-[13px]">
         <span className="jogak:text-[var(--jogak-color-fg-subtle)]">{title}</span>
         <span className="jogak:text-[var(--jogak-color-border-strong)] jogak:mx-1.5 jogak:leading-none">
@@ -591,6 +602,14 @@ function Toolbar({
         <span className="jogak:text-[var(--jogak-color-fg-strong)] jogak:font-semibold">
           {jogakName}
         </span>
+        {isDocsMode && (
+          <span
+            data-testid="docs-mode-indicator"
+            className="jogak:ml-2 jogak:px-1.5 jogak:py-0.5 jogak:text-[11px] jogak:font-semibold jogak:rounded jogak:bg-[color:rgb(199_210_254)] jogak:text-[color:rgb(55_48_163)]"
+          >
+            📄 Docs
+          </span>
+        )}
       </div>
 
       {/* 뷰포트 토글 */}
