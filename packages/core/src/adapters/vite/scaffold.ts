@@ -161,6 +161,8 @@ window.addEventListener('message', (event: MessageEvent) => {
     unmount()
   } else if (data.type === 'jogak:runA11y') {
     scheduleA11y()
+  } else if (data.type === 'jogak:setTheme' && typeof data.theme === 'string') {
+    document.documentElement.setAttribute('data-theme', data.theme)
   }
 })
 

@@ -44,6 +44,11 @@ export interface PreviewProps {
    * 알파.9: iframe entry path.
    */
   readonly previewEntryPath?: string
+  /**
+   * 1.0.0 post-1.0: Themes addon. 툴바에 theme selector 노출.
+   * 미지정/빈 배열이면 selector 미표시. 첫 요소가 default theme.
+   */
+  readonly themes?: readonly string[]
 }
 
 type ViewportKey = 'mobile' | 'tablet' | 'desktop'
@@ -136,6 +141,7 @@ export function Preview({
   previewIsolation = 'iframe',
   userPreviewUrl = '',
   previewEntryPath = '/__jogak_preview__/index.html',
+  themes,
 }: PreviewProps): ReactElement {
   // 알파.14.1: iframe isolation 모드에서는 chrome 측에 component 모듈을 import하지 않는다
   // (chrome vite scope에 .vue/.svelte가 들어오면 plugin-vue/svelte 부재로 transform 실패).
@@ -147,6 +153,8 @@ export function Preview({
   const [bottomTab, setBottomTab] = useState<'controls' | 'actions' | 'a11y'>('controls')
   // 1.0.0-beta.3: A11y (axe-core) 결과. IframeMount의 onA11yResult 콜백으로 갱신.
   const [a11yResult, setA11yResult] = useState<A11yResult | null>(null)
+  // 1.0.0 post-1.0: Themes addon. 첫 요소를 default. themes 미지정 시 null → selector 미표시.
+  const [theme, setTheme] = useState<string | null>(themes && themes.length > 0 ? themes[0]! : null)
 
   const prismTheme = resolvePrismTheme(codeTheme)
 
@@ -212,6 +220,9 @@ export function Preview({
       previewIsolation={previewIsolation}
       userPreviewUrl={userPreviewUrl}
       previewEntryPath={previewEntryPath}
+      themes={themes}
+      theme={theme}
+      onThemeChange={setTheme}
     />
   )
 }
@@ -304,6 +315,9 @@ interface ReadyFrameProps {
   readonly previewIsolation: 'none' | 'shadow' | 'iframe'
   readonly userPreviewUrl: string
   readonly previewEntryPath: string
+  readonly themes?: readonly string[] | undefined
+  readonly theme: string | null
+  readonly onThemeChange: (theme: string) => void
 }
 
 function ReadyFrame({
@@ -325,6 +339,9 @@ function ReadyFrame({
   previewIsolation,
   userPreviewUrl,
   previewEntryPath,
+  themes,
+  theme,
+  onThemeChange,
 }: ReadyFrameProps): ReactElement {
   // jogakName이 비어있으면 (deep link `?entry=...&jogak` 누락) 첫 jogak로 보정.
   const resolvedJogakName = jogakName ?? entry.jogaks[0]?.name ?? null
@@ -372,6 +389,9 @@ function ReadyFrame({
         onBgModeChange={onBgModeChange}
         showReset={hasOverrides}
         onReset={onReset}
+        themes={themes}
+        theme={theme}
+        onThemeChange={onThemeChange}
       />
 
       {/* ── 캔버스 ───────────────────────────────────────── */}
@@ -399,6 +419,7 @@ function ReadyFrame({
             userPreviewUrl={userPreviewUrl}
             previewEntryPath={previewEntryPath}
             onA11yResult={onA11yResult}
+            activeTheme={theme}
           />
         </div>
       </div>
@@ -463,6 +484,9 @@ interface ToolbarProps {
   readonly onBgModeChange: (bg: BgMode) => void
   readonly showReset: boolean
   readonly onReset: () => void
+  readonly themes?: readonly string[] | undefined
+  readonly theme?: string | null
+  readonly onThemeChange?: (theme: string) => void
 }
 
 function Toolbar({
@@ -474,6 +498,9 @@ function Toolbar({
   onBgModeChange,
   showReset,
   onReset,
+  themes,
+  theme,
+  onThemeChange,
 }: ToolbarProps): ReactElement {
   return (
     <div className="jogak:flex jogak:items-center jogak:gap-[10px] jogak:px-[14px] jogak:py-[7px] jogak:border-b jogak:border-[var(--jogak-color-border)] jogak:bg-[var(--jogak-color-bg)] jogak:shrink-0">
@@ -506,6 +533,31 @@ function Toolbar({
           </button>
         ))}
       </div>
+
+      {/* 1.0.0 post-1.0: theme selector (themes 옵션이 있을 때만 렌더) */}
+      {themes && themes.length > 0 && theme !== null && onThemeChange !== undefined && (
+        <div
+          data-testid="toolbar-themes"
+          className="jogak:flex jogak:gap-0.5 jogak:bg-[var(--jogak-color-bg-subtle)] jogak:rounded-[var(--jogak-radius-lg)] jogak:p-0.5"
+        >
+          {themes.map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => { onThemeChange(t) }}
+              aria-pressed={theme === t}
+              className={clsx(
+                'jogak:px-[9px] jogak:py-[3px] jogak:text-[12px] jogak:border-none jogak:rounded-[var(--jogak-radius-md)] jogak:cursor-pointer jogak:transition-all jogak:duration-100 jogak:capitalize',
+                theme === t
+                  ? 'jogak:bg-[var(--jogak-color-bg-elevated)] jogak:text-[var(--jogak-color-fg-strong)] jogak:font-semibold jogak:shadow-[0_1px_2px_rgba(0,0,0,0.08)]'
+                  : 'jogak:bg-transparent jogak:text-[var(--jogak-color-fg-muted)] jogak:font-normal jogak:shadow-none',
+              )}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* 배경 토글 */}
       <div className="jogak:flex jogak:gap-1 jogak:items-center">
@@ -553,6 +605,8 @@ interface JogakRendererProps {
   readonly userPreviewUrl: string
   readonly previewEntryPath: string
   readonly onA11yResult?: ((result: A11yResult) => void) | undefined
+  /** 1.0.0 post-1.0: Themes addon 선택된 theme. IframeMount로 pass-through. */
+  readonly activeTheme?: string | null | undefined
 }
 
 /**
@@ -562,7 +616,7 @@ interface JogakRendererProps {
  * - `'shadow'` (deprecated) — `<ShadowMount>` 안에 마운트.
  * - `'none'` (deprecated) — 같은 document에 직접 마운트.
  */
-function JogakRenderer({ entry, args, theme, previewIsolation, userPreviewUrl, previewEntryPath, onA11yResult }: JogakRendererProps): ReactElement {
+function JogakRenderer({ entry, args, theme, previewIsolation, userPreviewUrl, previewEntryPath, onA11yResult, activeTheme }: JogakRendererProps): ReactElement {
   const [showCode, setShowCode] = useState(false)
   // 알파.10.3: 코드 패널은 jogak 메타 파일이 아니라 현재 args 기반 사용 코드를 노출.
   const usageCode = formatUsageCode(entry, args)
@@ -576,6 +630,7 @@ function JogakRenderer({ entry, args, theme, previewIsolation, userPreviewUrl, p
         userPreviewUrl={userPreviewUrl}
         previewEntryPath={previewEntryPath}
         onA11yResult={onA11yResult}
+        activeTheme={activeTheme}
       />
       <button
         type="button"
@@ -620,13 +675,14 @@ interface PreviewMountProps {
   readonly userPreviewUrl: string
   readonly previewEntryPath: string
   readonly onA11yResult?: ((result: A11yResult) => void) | undefined
+  readonly activeTheme?: string | null | undefined
 }
 
 const PREVIEW_HOST_CLASS =
   'jogak:border jogak:border-dashed jogak:border-[var(--jogak-color-border)] ' +
   'jogak:rounded-[var(--jogak-radius-xl)] jogak:p-4 jogak:pb-9'
 
-function PreviewMount({ entry, args, previewIsolation, userPreviewUrl, previewEntryPath, onA11yResult }: PreviewMountProps): ReactElement {
+function PreviewMount({ entry, args, previewIsolation, userPreviewUrl, previewEntryPath, onA11yResult, activeTheme }: PreviewMountProps): ReactElement {
   if (previewIsolation === 'shadow') {
     return (
       <ShadowMount
@@ -646,6 +702,7 @@ function PreviewMount({ entry, args, previewIsolation, userPreviewUrl, previewEn
         userPreviewUrl={userPreviewUrl}
         previewEntryPath={previewEntryPath}
         onA11yResult={onA11yResult}
+        activeTheme={activeTheme}
         data-testid="preview-content"
         className={`${PREVIEW_HOST_CLASS} jogak:block jogak:w-full jogak:bg-transparent jogak:min-h-[256px]`}
       />

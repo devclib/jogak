@@ -22,6 +22,12 @@ export interface IframeMountProps {
   readonly previewEntryPath: string
   /** 1.0.0-beta.3: A11y (axe-core) 결과 콜백 — iframe scope의 'jogak:a11y' 메시지 수신 시 호출 */
   readonly onA11yResult?: ((result: A11yResult) => void) | undefined
+  /**
+   * 1.0.0 post-1.0: Themes addon. 값이 non-null이면 iframe이 ready된 후
+   * `jogak:setTheme` postMessage 전송 → iframe scope handler가
+   * `document.documentElement.setAttribute('data-theme', theme)` 실행.
+   */
+  readonly activeTheme?: string | null | undefined
   readonly className?: string
   readonly 'data-testid'?: string
 }
@@ -50,6 +56,7 @@ export function IframeMount({
   userPreviewUrl,
   previewEntryPath,
   onA11yResult,
+  activeTheme,
   className,
   'data-testid': dataTestId,
 }: IframeMountProps): ReactElement {
@@ -104,6 +111,18 @@ export function IframeMount({
       '*',
     )
   }, [ready, entry, args])
+
+  // 1.0.0 post-1.0: Themes addon — ready + activeTheme 변경 시 setTheme 전송.
+  useEffect(() => {
+    if (!ready) return
+    if (activeTheme === null || activeTheme === undefined) return
+    const iframe = iframeRef.current
+    if (iframe === null) return
+    iframe.contentWindow?.postMessage(
+      { type: 'jogak:setTheme', theme: activeTheme },
+      '*',
+    )
+  }, [ready, activeTheme])
 
   // unmount 시 unmount 메시지 (race 회피 microtask defer).
   useEffect(() => {

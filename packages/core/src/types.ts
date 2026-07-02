@@ -340,6 +340,28 @@ export interface JogakPluginOptions {
    * 사용자가 직접 설정하는 옵션이 아니다.
    */
   readonly configPath?: string
+  /**
+   * 1.0.0 post-1.0: Themes addon. Preview 툴바에 theme selector 노출.
+   *
+   * 사용자가 CSS에서 `[data-theme="dark"] { --bg: black }` 등을 정의하면
+   * 툴바에서 theme 선택 시 iframe의 `document.documentElement`에 `data-theme` attribute가
+   * 설정되어 CSS가 그에 반응한다. Storybook `addon-themes` 대응.
+   *
+   * 값은 theme 이름 배열 (예: `['light', 'dark']`). 첫 요소가 default.
+   * 미지정/빈 배열이면 툴바에 theme selector 미표시.
+   *
+   * @example
+   * ```ts
+   * // jogak.config.ts
+   * export default defineJogakConfig({ themes: ['light', 'dark'] })
+   * ```
+   * ```css
+   * // src/styles/globals.css
+   * [data-theme='dark'] { --bg: #111; --fg: #eee }
+   * [data-theme='light'] { --bg: #fff; --fg: #111 }
+   * ```
+   */
+  readonly themes?: readonly string[]
 }
 
 /**
