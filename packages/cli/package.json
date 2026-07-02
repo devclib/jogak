@@ -6,10 +6,15 @@
     "jogak",
     "storybook",
     "storybook-alternative",
+    "storybook-drop-in",
     "showcase",
     "cli",
     "design-system",
-    "component-library"
+    "component-library",
+    "init",
+    "scaffold",
+    "vite",
+    "nextjs"
   ],
   "author": {
     "name": "devclib",
