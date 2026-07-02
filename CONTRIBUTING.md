@@ -44,6 +44,18 @@ Branch 명명 규칙:
 3. 본문에 **why + how**를 명확히
 4. Breaking change는 반드시 명시 (semver major bump 필요)
 
+### 사용자에게 보이는 변경이라면 changeset 추가
+
+```bash
+pnpm changeset
+```
+
+- 어떤 패키지가 바뀌었는지, minor/patch/major 중 어느 bump인지, 요약을 입력
+- 생성된 `.changeset/*.md` 파일을 PR에 함께 커밋
+- 4개 발행 패키지(core/ui/cli/codemod)는 fixed group — 하나만 선택해도 4개 모두 함께 bump
+
+내부 리팩터/문서/CI-only 변경은 changeset 불필요.
+
 ## Commit 원칙 (Karpathy 4원칙)
 
 이 프로젝트는 다음 4원칙을 상시 적용합니다 (`CLAUDE.md` 참조):
@@ -66,11 +78,13 @@ Branch 명명 규칙:
 
 Publish는 maintainer 권한으로 자동화되어 있습니다:
 
-1. `main`에 release commit + `v<version>` tag push
-2. `.github/workflows/release.yml`이 3 패키지 (core/ui/cli) 순차 npm publish
-3. 태그의 preid (alpha/beta/rc/stable)에 따라 dist-tag 자동 promote
+1. Contributor는 PR에 `.changeset/*.md`를 함께 커밋 (bump 종류 + 요약)
+2. Maintainer가 `pnpm version-packages`로 pending changesets를 소진 → version bump + CHANGELOG 통합
+3. `main`에 release commit + `v<version>` tag push
+4. `.github/workflows/release.yml`이 4 패키지 (core/ui/cli/codemod) 순차 npm publish
+5. 태그의 preid (alpha/beta/rc/stable)에 따라 dist-tag 자동 promote
 
-Contributor는 PR만 열면 됩니다. Publish 관련 문의는 이슈로 남겨주세요.
+Contributor는 PR + changeset만 열면 됩니다. Publish 관련 문의는 이슈로 남겨주세요.
 
 ## 문의/토론
 

@@ -1,0 +1,32 @@
+{
+  "$schema": "https://unpkg.com/@changesets/config@3.0.5/schema.json",
+  "changelog": [
+    "@changesets/changelog-github",
+    { "repo": "devclib/jogak" }
+  ],
+  "commit": false,
+  "fixed": [["@jogak/core", "@jogak/ui", "@jogak/cli", "@jogak/codemod"]],
+  "linked": [],
+  "access": "public",
+  "baseBranch": "main",
+  "updateInternalDependencies": "patch",
+  "ignore": [
+    "baseline-jogak",
+    "baseline-storybook",
+    "@baseline/shared",
+    "wc-demo",
+    "next-demo",
+    "jogak-next-test",
+    "jogak-standalone-test",
+    "jogak-svelte-test",
+    "jogak-vite-test",
+    "jogak-vue-test",
+    "jogak-webpack-test",
+    "@jogak-test-case/next-shop",
+    "@jogak-test-case/nuxt-shop",
+    "@jogak-test-case/react-shop",
+    "@jogak-test-case/svelte-shop",
+    "@jogak-test-case/vue-shop",
+    "@jogak-shop/shared"
+  ]
+}
